@@ -72,3 +72,18 @@ def test_ase_adapter_runs_with_emt():
     res = calc.optimize(water())
     assert res.e_opt <= res.e_input + 1e-9
     assert len(res.frames) >= 2
+
+
+def test_formal_charges():
+    rng = np.random.default_rng(0)
+
+    def smi(symbols, bonds):
+        return smiles_of(validate(symbols, rng.uniform(-1.5, 1.5, (len(symbols), 3)), bonds))
+
+    assert smi(["C", "O"], [(0, 1, 3)]) == "[C-]#[O+]"  # carbon monoxide
+    assert smi(["C", "N", "O", "O", "H", "H", "H"],
+               [(0, 1, 1), (1, 2, 2), (1, 3, 1), (0, 4, 1), (0, 5, 1), (0, 6, 1)]) == "C[N+](=O)[O-]"
+    with pytest.raises(ChemError):  # C=O without hydrogens: carbon still has free bonds
+        smi(["C", "O"], [(0, 1, 2)])
+    with pytest.raises(ChemError):  # O with 3 bonds but nothing to balance the charge
+        smi(["O", "H", "H", "H"], [(0, 1, 1), (0, 2, 1), (0, 3, 1)])

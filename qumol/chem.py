@@ -9,18 +9,26 @@ import numpy as np
 from hashmol3d import descriptor_geometry, hash_molecule
 
 # Elements allowed in the game for now (organic, drug-like).
+#   val      usual valence (hydrogens are added up to this)
+#   neutral  bond counts the atom can have without a charge (S can be 2-, 4- or 6-valent)
+#   plus     bond count reachable with a + formal charge (O⁺ in C≡O, N⁺ in nitro groups)
 ELEMENTS: dict[str, dict] = {
-    "H": {"z": 1, "r": 0.31, "val": 1},
-    "C": {"z": 6, "r": 0.76, "val": 4},
-    "N": {"z": 7, "r": 0.71, "val": 3},
-    "O": {"z": 8, "r": 0.66, "val": 2},
-    "F": {"z": 9, "r": 0.57, "val": 1},
-    "S": {"z": 16, "r": 1.05, "val": 2},
+    "H": {"z": 1, "r": 0.31, "val": 1, "neutral": (1,), "plus": None},
+    "C": {"z": 6, "r": 0.76, "val": 4, "neutral": (4,), "plus": None},
+    "N": {"z": 7, "r": 0.71, "val": 3, "neutral": (3,), "plus": 4},
+    "O": {"z": 8, "r": 0.66, "val": 2, "neutral": (2,), "plus": 3},
+    "F": {"z": 9, "r": 0.57, "val": 1, "neutral": (1,), "plus": None},
+    "S": {"z": 16, "r": 1.05, "val": 2, "neutral": (2, 4, 6), "plus": None},
 }
+
+
+def max_bonds(sym: str) -> int:
+    e = ELEMENTS[sym]
+    return max(e["neutral"] + ((e["plus"],) if e["plus"] else ()))
 Z_TO_SYMBOL = {v["z"]: k for k, v in ELEMENTS.items()}
 
-MAX_HEAVY = 30
-MAX_ATOMS = 150
+MAX_HEAVY = 10
+MAX_ATOMS = 60
 MAX_BOND_LENGTH = 4.0  # Å; real bonds are < 2 Å
 
 
@@ -33,6 +41,7 @@ class Molecule:
     symbols: list[str]
     coords: np.ndarray  # (N, 3) in Å
     bonds: list[tuple[int, int, int]]  # (i, j, order)
+    charges: list[int] | None = None  # formal charges (net zero), from assign_charges
 
     @property
     def numbers(self) -> list[int]:
@@ -79,14 +88,74 @@ def validate(symbols, coords, bonds) -> Molecule:
         raise ChemError(f"Too many heavy atoms (max {MAX_HEAVY})")
     for i, s in enumerate(symbols):
         used = sum(o for a, c, o in clean if a == i or c == i)
-        if used > ELEMENTS[s]["val"]:
-            raise ChemError(f"Atom {i + 1} ({s}) has too many bonds")
+        if used > max_bonds(s):
+            raise ChemError(f"Atom {i + 1} ({s}) has too many bonds (max {max_bonds(s)})")
     if not is_connected(mol):
         raise ChemError("Your molecule is in pieces. Connect everything")
     for a, c, _ in clean:
         if np.linalg.norm(xyz[a] - xyz[c]) > MAX_BOND_LENGTH:
             raise ChemError(f"Bond between atoms {a + 1} and {c + 1} is far too long (over {MAX_BOND_LENGTH:g} Å)")
+    charges, deficit = assign_charges(mol.symbols, clean, strict=True)
+    for i, d in enumerate(deficit):
+        if d > 0 and symbols[i] != "H":
+            raise ChemError(f"Atom {i + 1} ({symbols[i]}) still has {d} free bond{'s' if d > 1 else ''}. Add hydrogens with H+")
+    mol.charges = charges
     return mol
+
+
+def assign_charges(symbols, bonds, strict: bool = False):
+    """Formal charges for atoms with an extra bond, balanced so the molecule stays neutral.
+
+    An O with 3 bonds or an N with 4 takes a + charge; the nearest atom (by bonds) that is
+    one bond short of its usual valence takes the matching − charge. That gives
+    carbon monoxide ⁻C≡O⁺ and nitro groups −N⁺(=O)O⁻. Returns (charges, deficit), where
+    deficit is how many bonds each atom still lacks (filled with hydrogens).
+    With ``strict``, an unbalanced + charge raises ChemError.
+    """
+    n = len(symbols)
+    total = [0] * n
+    nbrs = [[] for _ in range(n)]
+    for a, b, o in bonds:
+        total[a] += o
+        total[b] += o
+        nbrs[a].append(b)
+        nbrs[b].append(a)
+    charges = [0] * n
+    deficit = [0] * n
+    plus = []
+    for i, s in enumerate(symbols):
+        e = ELEMENTS[s]
+        if total[i] > max(e["neutral"]):
+            plus.append(i)
+        else:
+            deficit[i] = min(v for v in e["neutral"] if v >= total[i]) - total[i]
+    for i in plus:
+        # breadth-first: nearest heavy atom that is one bond short and not yet charged
+        seen, frontier, partner = {i}, [i], None
+        while frontier and partner is None:
+            nxt = []
+            for u in frontier:
+                for v in nbrs[u]:
+                    if v in seen:
+                        continue
+                    seen.add(v)
+                    if symbols[v] != "H" and deficit[v] > 0 and charges[v] == 0:
+                        partner = v
+                        break
+                    nxt.append(v)
+                if partner is not None:
+                    break
+            frontier = nxt
+        if partner is None:
+            if strict:
+                raise ChemError(
+                    f"Atom {i + 1} ({symbols[i]}) has {total[i]} bonds, so it needs a + charge, "
+                    "but no neighbour has a free bond to take the − charge (like C≡O or a nitro group)")
+            continue
+        charges[i] = 1
+        charges[partner] = -1
+        deficit[partner] -= 1
+    return charges, deficit
 
 
 def is_connected(mol: Molecule) -> bool:
@@ -159,7 +228,7 @@ def to_xyz(symbols, coords, comment: str = "") -> str:
 # ---------------------------------------------------------------- SMILES (RDKit)
 
 
-def smiles_of(mol: Molecule) -> str | None:
+def smiles_of(mol: Molecule, implicit_h: bool = False) -> str | None:
     """Canonical SMILES from the player's atoms and bonds, or None if invalid."""
     try:
         from rdkit import Chem
@@ -169,10 +238,14 @@ def smiles_of(mol: Molecule) -> str | None:
     except ImportError:
         return None
     btype = {1: Chem.BondType.SINGLE, 2: Chem.BondType.DOUBLE, 3: Chem.BondType.TRIPLE}
+    charges = mol.charges or [0] * len(mol.symbols)
     try:
         rw = Chem.RWMol()
-        for s in mol.symbols:
-            rw.AddAtom(Chem.Atom(s))
+        for s, q in zip(mol.symbols, charges):
+            atom = Chem.Atom(s)
+            atom.SetFormalCharge(int(q))
+            atom.SetNoImplicit(not implicit_h)  # complete molecules carry all their H explicitly
+            rw.AddAtom(atom)
         for a, b, o in mol.bonds:
             rw.AddBond(a, b, btype[o])
         m = rw.GetMol()
@@ -200,7 +273,12 @@ def smiles_from_graph(symbols, bonds) -> str | None:
             raise ChemError("Duplicate bond")
         seen.add(key)
         clean.append((int(a), int(b), int(o)))
-    return smiles_of(Molecule(list(symbols), np.zeros((n, 3)), clean))
+    for i, s_ in enumerate(symbols):
+        if sum(o for a, b, o in clean if i in (a, b)) > max_bonds(s_):
+            raise ChemError(f"Atom {i + 1} ({s_}) has too many bonds")
+    charges, _ = assign_charges(list(symbols), clean)
+    # partial molecules: missing hydrogens are implied, so the display reads naturally
+    return smiles_of(Molecule(list(symbols), np.zeros((n, 3)), clean, charges), implicit_h=True)
 
 
 def inchikey_of(smiles: str | None) -> str | None:

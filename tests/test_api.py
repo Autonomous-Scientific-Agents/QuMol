@@ -24,7 +24,7 @@ def test_submission_scoring_and_storage(client):
     j = r.json()
     assert j["stable"] and j["smiles"] == "CCO" and j["formula"] == "C2H6O"
     labels = [l[0] for l in j["lines"]]
-    assert "Hand-built" in labels and "New to QuMol" in labels and "First claim: C2H6O" in labels
+    assert "Hand-built" in labels and "New to QuMol" in labels and "New formula: C2H6O!" in labels
     assert j["score"] == j["total"] > 0
     assert j["optimized_geometry_id"].startswith("hm3d_") and "_C2H6O_q0m1_" in j["optimized_geometry_id"]
     assert len(j["frames"]) > 1 and len(j["coords_opt"]) == 9
@@ -66,7 +66,7 @@ def test_rejects_bad_structures(client):
     assert client.post("/api/submissions", json=apart, headers=h).status_code == 400
     over = {"atoms": [{"el": "O", "x": 0, "y": 0, "z": 0}] + [{"el": "H", "x": i, "y": 1, "z": 0} for i in range(3)],
             "bonds": [[0, 1, 1], [0, 2, 1], [0, 3, 1]]}
-    assert "too many bonds" in client.post("/api/submissions", json=over, headers=h).json()["detail"]
+    assert "needs a + charge" in client.post("/api/submissions", json=over, headers=h).json()["detail"]
     metal = {"atoms": [{"el": "Fe", "x": 0, "y": 0, "z": 0}], "bonds": []}
     assert client.post("/api/submissions", json=metal, headers=h).status_code == 400
     huge = {"atoms": [{"el": "C", "x": 1.5 * i, "y": 0, "z": 0} for i in range(31)],
