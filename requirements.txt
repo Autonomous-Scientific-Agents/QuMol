@@ -1,7 +1,7 @@
 fastapi>=0.110
 uvicorn[standard]>=0.29
 numpy>=1.24
-hashmol3d>=0.9.3
+hashmol3d>=0.16.1
 rdkit>=2023.9
 # Optional: real potentials through ASE (QUMOL_METHOD=uma or emt)
 # ase>=3.23

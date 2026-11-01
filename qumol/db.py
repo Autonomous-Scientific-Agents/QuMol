@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS methods (
 );
 
 CREATE TABLE IF NOT EXISTS geometries (
-    id            TEXT PRIMARY KEY,          -- HashMol3D identifier, e.g. H2Oq0m1-92b9...
+    id            TEXT PRIMARY KEY,          -- HashMol3D identifier, e.g. hm3d_v12_p4_H2O_q0m1_b8ad...
     formula       TEXT NOT NULL,
     n_atoms       INTEGER NOT NULL,
     n_heavy       INTEGER NOT NULL,
