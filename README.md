@@ -8,6 +8,11 @@ QuMol is a 3D molecule-building game that runs in the browser on phones and desk
 
 - **3D builder** with H, C, N, O, S and F, plus Add, Bond, Move and Delete modes, Undo, H+ (saturate with hydrogens) and Clear. Every button has a hover tooltip.
 - **Quick placement:** clicking an element button drops an atom. The first goes at the centre, the second 1 Å away, and later ones 1 Å from the newest atom that still has a free bond, in a VSEPR-like direction, never closer than 0.95 Å to anything. If every atom is saturated, the new atom goes into open space beside the molecule. Bonds are perceived from distance (within 1.2× the covalent radii, respecting valence, and never closing a 3-ring with a bond just made).
+- **Formal charges and radicals:**
+  - Charges are automatic. An O with 3 bonds or an N with 4 becomes **+**, and the nearest atom that is one bond short becomes **−**, so molecules stay neutral: carbon monoxide is `[C-]#[O+]`, nitromethane is `C[N+](=O)[O-]`. S can make 2, 4 or 6 bonds without a charge.
+  - If free bonds remain at Build, the player chooses: fill them with H, or build a **radical**. Radicals can have at most 2 unpaired electrons, and the spin multiplicity is stored in the HashMol3D ID (`m2`, `m3`) and passed to UMA.
+  - Ions (net charge) are not allowed yet.
+- **Size:** up to 10 heavy atoms.
 - **Tap a bond** to cycle single → double → triple → single, within each atom's valence. In Delete mode, tapping a bond breaks it. On desktop, bonds highlight on hover.
 - **🎓 Learn**:
   - **Elements**: animated Lewis dots, bonds vs. lone pairs, valence electrons, shapes, bond lengths and a fun fact for each element.
@@ -68,7 +73,7 @@ The game is meant to be safe to expose publicly through Tailscale Funnel.
   - Health checks stay responsive under load. In a stress test with 55 concurrent worst-case submissions, health checks answered in under 0.05 s.
 - **Storage:**
   - Request bodies are capped at 256 KB.
-  - Molecules are capped at 30 heavy atoms (150 atoms in total).
+  - Molecules are capped at 10 heavy atoms (60 atoms in total).
   - New data is refused when the disk has less than 1 GB free (`QUMOL_MIN_FREE_MB`).
   - Leaderboards and stats are cached for 30 s.
 - **Web:**
@@ -148,7 +153,8 @@ Authenticated calls send `Authorization: Bearer <token>`. Interactive docs are a
 | Hand-built in the 3D editor | +50 |
 | SMILES new to QuMol | +100 |
 | Best geometry yet for an existing SMILES | +100 |
-| First claim of a molecular formula | +30 |
+| New molecular formula (first time anyone builds it) | +1,000 |
+| Formal charges (⁻C≡O⁺, nitro groups, …) | +50 |
 | New lowest-energy record for a formula | +300 |
 | Not in PubChem | +1,000 |
 | Size multiplier | × 1/√(heavy atoms) |

@@ -98,3 +98,18 @@ def test_live_smiles(client):
     assert client.post("/api/smiles", json={"atoms": [{"el": "C"}, {"el": "O"}], "bonds": [[0, 1, 2]]}).json()["smiles"] == "C=O"
     assert client.post("/api/smiles", json={"atoms": [{"el": "Xe"}]}).status_code == 400
     assert client.post("/api/smiles", json={"atoms": [{"el": "C"}], "bonds": [[0, 5, 1]]}).status_code == 400
+
+
+def test_charges_and_radicals_scoring(client):
+    h, _ = player(client)
+    co = {"atoms": [{"el": "C", "x": 0, "y": 0, "z": 0}, {"el": "O", "x": 1.13, "y": 0, "z": 0}], "bonds": [[0, 1, 3]]}
+    j = client.post("/api/submissions", json=co, headers=h).json()
+    labels = [l[0] for l in j["lines"]]
+    assert j["smiles"] == "[C-]#[O+]" and "Formal charges (⁺/⁻)" in labels and "New formula: CO!" in labels
+    assert "_q0m1_" in j["optimized_geometry_id"]
+    methyl = {"atoms": [{"el": "C", "x": 0, "y": 0, "z": 0}, {"el": "H", "x": 1.08, "y": 0, "z": 0},
+                        {"el": "H", "x": -0.54, "y": 0.94, "z": 0}, {"el": "H", "x": -0.54, "y": -0.94, "z": 0}],
+              "bonds": [[0, 1, 1], [0, 2, 1], [0, 3, 1]]}
+    j = client.post("/api/submissions", json=methyl, headers=h).json()
+    assert j["smiles"] == "[CH3]" and "_q0m2_" in j["optimized_geometry_id"]
+    assert any(l[0].startswith("Radical: 1 unpaired") for l in j["lines"])

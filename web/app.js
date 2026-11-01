@@ -3,15 +3,17 @@ import {OrbitControls} from './vendor/OrbitControls.js';
 
 /* ================= chemistry data ================= */
 const EL = {
-  H: {c:0xffffff, r:0.31, val:1, vis:0.22, name:'Hydrogen'},
-  C: {c:0x9aa3ad, r:0.76, val:4, vis:0.36, name:'Carbon'},
-  N: {c:0x3d6bff, r:0.71, val:3, vis:0.34, name:'Nitrogen'},
-  O: {c:0xff3b3b, r:0.66, val:2, vis:0.33, name:'Oxygen'},
-  S: {c:0xe040fb, r:1.05, val:2, vis:0.42, name:'Sulfur'},
-  F: {c:0x7ee06a, r:0.57, val:1, vis:0.30, name:'Fluorine'},
+  // val: usual valence · neutral: bond counts without a charge · plus: bonds reachable as a + ion
+  H: {c:0xffffff, r:0.31, val:1, vis:0.22, name:'Hydrogen', neutral:[1], plus:0},
+  C: {c:0x9aa3ad, r:0.76, val:4, vis:0.36, name:'Carbon',   neutral:[4], plus:0},
+  N: {c:0x3d6bff, r:0.71, val:3, vis:0.34, name:'Nitrogen', neutral:[3], plus:4},
+  O: {c:0xff3b3b, r:0.66, val:2, vis:0.33, name:'Oxygen',   neutral:[2], plus:3},
+  S: {c:0xe040fb, r:1.05, val:2, vis:0.42, name:'Sulfur',   neutral:[2,4,6], plus:0},
+  F: {c:0x7ee06a, r:0.57, val:1, vis:0.30, name:'Fluorine', neutral:[1], plus:0},
 };
 const ORDER = [0, 1, 0.87, 0.78];   // bond-length factor for single/double/triple
-const MAX_HEAVY = 30;
+const MAX_HEAVY = 10;
+const MAX_RADICALS = 2;  // unpaired electrons allowed per molecule
 const KB = 300, KA = 60, KR = 5;    // toy force field constants (kcal/mol-ish)
 
 /* ================= storage ================= */
@@ -203,7 +205,45 @@ const buzz = p => { try{ navigator.vibrate && navigator.vibrate(p); }catch{} };
 /* ================= molecule helpers ================= */
 const neighbors = i => bonds.filter(b => b.a===i || b.b===i).map(b => b.a===i ? b.b : b.a);
 const orderSum  = i => bonds.reduce((s,b) => s + ((b.a===i || b.b===i) ? b.o : 0), 0);
-const freeVal   = i => EL[atoms[i].el].val - orderSum(i);
+const maxBonds  = el => Math.max(...EL[el].neutral, EL[el].plus);
+// Automatic formal charges (mirror of assign_charges in qumol/chem.py): an atom with one
+// bond more than usual (O with 3, N with 4) becomes +, and the nearest heavy atom one bond
+// short becomes −, keeping the molecule neutral: ⁻C≡O⁺, nitro groups. 'deficit' is what's
+// left for hydrogens (or radicals).
+let _vsKey = '', _vs = null;
+function valenceState(){
+  const key = atoms.map(a => a.el).join('') + '|' + bonds.map(b => `${b.a},${b.b},${b.o}`).join(';');
+  if(key === _vsKey && _vs) return _vs;
+  const n = atoms.length, total = atoms.map((_, i) => orderSum(i)), nb = atoms.map((_, i) => neighbors(i));
+  const charge = new Array(n).fill(0), deficit = new Array(n).fill(0), plus = [], unbalanced = [];
+  atoms.forEach((a, i) => {
+    const e = EL[a.el], mx = Math.max(...e.neutral);
+    if(total[i] > mx) plus.push(i);
+    else deficit[i] = Math.min(...e.neutral.filter(v => v >= total[i])) - total[i];
+  });
+  for(const i of plus){
+    const seen = new Set([i]); let frontier = [i], partner = -1;
+    while(frontier.length && partner < 0){
+      const next = [];
+      for(const u of frontier){
+        for(const v of nb[u]){
+          if(seen.has(v)) continue; seen.add(v);
+          if(atoms[v].el !== 'H' && deficit[v] > 0 && charge[v] === 0){ partner = v; break; }
+          next.push(v);
+        }
+        if(partner >= 0) break;
+      }
+      frontier = next;
+    }
+    if(partner < 0){ unbalanced.push(i); continue; }
+    charge[i] = 1; charge[partner] = -1; deficit[partner]--;
+  }
+  _vsKey = key; _vs = {charge, deficit, unbalanced};
+  return _vs;
+}
+const freeVal   = i => valenceState().deficit[i];              // for growing and hydrogens
+const freeMax   = i => maxBonds(atoms[i].el) - orderSum(i);    // for explicit bond edits
+const freeHeavy = () => { const d = valenceState().deficit; return atoms.reduce((s, a, i) => s + (a.el !== 'H' ? d[i] : 0), 0); };
 const heavyCount = () => atoms.filter(a => a.el !== 'H').length;
 const findBond = (a,b) => bonds.find(x => (x.a===a && x.b===b) || (x.a===b && x.b===a));
 function hybCos(i){
@@ -241,7 +281,7 @@ function cycleBond(a, b){
   const ex = findBond(a, b), cur = ex ? ex.o : 0;
   let next = (cur + 1) % 4;
   const need = next - cur;
-  if(next > 0 && (freeVal(a) < need || freeVal(b) < need)) next = 0;
+  if(next > 0 && (freeMax(a) < need || freeMax(b) < need)) next = 0;
   if(next === 0 && !ex) return fail('No free valence for a bond there');
   if(next === 0){ bonds.splice(bonds.indexOf(ex), 1); SFX.del(); }
   else if(ex){ ex.o = next; SFX.bond(next); }
@@ -254,10 +294,10 @@ function cycleOrder(k){
   const b = bonds[k]; if(!b) return false;
   let next = b.o % 3 + 1;
   const need = next - b.o;
-  if(need > 0 && (freeVal(b.a) < need || freeVal(b.b) < need)){
+  if(need > 0 && (freeMax(b.a) < need || freeMax(b.b) < need)){
     if(b.o === 1){
-      const full = freeVal(b.a) < need ? b.a : b.b;
-      return fail(`${EL[atoms[full].el].name} has no free bond left for a double bond (max ${EL[atoms[full].el].val})`);
+      const full = freeMax(b.a) < need ? b.a : b.b;
+      return fail(`${EL[atoms[full].el].name} has no free bond left for a double bond (max ${maxBonds(atoms[full].el)})`);
     }
     next = 1;
   }
@@ -273,8 +313,21 @@ function removeBond(k){
 }
 
 // Bond a freshly placed atom to neighbours closer than 1.2 × the sum of covalent radii,
-// nearest first, within valence. Skip a bond that would close a 3-membered ring with a
-// bond just made: at 1 Å spacing, atoms two bonds apart are only ~1.6 Å away.
+// nearest first, within valence. Skip a bond that would close a 3- or 4-membered ring with
+// a bond just made: at 1 Å spacing, atoms two or three bonds apart can sit within bonding
+// distance. (Small rings can still be closed on purpose with the Bond tool.)
+function withinBonds(start, target, maxSteps){
+  let frontier = [start]; const seen = new Set([start]);
+  for(let step = 0; step < maxSteps; step++){
+    const next = [];
+    for(const u of frontier) for(const v of neighbors(u)){
+      if(v === target) return true;
+      if(!seen.has(v)){ seen.add(v); next.push(v); }
+    }
+    frontier = next;
+  }
+  return false;
+}
 const PLACE_DIST = 1.0;
 function perceiveFor(j){
   const pj = atoms[j].p, rj = EL[atoms[j].el].r, made = [];
@@ -283,7 +336,7 @@ function perceiveFor(j){
   for(const c of cands){
     if(freeVal(j) < 1) break;
     if(freeVal(c.i) < 1) continue;
-    if(made.some(m => neighbors(m).includes(c.i))) continue;
+    if(made.some(m => withinBonds(m, c.i, 2))) continue;
     bonds.push({a: c.i, b: j, o: 1}); made.push(c.i);
   }
   return made.length;
@@ -305,11 +358,11 @@ function placeNew(el){
     for(let i = atoms.length - 1; i >= 0; i--) if(freeVal(i) > 0){ anchor = i; break; }
     let best = null, bestGap = -1;
     if(anchor >= 0){
-      for(let t = 0; t < 24; t++){
-        const p = atoms[anchor].p.clone().addScaledVector(newDir(anchor, t ? 0.1 + 0.04 * t : 0.05), PLACE_DIST);
+      for(let t = 0; t < 48; t++){
+        const p = atoms[anchor].p.clone().addScaledVector(newDir(anchor, t ? 0.1 + 0.03 * t : 0.05), PLACE_DIST);
         const gap = minDistTo(p, anchor);
         if(gap > bestGap){ bestGap = gap; best = p; }
-        if(gap > 1.4) break;
+        if(gap > 1.9) break;  // clear of everything except the anchor: no accidental extra bonds
       }
     }
     if(!best || bestGap < 0.95){  // nothing free or too crowded: open space next to the molecule
@@ -524,6 +577,11 @@ function molblock(){
   L.push(p3(atoms.length) + p3(bonds.length) + '  0  0  0  0  0  0  0  0999 V2000');
   atoms.forEach(a => L.push(f10(a.p.x) + f10(a.p.y) + f10(a.p.z) + ' ' + a.el.padEnd(3) + ' 0  0  0  0  0  0  0  0  0  0  0  0'));
   bonds.forEach(b => L.push(p3(b.a+1) + p3(b.b+1) + p3(b.o) + '  0'));
+  const ch = valenceState().charge.map((q, i) => [i + 1, q]).filter(([, q]) => q);
+  for(let k = 0; k < ch.length; k += 8){
+    const part = ch.slice(k, k + 8);
+    L.push('M  CHG' + p3(part.length) + part.map(([i, q]) => ' ' + p3(i) + ' ' + p3(q)).join(''));
+  }
   L.push('M  END');
   return L.join('\n');
 }
@@ -663,6 +721,12 @@ function perceiveBonds(list){
   for(const c of cand) if(fv[c.a] > 0 && fv[c.b] > 0){ out.push({a:c.a, b:c.b, o:1, k:c.k}); fv[c.a]--; fv[c.b]--; }
   for(let pass=0; pass<2; pass++)
     for(const b of out) if(b.o < 3 && fv[b.a] > 0 && fv[b.b] > 0 && b.k < 0.97){ b.o++; fv[b.a]--; fv[b.b]--; }
+  // a very short bond (triple-bond length) may use the charged valence: C≡O as ⁻C≡O⁺
+  const extra = list.map(a => maxBonds(a.el) - EL[a.el].val);
+  for(const b of out) if(b.o < 3 && b.k < 0.84 && fv[b.a] + extra[b.a] > 0 && fv[b.b] + extra[b.b] > 0){
+    for(const x of [b.a, b.b]){ if(fv[x] > 0) fv[x]--; else extra[x]--; }
+    b.o++;
+  }
   return out.map(({a,b,o}) => ({a,b,o}));
 }
 function applyXYZ(){
@@ -719,6 +783,10 @@ const EXAMPLES = {
     atoms:[['C',0,0,0.601],['C',0,0,-0.601],['H',0,0,1.663],['H',0,0,-1.663]], bonds:[[0,1,3],[0,2,1],[1,3,1]]},
   formaldehyde:{name:'Formaldehyde, CH₂O', say:'A C=O double bond makes carbon trigonal planar: three groups, 120° apart, all flat.',
     atoms:[['C',0,0,0],['O',0,0,1.205],['H',0.943,0,-0.587],['H',-0.943,0,-0.587]], bonds:[[0,1,2],[0,2,1],[0,3,1]]},
+  co:{name:'Carbon monoxide, CO', say:'A C≡O triple bond gives oxygen a 3rd bond, so it carries a + charge and carbon a − (⁻C≡O⁺). QuMol assigns these formal charges for you.',
+    atoms:[['C',0,0,0],['O',1.128,0,0]], bonds:[[0,1,3]]},
+  methyl:{name:'Methyl radical, •CH₃', say:'Carbon with only 3 bonds keeps one unpaired electron: a radical. Build it and choose "Build as a radical".',
+    atoms:[['C',0,0,0],['H',1.08,0,0],['H',-0.54,0.935,0],['H',-0.54,-0.935,0]], bonds:[[0,1,1],[0,2,1],[0,3,1]]},
   co2:{name:'Carbon dioxide, CO₂', say:'Two C=O double bonds use all 4 of carbon\'s bonds: two groups → a straight line.',
     atoms:[['C',0,0,0],['O',1.16,0,0],['O',-1.16,0,0]], bonds:[[0,1,2],[0,2,2]]},
   benzene:{name:'Benzene, C₆H₆', say:'A flat ring of 6 carbons with alternating double bonds. Rings: close a chain with 🔗 Bond.',
@@ -743,9 +811,9 @@ function loadExample(key){
 const ELINFO = {
   H:{ve:1, lp:0, shape:'Always on the outside — only one bond', fact:'The lightest and most common element in the universe. Its single electron pairs with one partner and it\'s done (2 electrons is a full shell for H).', ex:'methane', len:'C–H 1.09 Å'},
   C:{ve:4, lp:0, shape:'4 singles: tetrahedral 109.5° · 1 double: flat 120° · 1 triple: linear 180°', fact:'The backbone of life. Four bonds in any combination: 4 singles, a double + 2 singles, 2 doubles, or a triple + a single. That flexibility is why there are millions of organic molecules.', ex:'methane', len:'C–C 1.54 · C=C 1.34 · C≡C 1.20 Å'},
-  N:{ve:5, lp:1, shape:'Trigonal pyramid (~107°) — the lone pair pushes the bonds down', fact:'Three bonds plus one lone pair. Nitrogen is in DNA bases, proteins and most drugs; its lone pair is what makes amines basic.', ex:'ammonia', len:'C–N 1.47 · C=N 1.28 · C≡N 1.16 Å'},
-  O:{ve:6, lp:2, shape:'Bent (~104.5°) — two lone pairs squeeze the bonds together', fact:'Two bonds plus two lone pairs. Oxygen is greedy for electrons, so its bonds are polar — that\'s why water is such a good solvent.', ex:'water', len:'C–O 1.43 · C=O 1.21 Å'},
-  S:{ve:6, lp:2, shape:'Bent (~92–100°)', fact:'Oxygen\'s bigger cousin: same 6 valence electrons, so it also makes 2 bonds here, but they are longer and softer. (Real sulfur can stretch to 4 or 6 bonds — not in this game yet!)', ex:'h2s', len:'C–S 1.82 Å'},
+  N:{ve:5, lp:1, shape:'Trigonal pyramid (~107°) — the lone pair pushes the bonds down', fact:'Three bonds plus one lone pair. Nitrogen is in DNA bases, proteins and most drugs; its lone pair is what makes amines basic. As N⁺ it can make 4 bonds, as in nitro groups.', ex:'ammonia', len:'C–N 1.47 · C=N 1.28 · C≡N 1.16 Å'},
+  O:{ve:6, lp:2, shape:'Bent (~104.5°) — two lone pairs squeeze the bonds together', fact:'Two bonds plus two lone pairs. Oxygen is greedy for electrons, so its bonds are polar — that\'s why water is such a good solvent. As O⁺ it can take a 3rd bond, as in carbon monoxide ⁻C≡O⁺.', ex:'water', len:'C–O 1.43 · C=O 1.21 Å'},
+  S:{ve:6, lp:2, shape:'Bent (~92–100°)', fact:'Oxygen\'s bigger cousin: same 6 valence electrons, so it also makes 2 bonds here, but they are longer and softer. Sulfur can also make 4 or 6 bonds without any charge, as in DMSO or sulfuric acid.', ex:'h2s', len:'C–S 1.82 Å'},
   F:{ve:7, lp:3, shape:'One bond, three lone pairs — always on the outside', fact:'One electron short of a full octet, so exactly one bond. Fluorine is the most electronegative element: it pulls electrons harder than anything else.', ex:'fluoromethane', len:'C–F 1.35 Å'},
 };
 function lewisSVG(el){
@@ -778,6 +846,7 @@ const QUIZ = [
   {q:'Which element can only ever be on the outside of a molecule?', a:['Carbon','Oxygen','Hydrogen','Nitrogen'], c:2, e:'Hydrogen makes exactly one bond, so it can never connect two other atoms. (Fluorine is the same!)'},
   {q:'What does the H+ button do?', a:['Adds a proton (positive charge)','Adds H atoms to every free bond until each atom\'s valence is full','Doubles every bond','Removes hydrogens'], c:1, e:'It saturates your molecule: C gets up to 4 bonds, N 3, O and S 2 — the rest are filled with H.'},
   {q:'How many valence electrons does oxygen have?', a:['2','4','6','8'], c:2, e:'O has 6. It needs 2 more for an octet, which is why it makes 2 bonds.'},
+  {q:'Why is carbon monoxide drawn as ⁻C≡O⁺?', a:['It is an ion','Oxygen\'s third bond makes it +, and carbon (only 3 bonds) becomes −','Carbon is more electronegative','Triple bonds are always charged'], c:1, e:'Formal charges are bookkeeping: O with 3 bonds is +1, C with 3 bonds and a lone pair is −1. They cancel, so CO is neutral overall.'},
   {q:'Benzene\'s ring is…', a:['Puckered like a chair','Perfectly flat','A straight line','Tetrahedral'], c:1, e:'All six carbons are trigonal planar (120°), so the whole ring is flat.'},
 ];
 function showLearn(tab = learnTab){
@@ -834,6 +903,8 @@ function learnShapes(body){
     ['C=C', 'Double bond', '1.34 Å, locked flat.', 'ethylene'],
     ['C≡C', 'Triple bond', '1.20 Å, straight line.', 'acetylene'],
     ['⬡', 'Ring', 'Close a chain with 🔗 Bond. Small rings (3–4 atoms) are strained.', 'benzene'],
+    ['⁻C≡O⁺', 'Formal charges', 'O can make a 3rd bond (N a 4th) as a + ion when a neighbour takes the −. QuMol does this automatically.', 'co'],
+    ['•', 'Radicals', 'Leave a bond empty for an unpaired electron (up to 2 per molecule).', 'methyl'],
   ];
   for(const [ang, title, text, ex] of rows){
     const r = document.createElement('div'); r.className = 'shape';
@@ -989,8 +1060,18 @@ async function animateFrames(frames, ms){
 async function submit(){
   if(busy) return;
   if(!atoms.some(a => a.el !== 'H')) return fail('Build something first!');
+  const vs = valenceState();
+  if(vs.unbalanced.length){
+    const i = vs.unbalanced[0];
+    return fail(`${EL[atoms[i].el].name} with ${orderSum(i)} bonds needs a + charge, but no neighbour has a free bond to take the − (like in C≡O)`);
+  }
   const snap = serialize();
-  fillH();
+  const free = freeHeavy();
+  if(free > 0){
+    const choice = await askFreeBonds(free);
+    if(choice === 'cancel') return;
+    if(choice === 'fill') fillH();
+  }
   if(!connected()){ restore(snap); changed(); return fail('Your molecule is in pieces — connect everything'); }
   busy = true; document.body.classList.add('busy'); bondFirst = null;
   undoStack.push(snap);
@@ -1030,11 +1111,14 @@ async function submit(){
       else lines.push(['Geometry skill', Math.round(100*Math.exp(-dEpa/2)), `ΔE ${dEpa.toFixed(2)} kcal/mol per atom`]);
       if(saddle) lines.push(['Started on a saddle point — rolled off!', 0]);
       lines.push([stable ? 'Stable structure' : 'Unstable — no bonuses', stable ? 50 : 0]);
+      const nRad = freeHeavy();
+      if(nRad) lines.push([`Radical: ${nRad} unpaired electron${nRad > 1 ? 's' : ''}`, 0]);
+      if(stable && valenceState().charge.some(q => q)) lines.push(['Formal charges (⁺/⁻)', 50]);
       if(inputMethod === 'hand') lines.push(['Hand-built', 50]);
       if(stable && smiles){
         lines.push(['New to QuMol', 100, smiles]);
         const rec = records[form];
-        if(rec === undefined){ lines.push([`First claim: ${form}`, 30]); records[form] = E1; }
+        if(rec === undefined){ lines.push([`New formula: ${form}!`, 1000]); records[form] = E1; }
         else if(E1 < rec - 0.01){ lines.push([`New record for ${form}!`, 300]); records[form] = E1; }
         toast('Checking PubChem…', 3000);
         pubNew = await pubchemIsNew(smiles);
@@ -1059,6 +1143,27 @@ async function submit(){
   } finally {
     busy = false; document.body.classList.remove('busy');
   }
+}
+
+function askFreeBonds(free){
+  return new Promise(resolve => {
+    const card = openCard();
+    const radicalOK = free <= MAX_RADICALS;
+    card.innerHTML = `<h2>${free} free bond${free > 1 ? 's' : ''} left</h2>
+      <p>Some atoms still have room for more bonds. Fill them with hydrogens, or keep them as
+      <b>unpaired electrons</b> — a <b>radical</b>, like methyl •CH₃.</p>
+      ${radicalOK ? '' : `<p style="opacity:.75">Radicals can have at most ${MAX_RADICALS} unpaired electrons, so this one needs hydrogens.</p>`}`;
+    const done = v => { $('ov').classList.add('hidden'); SFX.tick(); resolve(v); };
+    const fillB = document.createElement('button'); fillB.id = 'ovBtn'; fillB.textContent = 'Add hydrogens & build';
+    fillB.onclick = () => done('fill'); card.appendChild(fillB);
+    if(radicalOK){
+      const radB = document.createElement('button'); radB.className = 'try';
+      radB.textContent = `Build as a radical (${free} unpaired electron${free > 1 ? 's' : ''}) •`;
+      radB.onclick = () => done('radical'); card.appendChild(radB);
+    }
+    const cancel = document.createElement('button'); cancel.className = 'link'; cancel.textContent = 'Keep editing';
+    cancel.onclick = () => done('cancel'); card.appendChild(cancel);
+  });
 }
 
 async function submitOnline(){
@@ -1130,6 +1235,7 @@ function showHelp(){
   <p><b>Tap a bond</b> to change it: single → double → triple → single. On a computer, bonds light up when you hover.</p>
   <p><b>🔗 Bond</b> — tap two atoms to bond them. Tap the same pair again to cycle single → double → triple → none (great for rings).</p>
   <p><b>✋ Move</b> — drag atoms to perfect the geometry. The closer you are to the optimum, the more points.</p>
+  <p><b>Charges & radicals</b> — O can make a 3rd bond (N a 4th): QuMol gives it a + charge and a neighbour the −, like ⁻C≡O⁺. If bonds are left free when you Build, you can fill them with H or keep a radical (up to 2 unpaired electrons).</p>
   <p><b>Delete</b> — tap an atom to remove it, or a bond to break it. <b>Undo</b> steps back one change, <b>Clear</b> starts over.</p>
   <p><b>H+</b> — saturates your molecule: every atom with free bonds gets hydrogens until it has its full valence (C 4, N 3, O 2, S 2). Build does this for you too.</p>
   <p><b>🎓 Learn</b> — how each element bonds, molecular shapes you can load in 3D, and a quiz. <b>XYZ</b> — shows the formula and coordinates as you build; edit the numbers to reshape the molecule directly.</p>

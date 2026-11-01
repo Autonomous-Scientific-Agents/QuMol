@@ -30,6 +30,7 @@ Z_TO_SYMBOL = {v["z"]: k for k, v in ELEMENTS.items()}
 MAX_HEAVY = 10
 MAX_ATOMS = 60
 MAX_BOND_LENGTH = 4.0  # Å; real bonds are < 2 Å
+MAX_RADICALS = 2  # unpaired electrons allowed per molecule
 
 
 class ChemError(ValueError):
@@ -42,6 +43,11 @@ class Molecule:
     coords: np.ndarray  # (N, 3) in Å
     bonds: list[tuple[int, int, int]]  # (i, j, order)
     charges: list[int] | None = None  # formal charges (net zero), from assign_charges
+    radicals: int = 0  # unpaired electrons (free bonds left on heavy atoms)
+
+    @property
+    def multiplicity(self) -> int:
+        return self.radicals + 1  # 1 unpaired: doublet; 2: triplet (e.g. carbenes)
 
     @property
     def numbers(self) -> list[int]:
@@ -96,10 +102,12 @@ def validate(symbols, coords, bonds) -> Molecule:
         if np.linalg.norm(xyz[a] - xyz[c]) > MAX_BOND_LENGTH:
             raise ChemError(f"Bond between atoms {a + 1} and {c + 1} is far too long (over {MAX_BOND_LENGTH:g} Å)")
     charges, deficit = assign_charges(mol.symbols, clean, strict=True)
-    for i, d in enumerate(deficit):
-        if d > 0 and symbols[i] != "H":
-            raise ChemError(f"Atom {i + 1} ({symbols[i]}) still has {d} free bond{'s' if d > 1 else ''}. Add hydrogens with H+")
+    radicals = sum(d for i, d in enumerate(deficit) if symbols[i] != "H")
+    if radicals > MAX_RADICALS:
+        raise ChemError(
+            f"{radicals} free bonds left. Add hydrogens with H+ (radicals may have at most {MAX_RADICALS} unpaired electrons)")
     mol.charges = charges
+    mol.radicals = radicals
     return mol
 
 
@@ -195,7 +203,7 @@ class GeometryId:
     std_coords: np.ndarray
 
 
-def hash_geometry(symbols, coords, charge: int = 0) -> GeometryId:
+def hash_geometry(symbols, coords, charge: int = 0, multiplicity: int | None = None) -> GeometryId:
     """HashMol3D identifier (library defaults) plus the standardized geometry.
 
     The frame method's descriptor encodes the molecule in its canonical
@@ -205,7 +213,7 @@ def hash_geometry(symbols, coords, charge: int = 0) -> GeometryId:
     distance method there are no frame coordinates; the centred input is kept.
     """
     numbers = [ELEMENTS[s]["z"] for s in symbols]
-    r = hash_molecule(numbers, np.asarray(coords, dtype=float), charge=charge)
+    r = hash_molecule(numbers, np.asarray(coords, dtype=float), charge=charge, multiplicity=multiplicity)
     try:
         zs, std_xyz = descriptor_geometry(r.descriptor)
         std_syms = [Z_TO_SYMBOL[int(z)] for z in zs]

@@ -41,7 +41,7 @@ class ASECalculator(Calculator):
         from ase import Atoms
 
         at = Atoms(symbols=mol.symbols, positions=np.asarray(coords, dtype=float))
-        at.info.update({"charge": 0, "spin": 1})  # neutral singlet (UMA omol task reads these)
+        at.info.update({"charge": 0, "spin": mol.multiplicity})  # UMA's omol task reads these
         at.calc = self.calc
         return at
 

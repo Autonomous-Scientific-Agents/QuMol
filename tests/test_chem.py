@@ -83,7 +83,11 @@ def test_formal_charges():
     assert smi(["C", "O"], [(0, 1, 3)]) == "[C-]#[O+]"  # carbon monoxide
     assert smi(["C", "N", "O", "O", "H", "H", "H"],
                [(0, 1, 1), (1, 2, 2), (1, 3, 1), (0, 4, 1), (0, 5, 1), (0, 6, 1)]) == "C[N+](=O)[O-]"
-    with pytest.raises(ChemError):  # C=O without hydrogens: carbon still has free bonds
-        smi(["C", "O"], [(0, 1, 2)])
+    # radicals: up to 2 unpaired electrons, recorded as the spin multiplicity
+    m = validate(["C", "H", "H", "H"], rng.uniform(-1, 1, (4, 3)), [(0, 1, 1), (0, 2, 1), (0, 3, 1)])
+    assert smiles_of(m) == "[CH3]" and m.radicals == 1 and m.multiplicity == 2
+    assert smi(["N", "O"], [(0, 1, 2)]) == "[N]=O"
+    with pytest.raises(ChemError):  # a bare carbon atom has 4 free bonds: too many
+        smi(["C"], [])
     with pytest.raises(ChemError):  # O with 3 bonds but nothing to balance the charge
         smi(["O", "H", "H", "H"], [(0, 1, 1), (0, 2, 1), (0, 3, 1)])
