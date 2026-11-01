@@ -57,7 +57,7 @@ def test_input_methods(client):
     j = client.post("/api/submissions", json={**ethanol(), "input_method": "example"}, headers=h3).json()
     labels = [l[0] for l in j["lines"]]
     assert "Example molecule: no geometry points" in labels and "Hand-built" not in labels
-    assert client.post("/api/submissions", json={**ethanol(), "input_method": "magic"}, headers=h).status_code == 400
+    assert client.post("/api/submissions", json={**ethanol(), "input_method": "magic"}, headers=h).status_code == 422
 
 
 def test_rejects_bad_structures(client):
@@ -88,3 +88,13 @@ def test_leaderboards(client):
     assert client.get("/api/leaderboard/xyz").json()["rows"][0]["nickname"] == "bob"
     assert client.get("/api/leaderboard/nope").status_code == 404
     assert client.get("/").status_code == 200  # serves the game
+
+
+def test_live_smiles(client):
+    eth = ethanol()
+    r = client.post("/api/smiles", json={"atoms": [{"el": a["el"]} for a in eth["atoms"]], "bonds": eth["bonds"]})
+    assert r.json()["smiles"] == "CCO"
+    # partial molecule: missing hydrogens are implied
+    assert client.post("/api/smiles", json={"atoms": [{"el": "C"}, {"el": "O"}], "bonds": [[0, 1, 2]]}).json()["smiles"] == "C=O"
+    assert client.post("/api/smiles", json={"atoms": [{"el": "Xe"}]}).status_code == 400
+    assert client.post("/api/smiles", json={"atoms": [{"el": "C"}], "bonds": [[0, 5, 1]]}).status_code == 400

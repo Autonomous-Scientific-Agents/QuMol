@@ -21,6 +21,7 @@ Z_TO_SYMBOL = {v["z"]: k for k, v in ELEMENTS.items()}
 
 MAX_HEAVY = 30
 MAX_ATOMS = 150
+MAX_BOND_LENGTH = 4.0  # Å; real bonds are < 2 Å
 
 
 class ChemError(ValueError):
@@ -82,6 +83,9 @@ def validate(symbols, coords, bonds) -> Molecule:
             raise ChemError(f"Atom {i + 1} ({s}) has too many bonds")
     if not is_connected(mol):
         raise ChemError("Your molecule is in pieces. Connect everything")
+    for a, c, _ in clean:
+        if np.linalg.norm(xyz[a] - xyz[c]) > MAX_BOND_LENGTH:
+            raise ChemError(f"Bond between atoms {a + 1} and {c + 1} is far too long (over {MAX_BOND_LENGTH:g} Å)")
     return mol
 
 
@@ -164,19 +168,39 @@ def smiles_of(mol: Molecule) -> str | None:
         RDLogger.DisableLog("rdApp.*")
     except ImportError:
         return None
-    rw = Chem.RWMol()
-    for s in mol.symbols:
-        rw.AddAtom(Chem.Atom(s))
     btype = {1: Chem.BondType.SINGLE, 2: Chem.BondType.DOUBLE, 3: Chem.BondType.TRIPLE}
-    for a, b, o in mol.bonds:
-        rw.AddBond(a, b, btype[o])
     try:
+        rw = Chem.RWMol()
+        for s in mol.symbols:
+            rw.AddAtom(Chem.Atom(s))
+        for a, b, o in mol.bonds:
+            rw.AddBond(a, b, btype[o])
         m = rw.GetMol()
         Chem.SanitizeMol(m)
         m = Chem.RemoveHs(m)
         return Chem.MolToSmiles(m)
     except Exception:
         return None
+
+
+def smiles_from_graph(symbols, bonds) -> str | None:
+    """SMILES for a partial molecule (atoms + bonds only, no coordinates), for live display."""
+    n = len(symbols)
+    for s_ in symbols:
+        if s_ not in ELEMENTS:
+            raise ChemError(f"Element {s_!r} is not allowed")
+    if sum(1 for s_ in symbols if s_ != "H") > MAX_HEAVY:
+        raise ChemError(f"Too many heavy atoms (max {MAX_HEAVY})")
+    clean, seen = [], set()
+    for a, b, o in bonds:
+        if not (0 <= a < n and 0 <= b < n) or a == b or o not in (1, 2, 3):
+            raise ChemError("Invalid bond")
+        key = (min(a, b), max(a, b))
+        if key in seen:
+            raise ChemError("Duplicate bond")
+        seen.add(key)
+        clean.append((int(a), int(b), int(o)))
+    return smiles_of(Molecule(list(symbols), np.zeros((n, 3)), clean))
 
 
 def inchikey_of(smiles: str | None) -> str | None:

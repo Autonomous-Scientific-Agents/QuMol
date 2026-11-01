@@ -6,19 +6,34 @@ Run:  uvicorn qumol.app:app --host 0.0.0.0 --port 8000
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import secrets
+import sqlite3
 from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Annotated, Literal
 
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
-from fastapi.responses import FileResponse, PlainTextResponse
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
+from fastapi import Path as PathParam
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from . import __version__, db, scoring
 from .calculators import available, get_calculator
-from .chem import ChemError
+from .chem import ChemError, smiles_from_graph
+from .security import (BodyLimit, SecurityHeaders, compute_slot, ensure_disk_space, env_int, limiter,
+                       one_at_a_time, read_cache)
+
+# Abuse limits (override with environment variables if needed)
+SIGNUPS_PER_IP_HOUR = env_int("QUMOL_SIGNUPS_PER_IP_HOUR", 20)
+SUBMITS_PER_PLAYER_MIN = env_int("QUMOL_SUBMITS_PER_MIN", 20)
+SUBMITS_PER_PLAYER_DAY = env_int("QUMOL_SUBMITS_PER_DAY", 1000)
+SUBMITS_PER_IP_MIN = env_int("QUMOL_SUBMITS_PER_IP_MIN", 40)
+SUBMITS_PER_IP_DAY = env_int("QUMOL_SUBMITS_PER_IP_DAY", 3000)
+READS_PER_IP_MIN = env_int("QUMOL_READS_PER_IP_MIN", 120)
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 NICK_RE = re.compile(r"^[A-Za-z0-9_\-. ]{2,24}$")
@@ -29,7 +44,24 @@ async def lifespan(_app):
     yield
 
 
-app = FastAPI(title="QuMol", version=__version__, lifespan=lifespan)
+_docs = os.environ.get("QUMOL_DOCS") == "1"  # API docs are off unless asked for
+app = FastAPI(title="QuMol", version=__version__, lifespan=lifespan,
+              docs_url="/docs" if _docs else None, redoc_url=None,
+              openapi_url="/openapi.json" if _docs else None)
+app.add_middleware(SecurityHeaders)
+app.add_middleware(BodyLimit)
+
+
+@app.exception_handler(RequestValidationError)
+async def _validation_error(_request: Request, exc: RequestValidationError):
+    # Never echo the submitted values back (they may be huge, or NaN, which can't be JSON-encoded).
+    detail = [{"loc": list(e.get("loc", [])), "msg": e.get("msg", "Invalid input")} for e in exc.errors()][:10]
+    return JSONResponse({"detail": detail}, status_code=422)
+
+
+def client_ip(request: Request) -> str:
+    # uvicorn --proxy-headers fills this from X-Forwarded-For set by Tailscale (trusted: 127.0.0.1)
+    return request.client.host if request.client else "unknown"
 
 
 def get_con():
@@ -50,7 +82,7 @@ def _recovery_code() -> str:
 
 
 def current_player(authorization: str | None = Header(default=None), con=Depends(get_con)):
-    if not authorization or not authorization.lower().startswith("bearer "):
+    if not authorization or not authorization.lower().startswith("bearer ") or len(authorization) > 200:
         raise HTTPException(401, "Missing token")
     row = con.execute(
         "SELECT id, nickname FROM players WHERE token_hash=?", (_hash(authorization[7:].strip()),)
@@ -64,16 +96,18 @@ def current_player(authorization: str | None = Header(default=None), con=Depends
 
 
 class NewPlayer(BaseModel):
-    nickname: str
+    nickname: str = Field(max_length=64)
 
 
 class Recover(BaseModel):
-    nickname: str
-    recovery_code: str
+    nickname: str = Field(max_length=64)
+    recovery_code: str = Field(max_length=32)
 
 
 @app.post("/api/players")
-def create_player(body: NewPlayer, con=Depends(get_con)):
+def create_player(body: NewPlayer, request: Request, con=Depends(get_con)):
+    limiter.hit("signup:" + client_ip(request), SIGNUPS_PER_IP_HOUR, 3600)
+    ensure_disk_space(db.db_path())
     nick = body.nickname.strip()
     if not NICK_RE.match(nick):
         raise HTTPException(400, "Nickname: 2–24 letters, numbers, spaces, _ - or .")
@@ -84,13 +118,17 @@ def create_player(body: NewPlayer, con=Depends(get_con)):
                 "INSERT INTO players(nickname, token_hash, recovery_hash) VALUES (?,?,?)",
                 (nick, _hash(token), _hash(code)),
             )
-    except Exception:
+    except sqlite3.IntegrityError:
         raise HTTPException(409, "That nickname is taken")
     return {"player_id": cur.lastrowid, "nickname": nick, "token": token, "recovery_code": code}
 
 
 @app.post("/api/players/recover")
-def recover(body: Recover, con=Depends(get_con)):
+def recover(body: Recover, request: Request, con=Depends(get_con)):
+    ip = client_ip(request)
+    limiter.hit("recover:" + ip, 10, 3600)
+    # keyed on IP + nickname, so nobody can lock someone else out of their own account
+    limiter.hit(f"recover-nick:{ip}:{body.nickname.strip().lower()}", 5, 3600)
     row = con.execute(
         "SELECT id, nickname, recovery_hash FROM players WHERE nickname=?", (body.nickname.strip(),)
     ).fetchone()
@@ -117,33 +155,63 @@ def me(player=Depends(current_player), con=Depends(get_con)):
 # ------------------------------------------------------------------ submissions
 
 
+Coord = Annotated[float, Field(ge=-500, le=500, allow_inf_nan=False)]
+Index = Annotated[int, Field(ge=0, le=1000)]
+
+
 class Atom(BaseModel):
-    el: str
-    x: float
-    y: float
-    z: float
+    el: str = Field(max_length=2)
+    x: Coord
+    y: Coord
+    z: Coord
 
 
 class Submission(BaseModel):
-    atoms: list[Atom] = Field(..., min_length=1, max_length=200)
-    bonds: list[tuple[int, int, int]] = Field(default_factory=list, max_length=400)
-    input_method: str = "hand"
-    mode: str = "stable"
+    atoms: list[Atom] = Field(..., min_length=1, max_length=150)
+    bonds: list[tuple[Index, Index, Annotated[int, Field(ge=1, le=3)]]] = Field(default_factory=list, max_length=300)
+    input_method: Literal["hand", "xyz", "smiles", "2d", "example"] = "hand"
+    mode: Literal["stable"] = "stable"
 
 
 @app.post("/api/submissions")
-def create_submission(body: Submission, player=Depends(current_player), con=Depends(get_con)):
+def create_submission(body: Submission, request: Request, player=Depends(current_player), con=Depends(get_con)):
+    ip, pid = client_ip(request), player["id"]
+    limiter.hit(f"submit:{pid}", SUBMITS_PER_PLAYER_MIN, 60)
+    limiter.hit(f"submit-day:{pid}", SUBMITS_PER_PLAYER_DAY, 86400)
+    limiter.hit(f"submit-ip:{ip}", SUBMITS_PER_IP_MIN, 60)
+    limiter.hit(f"submit-ip-day:{ip}", SUBMITS_PER_IP_DAY, 86400)
+    ensure_disk_space(db.db_path())
     try:
-        return scoring.submit(
-            con, player["id"], [a.el for a in body.atoms], [[a.x, a.y, a.z] for a in body.atoms],
-            body.bonds, body.input_method, body.mode,
-        )
+        with one_at_a_time(f"player:{pid}"):
+            return scoring.submit(
+                con, pid, [a.el for a in body.atoms], [[a.x, a.y, a.z] for a in body.atoms],
+                body.bonds, body.input_method, body.mode, compute=compute_slot,
+            )
     except (ChemError, ValueError) as e:
         raise HTTPException(400, str(e))
 
 
+class GraphAtom(BaseModel):
+    el: str = Field(max_length=2)
+
+
+class Graph(BaseModel):
+    atoms: list[GraphAtom] = Field(..., min_length=1, max_length=150)
+    bonds: list[tuple[Index, Index, Annotated[int, Field(ge=1, le=3)]]] = Field(default_factory=list, max_length=300)
+
+
+@app.post("/api/smiles")
+def live_smiles(body: Graph, request: Request):
+    """SMILES of the molecule being built (for the live display)."""
+    limiter.hit("smiles:" + client_ip(request), 240, 60)
+    try:
+        return {"smiles": smiles_from_graph([a.el for a in body.atoms], body.bonds)}
+    except ChemError as e:
+        raise HTTPException(400, str(e))
+
+
 @app.get("/api/submissions/mine")
-def my_submissions(limit: int = Query(50, le=500), player=Depends(current_player), con=Depends(get_con)):
+def my_submissions(limit: int = Query(50, ge=1, le=500), player=Depends(current_player), con=Depends(get_con)):
     rows = con.execute(
         """SELECT id, formula, smiles, score, stable, in_pubchem, input_method, created_at
            FROM submissions WHERE player_id=? ORDER BY id DESC LIMIT ?""",
@@ -153,7 +221,7 @@ def my_submissions(limit: int = Query(50, le=500), player=Depends(current_player
 
 
 @app.get("/api/geometries/{gid}.xyz", response_class=PlainTextResponse)
-def geometry_xyz(gid: str, con=Depends(get_con)):
+def geometry_xyz(gid: str = PathParam(max_length=200), con=Depends(get_con)):
     row = con.execute("SELECT xyz FROM geometries WHERE id=?", (gid,)).fetchone()
     if not row:
         raise HTTPException(404, "No such geometry")
@@ -181,7 +249,22 @@ def leaderboard_list():
 
 
 @app.get("/api/leaderboard/{category}")
-def leaderboard(category: str, limit: int = Query(20, le=100), con=Depends(get_con)):
+def leaderboard(category: str, request: Request, limit: int = Query(20, ge=1, le=100)):
+    limiter.hit("read:" + client_ip(request), READS_PER_IP_MIN, 60)
+    if category != "records" and category not in LEADERBOARDS:
+        raise HTTPException(404, f"Unknown leaderboard; try one of {list(leaderboard_list())}")
+
+    def compute():
+        con = db.connect()
+        try:
+            return _leaderboard(con, category, limit)
+        finally:
+            con.close()
+
+    return read_cache.get(("lb", category, limit), compute)
+
+
+def _leaderboard(con, category: str, limit: int):
     if category == "records":
         mid = db.method_id(con, get_calculator())
         con.commit()
@@ -203,8 +286,6 @@ def leaderboard(category: str, limit: int = Query(20, le=100), con=Depends(get_c
                 ORDER BY value DESC, MIN(s.id) LIMIT ?""",
             (limit,),
         ).fetchall()
-    else:
-        raise HTTPException(404, f"Unknown leaderboard; try one of {list(leaderboard_list())}")
     return {"category": category, "title": title,
             "rows": [{"rank": i + 1, "nickname": r["nickname"], "value": r["value"]} for i, r in enumerate(rows)]}
 
@@ -213,14 +294,27 @@ def leaderboard(category: str, limit: int = Query(20, le=100), con=Depends(get_c
 
 
 @app.get("/api/health")
-def health():
+async def health():  # async: answers even while worker threads are busy
     calc = get_calculator()
     return {"ok": True, "version": __version__, "method": {"name": calc.name, "version": calc.version},
             "available_methods": available()}
 
 
 @app.get("/api/stats")
-def stats(con=Depends(get_con)):
+def stats(request: Request):
+    limiter.hit("read:" + client_ip(request), READS_PER_IP_MIN, 60)
+    return read_cache.get(("stats",), _stats)
+
+
+def _stats():
+    con = db.connect()
+    try:
+        return _stats_query(con)
+    finally:
+        con.close()
+
+
+def _stats_query(con):
     r = con.execute(
         """SELECT (SELECT COUNT(*) FROM players) AS players,
                   (SELECT COUNT(*) FROM submissions) AS submissions,
@@ -231,10 +325,6 @@ def stats(con=Depends(get_con)):
     return dict(r)
 
 
-@app.get("/")
-def index():
-    return FileResponse(WEB_DIR / "index.html")
-
-
+# The game itself (index.html, app.js, vendor/). Mounted last so /api routes win.
 if WEB_DIR.exists():
-    app.mount("/web", StaticFiles(directory=WEB_DIR), name="web")
+    app.mount("/", StaticFiles(directory=WEB_DIR, html=True), name="web")

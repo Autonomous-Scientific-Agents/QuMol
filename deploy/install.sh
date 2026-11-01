@@ -14,6 +14,7 @@
 #             off    = don't touch Tailscale
 #   TS_PORT   HTTPS port on the tailnet name: 443, 8443 or 10000 (default: 8443,
 #             so it won't replace anything you already serve on 443)
+#   REF       git tag or commit to deploy instead of the latest main (recommended once you tag releases)
 set -euo pipefail
 TAILSCALE="${TAILSCALE:-serve}"
 TS_PORT="${TS_PORT:-8443}"
@@ -33,11 +34,17 @@ fi
 
 if [ -d "$APP_DIR/.git" ]; then
   echo "==> Updating code"
-  git -C "$APP_DIR" pull --ff-only
+  git -C "$APP_DIR" fetch --tags -q origin
 else
   echo "==> Cloning $REPO"
-  git clone "$REPO" "$APP_DIR"
+  git clone -q "$REPO" "$APP_DIR"
 fi
+if [ -n "${REF:-}" ]; then
+  git -C "$APP_DIR" -c advice.detachedHead=false checkout -q "$REF"
+else
+  git -C "$APP_DIR" checkout -q main && git -C "$APP_DIR" merge -q --ff-only origin/main
+fi
+echo "    at $(git -C "$APP_DIR" rev-parse --short HEAD)"
 
 echo "==> Python environment"
 [ -x "$APP_DIR/.venv/bin/python" ] || python3 -m venv "$APP_DIR/.venv"
@@ -47,7 +54,14 @@ if [ "$METHOD" = "uma" ]; then
   "$APP_DIR/.venv/bin/pip" install -q ase fairchem-core
 fi
 
-mkdir -p "$APP_DIR/data"
+echo "==> Front-end libraries (pinned, checksum-verified)"
+bash "$APP_DIR/scripts/fetch_vendor.sh"
+
+# Database folder readable only by the service user (it holds login-token hashes).
+mkdir -p "$APP_DIR/data/cache"
+chmod 700 "$APP_DIR/data"
+
+if [ "$METHOD" = "uma" ]; then MEM_MAX=8G; else MEM_MAX=1500M; fi
 
 echo "==> systemd service"
 sudo tee /etc/systemd/system/qumol.service >/dev/null <<EOF
@@ -61,9 +75,44 @@ User=$RUN_USER
 WorkingDirectory=$APP_DIR
 Environment=QUMOL_DB=$APP_DIR/data/qumol.db
 Environment=QUMOL_METHOD=$METHOD
-ExecStart=$APP_DIR/.venv/bin/uvicorn qumol.app:app --host 127.0.0.1 --port $PORT --proxy-headers
+Environment=HF_HOME=$APP_DIR/data/cache/huggingface
+Environment=XDG_CACHE_HOME=$APP_DIR/data/cache
+UMask=0077
+# Only reachable through Tailscale on this machine; X-Forwarded-For is trusted only from localhost.
+ExecStart=$APP_DIR/.venv/bin/uvicorn qumol.app:app --host 127.0.0.1 --port $PORT --proxy-headers --forwarded-allow-ips 127.0.0.1 --no-server-header
 Restart=on-failure
 RestartSec=3
+
+# Sandboxing: the app sees only its own folder (read-only) and writes only to data/.
+# The rest of your home directory (~/.ssh, other projects) is hidden from it.
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=tmpfs
+BindReadOnlyPaths=$APP_DIR
+BindPaths=$APP_DIR/data
+ReadWritePaths=$APP_DIR/data
+ProtectProc=invisible
+ProcSubset=pid
+SystemCallFilter=@system-service
+SystemCallErrorNumber=EPERM
+MemoryMax=$MEM_MAX
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictSUIDSGID=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+LockPersonality=yes
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+CapabilityBoundingSet=
+AmbientCapabilities=
+SystemCallArchitectures=native
+TasksMax=256
 
 [Install]
 WantedBy=multi-user.target
@@ -104,4 +153,5 @@ if [ "$TAILSCALE" != "off" ]; then
 fi
 
 echo
-echo "Update later by re-running this script.  Logs: journalctl -u qumol -f   Tailscale: tailscale serve status"
+echo "Check the logs show your players' real IPs (rate limits rely on it): journalctl -u qumol | tail
+Update later by re-running this script.  Logs: journalctl -u qumol -f   Tailscale: tailscale serve status"
