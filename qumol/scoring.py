@@ -27,6 +27,7 @@ POINTS = {
     "formula_record": 300,
     "smiles_record": 100,
     "not_in_pubchem": 1000,
+    "formal_charges": 50,  # small bonus for zwitterionic bonding like ⁻C≡O⁺
 }
 INPUT_METHODS = ("hand", "xyz", "smiles", "2d", "example")
 GEOMETRY_SCORED = ("hand", "xyz")  # 2D and SMILES inputs get auto-generated geometry
@@ -54,8 +55,8 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
     with compute():
         res = calc.optimize(mol, seed=seed)
         stable = bool(res.converged and structure_intact(mol, res.coords_opt))
-        g_in = hash_geometry(mol.symbols, res.coords_input)
-        g_opt = hash_geometry(mol.symbols, res.coords_opt)
+        g_in = hash_geometry(mol.symbols, res.coords_input, multiplicity=mol.multiplicity)
+        g_opt = hash_geometry(mol.symbols, res.coords_opt, multiplicity=mol.multiplicity)
     smiles = smiles_of(mol)
     inchikey = inchikey_of(smiles)
     n_heavy = mol.n_heavy
@@ -97,6 +98,11 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
             if res.saddle:
                 lines.append(["Started on a saddle point and rolled off!", 0, None])
             lines.append(["Stable structure" if stable else "Unstable: no bonuses", POINTS["stable"] if stable else 0, None])
+            if mol.radicals:
+                n = mol.radicals
+                lines.append([f"Radical: {n} unpaired electron{'s' if n > 1 else ''}", 0, None])
+            if stable and any(mol.charges or []):
+                lines.append(["Formal charges (⁺/⁻)", POINTS["formal_charges"], None])
             if input_method == "hand":
                 lines.append(["Hand-built", POINTS["hand_built"], None])
             if stable and smiles:
