@@ -6,7 +6,7 @@ from collections import Counter
 from dataclasses import dataclass
 
 import numpy as np
-from hashmol3d import hash_molecule
+from hashmol3d import descriptor_geometry, hash_molecule
 
 # Elements allowed in the game for now (organic, drug-like).
 ELEMENTS: dict[str, dict] = {
@@ -110,7 +110,7 @@ def hill_formula(symbols) -> str:
 
 @dataclass
 class GeometryId:
-    id: str  # full identifier, e.g. H2Oq0m1-92b9...
+    id: str  # full identifier, e.g. hm3d_v12_p4_H2O_q0m1_b8ad...
     formula: str
     geometry_hash: str
     version: str
@@ -125,34 +125,25 @@ class GeometryId:
 def hash_geometry(symbols, coords, charge: int = 0) -> GeometryId:
     """HashMol3D identifier (library defaults) plus the standardized geometry.
 
-    The frame method's descriptor holds the coordinates quantized on the
-    precision grid in the principal-axes frame, so identical structures map to
-    one identifier and one standardized geometry. If HashMol3D fell back to the
+    The frame method's descriptor encodes the molecule in its canonical
+    principal-axes frame, so identical structures map to one identifier and one
+    standardized geometry (recovered with ``hashmol3d.descriptor_geometry``,
+    which re-hashes to the same identifier). If HashMol3D fell back to the
     distance method there are no frame coordinates; the centred input is kept.
     """
     numbers = [ELEMENTS[s]["z"] for s in symbols]
     r = hash_molecule(numbers, np.asarray(coords, dtype=float), charge=charge)
-    std_syms, std_xyz = _frame_coords(r.descriptor, r.precision)
-    if std_syms is None:
+    try:
+        zs, std_xyz = descriptor_geometry(r.descriptor)
+        std_syms = [Z_TO_SYMBOL[int(z)] for z in zs]
+    except ValueError:
         xyz = np.asarray(coords, dtype=float)
-        std_syms, std_xyz = list(symbols), np.round(xyz - xyz.mean(axis=0), 4)
+        std_syms, std_xyz = list(symbols), np.round(xyz - xyz.mean(axis=0), 6)
     return GeometryId(
         id=r.hash_str, formula=r.formula, geometry_hash=r.geometry_hash, version=r.version,
         precision=r.precision, charge=r.charge, multiplicity=r.multiplicity,
-        descriptor=r.descriptor, std_symbols=std_syms, std_coords=std_xyz,
+        descriptor=r.descriptor, std_symbols=std_syms, std_coords=np.asarray(std_xyz, dtype=float),
     )
-
-
-def _frame_coords(descriptor: str, precision: float):
-    for part in descriptor.split("|"):
-        if part.startswith("F:"):
-            syms, rows = [], []
-            for row in part[2:].split(";"):
-                z, rest = row.split(":")
-                syms.append(Z_TO_SYMBOL.get(int(z), str(z)))
-                rows.append([int(v) * precision for v in rest.split(",")])
-            return syms, np.array(rows)
-    return None, None
 
 
 def to_xyz(symbols, coords, comment: str = "") -> str:

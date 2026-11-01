@@ -15,12 +15,20 @@ def water(theta=0.0):
 def test_hash_is_invariant_and_gives_standard_geometry():
     a = hash_geometry(water().symbols, water().coords)
     b = hash_geometry(water(0.7).symbols, water(0.7).coords)
-    assert a.id == b.id and a.id.startswith("H2Oq0m1-")
+    assert a.id == b.id and a.id.startswith("hm3d_") and "_H2O_q0m1_" in a.id
     assert np.allclose(a.std_coords, b.std_coords)
     # standardized geometry keeps the bond lengths
     o = a.std_symbols.index("O")
     d = sorted(np.linalg.norm(a.std_coords[i] - a.std_coords[o]) for i in range(3) if i != o)
     assert d[0] == pytest.approx(0.9572, abs=2e-4)
+
+
+def test_standard_geometry_rehashes_to_same_id():
+    for theta in (0.0, 1.3):
+        g = hash_geometry(water(theta).symbols, water(theta).coords)
+        again = hash_geometry(g.std_symbols, g.std_coords)
+        assert again.id == g.id
+        assert np.abs(g.std_coords).max() < 5  # Å, not grid integers
 
 
 def test_smiles_and_validation():

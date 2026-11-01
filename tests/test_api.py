@@ -26,7 +26,7 @@ def test_submission_scoring_and_storage(client):
     labels = [l[0] for l in j["lines"]]
     assert "Hand-built" in labels and "New to QuMol" in labels and "First claim: C2H6O" in labels
     assert j["score"] == j["total"] > 0
-    assert j["optimized_geometry_id"].startswith("C2H6Oq0m1-")
+    assert j["optimized_geometry_id"].startswith("hm3d_") and "_C2H6O_q0m1_" in j["optimized_geometry_id"]
     assert len(j["frames"]) > 1 and len(j["coords_opt"]) == 9
 
     # The same molecule again: stored, but no points.
