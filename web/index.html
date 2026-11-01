@@ -24,7 +24,7 @@ button.on{background:var(--acc);box-shadow:0 0 14px var(--acc)}
 .brand{font-weight:900;font-size:20px;background:linear-gradient(90deg,#7c5cff,#20d3a7);-webkit-background-clip:text;background-clip:text;color:transparent}
 .pill{background:var(--panel);border-radius:12px;padding:8px 12px;font-size:13px;min-width:0;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .right{display:flex;gap:6px;align-items:center}
-#total{background:var(--panel);font-size:17px}
+#total{background:var(--panel);font-size:17px;white-space:nowrap}
 #toast{position:fixed;left:50%;top:76px;transform:translateX(-50%);background:var(--panel);padding:10px 16px;border-radius:12px;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
 #toast.show{opacity:1}
 body.busy #bottom button{opacity:.45;pointer-events:none}
@@ -41,6 +41,13 @@ body.busy #bottom button{opacity:.45;pointer-events:none}
 #ovTotal{font-size:46px;font-weight:900;text-align:center;margin:14px 0;background:linear-gradient(90deg,#ffd166,#ff5ca8,#7c5cff);-webkit-background-clip:text;background-clip:text;color:transparent}
 .wow{font-size:24px;font-weight:900;text-align:center;color:#ffd166;animation:pulse .6s infinite alternate}
 #ovBtn{width:100%;margin-top:6px;background:linear-gradient(135deg,var(--acc),var(--acc2))}
+input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;background:#0e1530;color:var(--txt);font-size:17px;padding:0 12px;margin:6px 0;user-select:text;-webkit-user-select:text}
+.link{background:none;color:#9fb0ff;text-decoration:underline;width:100%;font-weight:500;font-size:14px}
+.code{font-family:ui-monospace,Menlo,monospace;font-size:22px;text-align:center;letter-spacing:1px;background:#0e1530;border-radius:12px;padding:12px;margin:10px 0;user-select:text;-webkit-user-select:text}
+.tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:6px;margin-bottom:6px}
+.tabs button{flex:0 0 auto;height:36px;font-size:13px}
+.line.me{background:rgba(124,92,255,.18);border-radius:8px;padding-left:6px;padding-right:6px}
+.err{color:#ff8a8a;min-height:20px;font-size:14px}
 @keyframes pop{from{transform:scale(.6);opacity:0}}
 @keyframes slide{from{transform:translateX(-24px);opacity:0}}
 @keyframes pulse{to{transform:scale(1.08)}}
@@ -54,7 +61,7 @@ body.busy #bottom button{opacity:.45;pointer-events:none}
 
 <div id="top" class="bar">
   <div class="left"><span class="brand">QuMol</span><span id="info" class="pill">Loading…</span></div>
-  <div class="right"><button id="mute" title="Sound">🔊</button><button id="help" title="How to play">?</button><button id="total" title="Your collection">0 ⭐</button></div>
+  <div class="right"><button id="mute" title="Sound">🔊</button><button id="help" title="How to play">?</button><button id="lb" title="Leaderboards">🏆</button><button id="total" title="Your collection">0 ⭐</button></div>
 </div>
 
 <div id="bottom" class="bar">
@@ -104,6 +111,33 @@ const seen  = new Set(LS.get('qm.seen', []));
 const records = LS.get('qm.records', {});       // formula -> best energy
 const history = LS.get('qm.history', []);       // [{smiles, formula, score, pubNew}]
 const pcCache = LS.get('qm.pubchem', {});       // smiles -> true(new)/false(known)
+
+/* ================= server (online mode) ================= */
+// When the page is served by the QuMol backend, scoring happens on the server and
+// everything is saved there. Opened as a plain file, the game falls back to local play.
+let ONLINE = false;
+let token = LS.get('qm.token', null), nick = LS.get('qm.nick', null);
+async function api(path, {method='GET', body} = {}){
+  const headers = {};
+  if(body) headers['Content-Type'] = 'application/json';
+  if(token) headers.Authorization = 'Bearer ' + token;
+  const r = await fetch(path, {method, headers, body: body ? JSON.stringify(body) : undefined});
+  let j = null; try{ j = await r.json(); }catch{}
+  if(!r.ok){
+    let msg = j && j.detail;
+    if(Array.isArray(msg)) msg = msg.map(d => d.msg).join('; ');
+    const e = new Error(msg || `Server error ${r.status}`); e.status = r.status; throw e;
+  }
+  return j;
+}
+async function detectServer(){
+  try{
+    const ctl = new AbortController(); setTimeout(() => ctl.abort(), 2500);
+    const r = await fetch('/api/health', {signal: ctl.signal});
+    ONLINE = r.ok && !!(await r.json()).ok;
+  }catch{ ONLINE = false; }
+}
+function setAccount(t, n){ token = t; nick = n; LS.set('qm.token', t); LS.set('qm.nick', n); }
 
 /* ================= state ================= */
 let atoms = [], bonds = [];
@@ -472,7 +506,7 @@ function getSmiles(){
   if(!RD || !atoms.length) return null;
   let mol = null;
   try{
-    mol = RD.get_mol(molblock());
+    mol = RD.get_mol(molblock(), JSON.stringify({removeHs: true}));
     if(!mol || (mol.is_valid && !mol.is_valid())) return null;
     return mol.get_smiles();
   }catch{ return null; }
@@ -533,6 +567,7 @@ $('mute').textContent = muted ? '🔇' : '🔊';
 $('mute').onclick = () => { unlockAudio(); muted = !muted; LS.set('qm.muted', muted); $('mute').textContent = muted ? '🔇' : '🔊'; };
 $('help').onclick = () => { unlockAudio(); showHelp(); };
 $('total').onclick = () => { unlockAudio(); showCollection(); };
+$('lb').onclick = () => { unlockAudio(); showLeaderboard(); };
 
 /* ================= pointer input ================= */
 const pointers = new Map();
@@ -626,6 +661,7 @@ async function submit(){
   busy = true; document.body.classList.add('busy'); bondFirst = null;
   undoStack.push(snap);
   try{
+    if(ONLINE){ await submitOnline(); return; }
     const ff = buildFF();
     const x = new Float64Array(atoms.length*3);
     atoms.forEach((a,i) => x.set([a.p.x, a.p.y, a.p.z], 3*i));
@@ -690,6 +726,28 @@ async function submit(){
   }
 }
 
+async function submitOnline(){
+  if(!token){ showWelcome(); return; }
+  const body = {
+    atoms: atoms.map(a => ({el:a.el, x:a.p.x, y:a.p.y, z:a.p.z})),
+    bonds: bonds.map(b => [b.a, b.b, b.o]),
+    input_method: 'hand', mode: 'stable',
+  };
+  toast('Optimising…', 4000); SFX.whoosh();
+  let r;
+  try{ r = await api('/api/submissions', {method:'POST', body}); }
+  catch(e){
+    if(e.status === 401){ setAccount(null, null); showWelcome(); return; }
+    fail(e.message || 'Could not reach the server'); return;
+  }
+  await animateFrames(r.frames.map(f => f.flat()), 1300);
+  setCoords(r.coords_opt.flat()); changed();
+  burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 40, 4, 0.8, 0.28);
+  total = r.total; LS.set('qm.total', total);
+  await showScore(r.lines, r.multiplier, r.n_heavy, r.score, r.discovery);
+  updateInfo();
+}
+
 function lineEl(label, pts, sub, cls=''){
   const d = document.createElement('div'); d.className = 'line ' + cls;
   const l = document.createElement('div'); l.textContent = label;
@@ -739,12 +797,94 @@ function showHelp(){
   <p style="opacity:.6;font-size:13px">Early prototype: energies come from a simple toy force field. A proper ML potential comes later.</p>`;
   closeBtn(card, "Let's build!");
 }
-function showCollection(){
+async function showCollection(){
+  if(ONLINE && !token) return showWelcome();
+  let items = history.map(e => ({formula:e.formula, smiles:e.smiles, score:e.score, discovery:e.pubNew}));
+  if(ONLINE){
+    try{
+      const [me, mine] = await Promise.all([api('/api/me'), api('/api/submissions/mine')]);
+      total = me.total; LS.set('qm.total', total); updateInfo();
+      items = mine.map(s => ({formula:s.formula, smiles:s.smiles, score:s.score, discovery: s.stable && s.in_pubchem === 0}));
+    }catch(e){ if(e.status === 401){ setAccount(null, null); return showWelcome(); } toast(e.message); }
+  }
   const card = openCard();
-  const h = document.createElement('h2'); h.textContent = `Your collection · ${total.toLocaleString()} ⭐`; card.appendChild(h);
-  if(!history.length){ const p = document.createElement('p'); p.textContent = 'Nothing yet — go build something!'; card.appendChild(p); }
-  history.slice(0, 50).forEach(e => card.appendChild(lineEl((e.pubNew ? '🤯 ' : '') + e.formula, e.score, e.smiles)));
+  const h = document.createElement('h2'); h.textContent = `${nick ? nick + ' · ' : 'Your collection · '}${total.toLocaleString()} ⭐`; card.appendChild(h);
+  if(!items.length){ const p = document.createElement('p'); p.textContent = 'Nothing yet. Go build something!'; card.appendChild(p); }
+  items.slice(0, 50).forEach(e => card.appendChild(lineEl((e.discovery ? '🤯 ' : '') + e.formula, e.score, e.smiles)));
   closeBtn(card, 'Close');
+}
+
+function showWelcome(err=''){
+  const card = openCard();
+  card.innerHTML = `<h2>Welcome to QuMol</h2>
+    <p>You played with building blocks as a kid. Now play with the universe's: <b>atoms</b>.</p>
+    <p>Pick a nickname. It shows on the leaderboards, and it's how we credit you if your molecules end up in a published dataset.</p>
+    <input id="nickIn" maxlength="24" placeholder="Nickname" autocomplete="nickname">
+    <div class="err" id="nickErr"></div>`;
+  const go = document.createElement('button'); go.id = 'ovBtn'; go.textContent = "Let's build!";
+  const rec = document.createElement('button'); rec.className = 'link'; rec.textContent = 'I already have an account (recovery code)';
+  card.append(go, rec);
+  $('nickErr').textContent = err;
+  go.onclick = async () => {
+    unlockAudio();
+    const n = $('nickIn').value.trim(); if(!n) return;
+    go.disabled = true;
+    try{
+      const r = await api('/api/players', {method:'POST', body:{nickname:n}});
+      setAccount(r.token, r.nickname); total = 0; LS.set('qm.total', 0); updateInfo();
+      SFX.chime(); showRecoveryCode(r.recovery_code);
+    }catch(e){ $('nickErr').textContent = e.message; SFX.err(); go.disabled = false; }
+  };
+  rec.onclick = () => showRecover();
+}
+function showRecoveryCode(code){
+  const card = openCard();
+  card.innerHTML = `<h2>You're in, ${nick}! 🎉</h2>
+    <p>This is your <b>recovery code</b>. Save it (screenshot or password manager). It's the only way to get your account back on a new phone or browser.</p>
+    <div class="code">${code}</div>`;
+  closeBtn(card, "Saved, let's build!");
+  if(!LS.get('qm.seenHelp', false)){ LS.set('qm.seenHelp', true); $('ovBtn').onclick = () => showHelp(); }
+}
+function showRecover(){
+  const card = openCard();
+  card.innerHTML = `<h2>Recover your account</h2>
+    <input id="recNick" placeholder="Nickname" maxlength="24">
+    <input id="recCode" placeholder="XXXX-XXXX-XXXX-XXXX" autocapitalize="characters">
+    <div class="err" id="recErr"></div>`;
+  const go = document.createElement('button'); go.id = 'ovBtn'; go.textContent = 'Recover';
+  const back = document.createElement('button'); back.className = 'link'; back.textContent = 'Back';
+  card.append(go, back);
+  go.onclick = async () => {
+    try{
+      const r = await api('/api/players/recover', {method:'POST', body:{nickname:$('recNick').value, recovery_code:$('recCode').value}});
+      setAccount(r.token, r.nickname); const me = await api('/api/me'); total = me.total; updateInfo();
+      SFX.chime(); $('ov').classList.add('hidden'); toast(`Welcome back, ${r.nickname}!`);
+    }catch(e){ $('recErr').textContent = e.message; SFX.err(); }
+  };
+  back.onclick = () => showWelcome();
+}
+
+let lbCats = null, lbCurrent = 'overall';
+async function showLeaderboard(cat = lbCurrent){
+  if(!ONLINE) return toast('Leaderboards need the QuMol server');
+  lbCurrent = cat;
+  try{
+    if(!lbCats) lbCats = await api('/api/leaderboards');
+    const data = await api('/api/leaderboard/' + cat);
+    const card = openCard();
+    const h = document.createElement('h2'); h.textContent = '🏆 ' + data.title; card.appendChild(h);
+    const tabs = document.createElement('div'); tabs.className = 'tabs';
+    for(const k of Object.keys(lbCats)){
+      const b = document.createElement('button'); b.textContent = k; b.className = k === cat ? 'on' : '';
+      b.onclick = () => { SFX.tick(); showLeaderboard(k); };
+      tabs.appendChild(b);
+    }
+    card.appendChild(tabs);
+    if(!data.rows.length){ const p = document.createElement('p'); p.textContent = 'Nobody here yet. Be the first!'; card.appendChild(p); }
+    const medal = ['🥇','🥈','🥉'];
+    data.rows.forEach(r => card.appendChild(lineEl(`${medal[r.rank-1] || r.rank + '.'} ${r.nickname}`, String(r.value), null, r.nickname === nick ? 'me' : '')));
+    closeBtn(card, 'Close');
+  }catch(e){ toast(e.message); }
 }
 
 /* ================= main loop ================= */
@@ -767,8 +907,16 @@ function loop(now){
   let w = null; try{ w = localStorage.getItem('qm.work'); }catch{}
   if(w) restore(w);
   rebuild(); updateInfo();
-  if(!LS.get('qm.seenHelp', false)){ LS.set('qm.seenHelp', true); showHelp(); }
   requestAnimationFrame(loop);
+  detectServer().then(async () => {
+    $('lb').classList.toggle('hidden', !ONLINE);
+    if(ONLINE && !token) return showWelcome();
+    if(ONLINE){
+      try{ const me = await api('/api/me'); total = me.total; nick = me.nickname; LS.set('qm.total', total); updateInfo(); }
+      catch(e){ if(e.status === 401){ setAccount(null, null); return showWelcome(); } }
+    } else toast('Offline mode: scores stay on this device', 2500);
+    if(!LS.get('qm.seenHelp', false)){ LS.set('qm.seenHelp', true); showHelp(); }
+  });
 }
 </script>
 </body>

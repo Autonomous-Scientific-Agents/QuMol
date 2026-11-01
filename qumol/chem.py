@@ -1,0 +1,230 @@
+"""Chemistry helpers: elements, validation, formulas, HashMol3D identifiers, SMILES."""
+
+from __future__ import annotations
+
+from collections import Counter
+from dataclasses import dataclass
+
+import numpy as np
+from hashmol3d import hash_molecule
+
+# Elements allowed in the game for now (organic, drug-like).
+ELEMENTS: dict[str, dict] = {
+    "H": {"z": 1, "r": 0.31, "val": 1},
+    "C": {"z": 6, "r": 0.76, "val": 4},
+    "N": {"z": 7, "r": 0.71, "val": 3},
+    "O": {"z": 8, "r": 0.66, "val": 2},
+    "F": {"z": 9, "r": 0.57, "val": 1},
+    "S": {"z": 16, "r": 1.05, "val": 2},
+    "Cl": {"z": 17, "r": 1.02, "val": 1},
+}
+Z_TO_SYMBOL = {v["z"]: k for k, v in ELEMENTS.items()}
+
+MAX_HEAVY = 30
+MAX_ATOMS = 150
+
+
+class ChemError(ValueError):
+    """Raised for a structure the game cannot accept."""
+
+
+@dataclass
+class Molecule:
+    symbols: list[str]
+    coords: np.ndarray  # (N, 3) in Å
+    bonds: list[tuple[int, int, int]]  # (i, j, order)
+
+    @property
+    def numbers(self) -> list[int]:
+        return [ELEMENTS[s]["z"] for s in self.symbols]
+
+    @property
+    def n_heavy(self) -> int:
+        return sum(1 for s in self.symbols if s != "H")
+
+    def neighbors(self, i: int) -> list[int]:
+        return [b if a == i else a for a, b, _ in self.bonds if a == i or b == i]
+
+
+def validate(symbols, coords, bonds) -> Molecule:
+    """Check a submitted structure and return it as a Molecule."""
+    if not symbols:
+        raise ChemError("Empty molecule")
+    if len(symbols) > MAX_ATOMS:
+        raise ChemError(f"Too many atoms (max {MAX_ATOMS})")
+    for s in symbols:
+        if s not in ELEMENTS:
+            raise ChemError(f"Element {s!r} is not allowed")
+    xyz = np.asarray(coords, dtype=float)
+    if xyz.shape != (len(symbols), 3) or not np.all(np.isfinite(xyz)):
+        raise ChemError("Coordinates must be finite and shaped (N, 3)")
+    if np.abs(xyz).max() > 1000:
+        raise ChemError("Coordinates are out of range")
+    n = len(symbols)
+    seen = set()
+    clean = []
+    for b in bonds:
+        a, c, o = int(b[0]), int(b[1]), int(b[2])
+        if not (0 <= a < n and 0 <= c < n) or a == c or o not in (1, 2, 3):
+            raise ChemError("Invalid bond")
+        key = (min(a, c), max(a, c))
+        if key in seen:
+            raise ChemError("Duplicate bond")
+        seen.add(key)
+        clean.append((a, c, o))
+    mol = Molecule(list(symbols), xyz, clean)
+    if mol.n_heavy == 0:
+        raise ChemError("Build something with at least one heavy atom")
+    if mol.n_heavy > MAX_HEAVY:
+        raise ChemError(f"Too many heavy atoms (max {MAX_HEAVY})")
+    for i, s in enumerate(symbols):
+        used = sum(o for a, c, o in clean if a == i or c == i)
+        if used > ELEMENTS[s]["val"]:
+            raise ChemError(f"Atom {i + 1} ({s}) has too many bonds")
+    if not is_connected(mol):
+        raise ChemError("Your molecule is in pieces. Connect everything")
+    return mol
+
+
+def is_connected(mol: Molecule) -> bool:
+    n = len(mol.symbols)
+    if n == 0:
+        return False
+    seen, stack = {0}, [0]
+    while stack:
+        i = stack.pop()
+        for j in mol.neighbors(i):
+            if j not in seen:
+                seen.add(j)
+                stack.append(j)
+    return len(seen) == n
+
+
+def hill_formula(symbols) -> str:
+    cnt = Counter(symbols)
+    order = (["C", "H"] if "C" in cnt else []) + sorted(k for k in cnt if not ("C" in cnt and k in ("C", "H")))
+    return "".join(k + (str(cnt[k]) if cnt[k] > 1 else "") for k in order)
+
+
+# ---------------------------------------------------------------- HashMol3D
+
+
+@dataclass
+class GeometryId:
+    id: str  # full identifier, e.g. H2Oq0m1-92b9...
+    formula: str
+    geometry_hash: str
+    version: str
+    precision: float
+    charge: int
+    multiplicity: int
+    descriptor: str
+    std_symbols: list[str]  # standardized (quantized, principal-axes) geometry
+    std_coords: np.ndarray
+
+
+def hash_geometry(symbols, coords, charge: int = 0) -> GeometryId:
+    """HashMol3D identifier (library defaults) plus the standardized geometry.
+
+    The frame method's descriptor holds the coordinates quantized on the
+    precision grid in the principal-axes frame, so identical structures map to
+    one identifier and one standardized geometry. If HashMol3D fell back to the
+    distance method there are no frame coordinates; the centred input is kept.
+    """
+    numbers = [ELEMENTS[s]["z"] for s in symbols]
+    r = hash_molecule(numbers, np.asarray(coords, dtype=float), charge=charge)
+    std_syms, std_xyz = _frame_coords(r.descriptor, r.precision)
+    if std_syms is None:
+        xyz = np.asarray(coords, dtype=float)
+        std_syms, std_xyz = list(symbols), np.round(xyz - xyz.mean(axis=0), 4)
+    return GeometryId(
+        id=r.hash_str, formula=r.formula, geometry_hash=r.geometry_hash, version=r.version,
+        precision=r.precision, charge=r.charge, multiplicity=r.multiplicity,
+        descriptor=r.descriptor, std_symbols=std_syms, std_coords=std_xyz,
+    )
+
+
+def _frame_coords(descriptor: str, precision: float):
+    for part in descriptor.split("|"):
+        if part.startswith("F:"):
+            syms, rows = [], []
+            for row in part[2:].split(";"):
+                z, rest = row.split(":")
+                syms.append(Z_TO_SYMBOL.get(int(z), str(z)))
+                rows.append([int(v) * precision for v in rest.split(",")])
+            return syms, np.array(rows)
+    return None, None
+
+
+def to_xyz(symbols, coords, comment: str = "") -> str:
+    lines = [str(len(symbols)), comment]
+    lines += [f"{s:<2} {x: .6f} {y: .6f} {z: .6f}" for s, (x, y, z) in zip(symbols, coords)]
+    return "\n".join(lines) + "\n"
+
+
+# ---------------------------------------------------------------- SMILES (RDKit)
+
+
+def smiles_of(mol: Molecule) -> str | None:
+    """Canonical SMILES from the player's atoms and bonds, or None if invalid."""
+    try:
+        from rdkit import Chem
+        from rdkit import RDLogger
+
+        RDLogger.DisableLog("rdApp.*")
+    except ImportError:
+        return None
+    rw = Chem.RWMol()
+    for s in mol.symbols:
+        rw.AddAtom(Chem.Atom(s))
+    btype = {1: Chem.BondType.SINGLE, 2: Chem.BondType.DOUBLE, 3: Chem.BondType.TRIPLE}
+    for a, b, o in mol.bonds:
+        rw.AddBond(a, b, btype[o])
+    try:
+        m = rw.GetMol()
+        Chem.SanitizeMol(m)
+        m = Chem.RemoveHs(m)
+        return Chem.MolToSmiles(m)
+    except Exception:
+        return None
+
+
+def inchikey_of(smiles: str | None) -> str | None:
+    if not smiles:
+        return None
+    try:
+        from rdkit import Chem
+
+        m = Chem.MolFromSmiles(smiles)
+        return Chem.MolToInchiKey(m) if m else None
+    except Exception:
+        return None
+
+
+# ---------------------------------------------------------------- sanity
+
+
+def structure_intact(mol: Molecule, coords: np.ndarray) -> bool:
+    """Did the optimised structure keep its bonds without collapsing?"""
+    x = np.asarray(coords)
+    r = {s: ELEMENTS[s]["r"] for s in ELEMENTS}
+    factor = {1: 1.0, 2: 0.87, 3: 0.78}
+    for a, b, o in mol.bonds:
+        r0 = (r[mol.symbols[a]] + r[mol.symbols[b]]) * factor[o]
+        d = np.linalg.norm(x[a] - x[b])
+        if d > 1.25 * r0 or d < 0.75 * r0:
+            return False
+    bonded = {(min(a, b), max(a, b)) for a, b, _ in mol.bonds}
+    n = len(mol.symbols)
+    for i in range(n):
+        for j in range(i + 1, n):
+            if (i, j) in bonded:
+                continue
+            if mol.symbols[i] == "H" or mol.symbols[j] == "H":
+                continue
+            if np.linalg.norm(x[i] - x[j]) < 1.6:
+                # an unbonded heavy-atom pair this close: collapsed structure,
+                # unless they are 1-3 neighbours sharing an atom
+                if not set(mol.neighbors(i)) & set(mol.neighbors(j)):
+                    return False
+    return True
