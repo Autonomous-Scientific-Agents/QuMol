@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>QuMol</title>
+<style>
+:root{--bg:#0b1020;--panel:rgba(20,28,52,.88);--btn:#24304f;--acc:#7c5cff;--acc2:#20d3a7;--txt:#eef2ff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-tap-highlight-color:transparent}
+#c{position:fixed;inset:0;width:100%;height:100%;display:block}
+.bar{position:fixed;left:0;right:0;display:flex;gap:6px;padding:8px;pointer-events:none}
+.bar *{pointer-events:auto}
+#top{top:0;justify-content:space-between;align-items:center;padding-top:max(8px,env(safe-area-inset-top))}
+#bottom{bottom:0;flex-direction:column;align-items:center;padding-bottom:max(10px,env(safe-area-inset-bottom))}
+.row{display:flex;gap:6px;flex-wrap:wrap;justify-content:center}
+button{border:0;border-radius:12px;min-width:44px;height:44px;padding:0 12px;font-size:16px;font-weight:700;color:var(--txt);background:var(--btn);cursor:pointer;transition:transform .08s,box-shadow .2s}
+button:active{transform:scale(.9)}
+button.on{background:var(--acc);box-shadow:0 0 14px var(--acc)}
+.el{width:44px;padding:0;border:3px solid transparent}
+.el.on{border-color:#fff;box-shadow:0 0 14px currentColor}
+#submit{background:linear-gradient(135deg,var(--acc),var(--acc2));padding:0 22px;font-size:17px}
+.left{display:flex;gap:8px;align-items:center;min-width:0}
+.brand{font-weight:900;font-size:20px;background:linear-gradient(90deg,#7c5cff,#20d3a7);-webkit-background-clip:text;background-clip:text;color:transparent}
+.pill{background:var(--panel);border-radius:12px;padding:8px 12px;font-size:13px;min-width:0;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.right{display:flex;gap:6px;align-items:center}
+#total{background:var(--panel);font-size:17px}
+#toast{position:fixed;left:50%;top:76px;transform:translateX(-50%);background:var(--panel);padding:10px 16px;border-radius:12px;font-size:15px;opacity:0;transition:opacity .25s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+body.busy #bottom button{opacity:.45;pointer-events:none}
+#ov{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(5,8,20,.55);backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);z-index:10}
+.hidden{display:none!important}
+.card{background:#141c34;border:1px solid #2c3a66;border-radius:20px;padding:20px;width:min(92vw,440px);max-height:82vh;overflow:auto;animation:pop .4s cubic-bezier(.2,1.6,.4,1);touch-action:pan-y}
+.card h2{margin:0 0 10px;text-align:center}
+.card p{line-height:1.45;margin:6px 0}
+.line{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid #22305a;animation:slide .3s both}
+.line small{display:block;opacity:.6;font-size:12px;word-break:break-all}
+.pts{font-weight:800;color:var(--acc2);white-space:nowrap}
+.pts.zero{color:#8090b8}
+.mult .pts{color:#ffd166}
+#ovTotal{font-size:46px;font-weight:900;text-align:center;margin:14px 0;background:linear-gradient(90deg,#ffd166,#ff5ca8,#7c5cff);-webkit-background-clip:text;background-clip:text;color:transparent}
+.wow{font-size:24px;font-weight:900;text-align:center;color:#ffd166;animation:pulse .6s infinite alternate}
+#ovBtn{width:100%;margin-top:6px;background:linear-gradient(135deg,var(--acc),var(--acc2))}
+@keyframes pop{from{transform:scale(.6);opacity:0}}
+@keyframes slide{from{transform:translateX(-24px);opacity:0}}
+@keyframes pulse{to{transform:scale(1.08)}}
+</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}
+</script>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="top" class="bar">
+  <div class="left"><span class="brand">QuMol</span><span id="info" class="pill">Loading…</span></div>
+  <div class="right"><button id="mute" title="Sound">🔊</button><button id="help" title="How to play">?</button><button id="total" title="Your collection">0 ⭐</button></div>
+</div>
+
+<div id="bottom" class="bar">
+  <div class="row" id="els"></div>
+  <div class="row">
+    <button class="mode on" data-mode="add">➕ Add</button>
+    <button class="mode" data-mode="bond">🔗 Bond</button>
+    <button class="mode" data-mode="move">✋ Move</button>
+    <button class="mode" data-mode="delete">🗑</button>
+  </div>
+  <div class="row">
+    <button id="hplus">H+</button>
+    <button id="undo">↶</button>
+    <button id="clear">✖</button>
+    <button id="submit">Submit ⚡</button>
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="ov" class="hidden"><div class="card" id="card"></div></div>
+
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+
+/* ================= chemistry data ================= */
+const EL = {
+  C: {c:0x9aa3ad, r:0.76, val:4, vis:0.36},
+  N: {c:0x3d6bff, r:0.71, val:3, vis:0.34},
+  O: {c:0xff3b3b, r:0.66, val:2, vis:0.33},
+  S: {c:0xffd23f, r:1.05, val:2, vis:0.42},
+  F: {c:0x7ee06a, r:0.57, val:1, vis:0.30},
+  Cl:{c:0x2fe08a, r:1.02, val:1, vis:0.40},
+  H: {c:0xffffff, r:0.31, val:1, vis:0.22},
+};
+const ORDER = [0, 1, 0.87, 0.78];   // bond-length factor for single/double/triple
+const MAX_HEAVY = 30;
+const KB = 300, KA = 60, KR = 5;    // toy force field constants (kcal/mol-ish)
+
+/* ================= storage ================= */
+const LS = {
+  get(k, d){ try{ const v = localStorage.getItem(k); return v==null ? d : JSON.parse(v); }catch{ return d; } },
+  set(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch{} }
+};
+let total   = LS.get('qm.total', 0);
+const seen  = new Set(LS.get('qm.seen', []));
+const records = LS.get('qm.records', {});       // formula -> best energy
+const history = LS.get('qm.history', []);       // [{smiles, formula, score, pubNew}]
+const pcCache = LS.get('qm.pubchem', {});       // smiles -> true(new)/false(known)
+
+/* ================= state ================= */
+let atoms = [], bonds = [];
+let mode = 'add', element = 'C', bondFirst = null, dragging = null, busy = false;
+let undoStack = [], shake = 0, muted = LS.get('qm.muted', false);
+const $ = id => document.getElementById(id);
+
+/* ================= three.js setup ================= */
+const canvas = $('c');
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0b1020);
+const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 500);
+camera.position.set(0, 0, 9);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.enablePan = false;
+controls.minDistance = 2.5; controls.maxDistance = 40;
+scene.add(new THREE.HemisphereLight(0xbfd4ff, 0x20182f, 1.1));
+const sun = new THREE.DirectionalLight(0xffffff, 1.6); sun.position.set(4, 6, 8); scene.add(sun);
+const rim = new THREE.DirectionalLight(0x7c5cff, 0.8); rim.position.set(-6, -3, -5); scene.add(rim);
+const world = new THREE.Group(); scene.add(world);
+const molGroup = new THREE.Group(); world.add(molGroup);
+
+// starfield
+{
+  const n = 600, p = new Float32Array(n*3);
+  for(let i=0;i<n;i++){ const v = randUnit().multiplyScalar(60 + Math.random()*80); p.set([v.x,v.y,v.z], 3*i); }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.BufferAttribute(p,3));
+  const stars = new THREE.Points(g, new THREE.PointsMaterial({color:0x8fa3ff, size:0.5, transparent:true, opacity:0.6}));
+  stars.name = 'stars'; scene.add(stars);
+}
+
+function resize(){
+  renderer.setSize(innerWidth, innerHeight, false);
+  camera.aspect = innerWidth/innerHeight; camera.updateProjectionMatrix();
+}
+addEventListener('resize', resize); resize();
+
+const sphereGeo = new THREE.SphereGeometry(1, 28, 18);
+const cylGeo = new THREE.CylinderGeometry(1, 1, 1, 14);
+const mats = {}; for(const e in EL) mats[e] = new THREE.MeshStandardMaterial({color:EL[e].c, roughness:0.32, metalness:0.08});
+const selMat = new THREE.MeshStandardMaterial({color:0xffffff, emissive:0x7c5cff, emissiveIntensity:1.3});
+const bondMat = new THREE.MeshStandardMaterial({color:0xc9d1e8, roughness:0.4});
+const Y = new THREE.Vector3(0,1,0);
+
+function randUnit(){
+  const z = Math.random()*2-1, t = Math.random()*Math.PI*2, s = Math.sqrt(1-z*z);
+  return new THREE.Vector3(s*Math.cos(t), s*Math.sin(t), z);
+}
+function perpOf(d){
+  const a = Math.abs(d.y) < 0.9 ? Y : new THREE.Vector3(1,0,0);
+  return new THREE.Vector3().crossVectors(d, a).normalize();
+}
+
+function rebuild(){
+  molGroup.clear();
+  const now = performance.now();
+  atoms.forEach((a, i) => {
+    const m = new THREE.Mesh(sphereGeo, i === bondFirst || i === dragging ? selMat : mats[a.el]);
+    let s = EL[a.el].vis;
+    if(a.born){ const t = (now - a.born)/350; if(t < 1) s *= t < 0.6 ? t/0.6*1.25 : 1.25 - 0.25*(t-0.6)/0.4; }
+    m.scale.setScalar(Math.max(s, 0.001)); m.position.copy(a.p); molGroup.add(m);
+  });
+  for(const b of bonds){
+    const p1 = atoms[b.a].p, p2 = atoms[b.b].p;
+    const dir = p2.clone().sub(p1); const L = dir.length(); if(L < 1e-6) continue; dir.normalize();
+    const perp = perpOf(dir).multiplyScalar(0.13);
+    const offs = b.o === 1 ? [0] : b.o === 2 ? [-0.5, 0.5] : [-1, 0, 1];
+    const rad = b.o === 1 ? 0.09 : 0.055;
+    const mid = p1.clone().add(p2).multiplyScalar(0.5);
+    for(const k of offs){
+      const m = new THREE.Mesh(cylGeo, bondMat);
+      m.scale.set(rad, L, rad); m.position.copy(mid).addScaledVector(perp, k);
+      m.quaternion.setFromUnitVectors(Y, dir); molGroup.add(m);
+    }
+  }
+}
+
+/* ================= particles ================= */
+const bursts = [];
+const dotTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  const gr = g.createRadialGradient(32,32,0,32,32,32); gr.addColorStop(0,'rgba(255,255,255,1)'); gr.addColorStop(0.4,'rgba(255,255,255,.6)'); gr.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0,0,64,64); return new THREE.CanvasTexture(c);
+})();
+function burst(pos, colors, count=26, speed=3, life=0.7, size=0.25, gravity=0){
+  const p = new Float32Array(count*3), col = new Float32Array(count*3), vel = [], c = new THREE.Color();
+  colors = [].concat(colors);
+  for(let i=0;i<count;i++){
+    p.set([pos.x,pos.y,pos.z], 3*i);
+    vel.push(randUnit().multiplyScalar(speed*(0.35+Math.random()*0.8)));
+    c.set(colors[i % colors.length]); col.set([c.r,c.g,c.b], 3*i);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(p,3)); g.setAttribute('color', new THREE.BufferAttribute(col,3));
+  const mat = new THREE.PointsMaterial({size, map:dotTex, vertexColors:true, transparent:true, depthWrite:false, blending:THREE.AdditiveBlending});
+  const pts = new THREE.Points(g, mat); world.add(pts);
+  bursts.push({pts, vel, age:0, life, gravity});
+}
+function updateBursts(dt){
+  for(let k = bursts.length-1; k >= 0; k--){
+    const b = bursts[k]; b.age += dt;
+    const arr = b.pts.geometry.attributes.position.array;
+    b.vel.forEach((v, i) => { v.multiplyScalar(0.95); v.y -= b.gravity*dt; arr[3*i]+=v.x*dt; arr[3*i+1]+=v.y*dt; arr[3*i+2]+=v.z*dt; });
+    b.pts.geometry.attributes.position.needsUpdate = true;
+    b.pts.material.opacity = Math.max(0, 1 - b.age/b.life);
+    if(b.age >= b.life){ world.remove(b.pts); b.pts.geometry.dispose(); b.pts.material.dispose(); bursts.splice(k,1); }
+  }
+}
+
+/* ================= sound ================= */
+let ac = null;
+function unlockAudio(){
+  if(!ac){ try{ ac = new (window.AudioContext || window.webkitAudioContext)(); }catch{} }
+  if(ac && ac.state === 'suspended') ac.resume();
+}
+function tone(f, d=0.12, type='sine', vol=0.2, f2=null, delay=0){
+  if(!ac || muted) return;
+  const t = ac.currentTime + delay, o = ac.createOscillator(), g = ac.createGain();
+  o.type = type; o.frequency.setValueAtTime(f, t);
+  if(f2) o.frequency.exponentialRampToValueAtTime(f2, t+d);
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t+0.012); g.gain.exponentialRampToValueAtTime(0.0001, t+d);
+  o.connect(g).connect(ac.destination); o.start(t); o.stop(t+d+0.03);
+}
+const SFX = {
+  pop(el){ const f = {H:950,C:520,N:600,O:680,S:420,F:760,Cl:460}[el] || 520; tone(f, 0.13, 'sine', 0.25, f*1.6); },
+  bond(o){ tone(300+o*120, 0.08, 'triangle', 0.22); tone(450+o*170, 0.11, 'triangle', 0.16, null, 0.05); },
+  del(){ tone(420, 0.2, 'sawtooth', 0.1, 90); },
+  err(){ tone(150, 0.1, 'square', 0.1); tone(120, 0.13, 'square', 0.1, null, 0.12); },
+  tick(i=0){ tone(700+i*90, 0.07, 'sine', 0.16); },
+  chime(){ [660,880,1320].forEach((f,i)=>tone(f, 0.3, 'sine', 0.18, null, i*0.08)); },
+  fanfare(){ [523,659,784,1047,784,1047].forEach((f,i)=>tone(f, i===5?0.7:0.17, 'square', 0.1, null, i*0.13)); },
+  whoosh(){
+    if(!ac || muted) return;
+    const len = ac.sampleRate*0.9, buf = ac.createBuffer(1, len, ac.sampleRate), d = buf.getChannelData(0);
+    for(let i=0;i<len;i++) d[i] = Math.random()*2-1;
+    const src = ac.createBufferSource(); src.buffer = buf;
+    const bp = ac.createBiquadFilter(); bp.type = 'bandpass'; bp.Q.value = 2;
+    const g = ac.createGain(), t = ac.currentTime;
+    bp.frequency.setValueAtTime(300, t); bp.frequency.exponentialRampToValueAtTime(3500, t+0.8);
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.25, t+0.3); g.gain.exponentialRampToValueAtTime(0.0001, t+0.9);
+    src.connect(bp).connect(g).connect(ac.destination); src.start(t);
+  }
+};
+const buzz = p => { try{ navigator.vibrate && navigator.vibrate(p); }catch{} };
+
+/* ================= molecule helpers ================= */
+const neighbors = i => bonds.filter(b => b.a===i || b.b===i).map(b => b.a===i ? b.b : b.a);
+const orderSum  = i => bonds.reduce((s,b) => s + ((b.a===i || b.b===i) ? b.o : 0), 0);
+const freeVal   = i => EL[atoms[i].el].val - orderSum(i);
+const heavyCount = () => atoms.filter(a => a.el !== 'H').length;
+const findBond = (a,b) => bonds.find(x => (x.a===a && x.b===b) || (x.a===b && x.b===a));
+function hybCos(i){
+  const os = bonds.filter(b => b.a===i || b.b===i).map(b => b.o);
+  const dbl = os.filter(o => o===2).length;
+  return (os.includes(3) || dbl >= 2) ? -1 : dbl === 1 ? -0.5 : -1/3;
+}
+function newDir(i, jitter){
+  const nb = neighbors(i), here = atoms[i].p;
+  const vecs = nb.map(j => atoms[j].p.clone().sub(here).normalize());
+  let d;
+  if(nb.length === 0) d = randUnit();
+  else if(nb.length === 1){
+    const c0 = hybCos(i), s0 = Math.sqrt(1 - c0*c0);
+    const perp = randUnit().cross(vecs[0]).normalize();
+    d = vecs[0].clone().multiplyScalar(c0).add(perp.multiplyScalar(s0));
+  } else {
+    const s = vecs.reduce((acc,v) => acc.add(v), new THREE.Vector3());
+    if(s.length() > 0.3) d = s.negate().normalize();
+    else { d = new THREE.Vector3().crossVectors(vecs[0], vecs[1]); if(d.length() < 1e-3) d = perpOf(vecs[0]); d.normalize(); if(Math.random() < 0.5) d.negate(); }
+  }
+  return d.add(randUnit().multiplyScalar(jitter)).normalize();
+}
+function addAtom(el, pos){ atoms.push({el, p:pos.clone(), born:performance.now()}); return atoms.length-1; }
+function growFrom(i, el){
+  if(el !== 'H' && heavyCount() >= MAX_HEAVY) return fail(`Max ${MAX_HEAVY} heavy atoms`);
+  if(freeVal(i) < 1) return fail(`That ${atoms[i].el} has no free bonds`);
+  const d = newDir(i, 0.4);
+  const r0 = EL[atoms[i].el].r + EL[el].r;
+  const j = addAtom(el, atoms[i].p.clone().addScaledVector(d, r0*(0.88 + Math.random()*0.24)));
+  bonds.push({a:i, b:j, o:1});
+  SFX.pop(el); buzz(10); burst(atoms[j].p, EL[el].c, 18, 2.5, 0.5, 0.22);
+}
+function cycleBond(a, b){
+  const ex = findBond(a, b), cur = ex ? ex.o : 0;
+  let next = (cur + 1) % 4;
+  const need = next - cur;
+  if(next > 0 && (freeVal(a) < need || freeVal(b) < need)) next = 0;
+  if(next === 0 && !ex) return fail('No free valence for a bond there');
+  if(next === 0){ bonds.splice(bonds.indexOf(ex), 1); SFX.del(); }
+  else if(ex){ ex.o = next; SFX.bond(next); }
+  else { bonds.push({a, b, o:1}); SFX.bond(1); }
+  buzz(12);
+  burst(atoms[a].p.clone().add(atoms[b].p).multiplyScalar(0.5), 0xc9d1e8, 14, 2, 0.4, 0.18);
+}
+function deleteAtom(i){
+  const rm = new Set([i]);
+  if(atoms[i].el !== 'H') neighbors(i).forEach(j => { if(atoms[j].el === 'H') rm.add(j); });
+  burst(atoms[i].p, EL[atoms[i].el].c, 22, 3, 0.5, 0.25);
+  const map = [], na = [];
+  atoms.forEach((a,k) => { if(rm.has(k)) map[k] = -1; else { map[k] = na.length; na.push(a); } });
+  bonds = bonds.filter(b => map[b.a] >= 0 && map[b.b] >= 0).map(b => ({a:map[b.a], b:map[b.b], o:b.o}));
+  atoms = na; SFX.del(); buzz(15);
+}
+function fillH(){
+  let added = 0;
+  const n = atoms.length;
+  for(let i=0;i<n;i++){
+    if(atoms[i].el === 'H') continue;
+    let f = freeVal(i);
+    while(f-- > 0){
+      const d = newDir(i, 0.2);
+      const j = addAtom('H', atoms[i].p.clone().addScaledVector(d, EL[atoms[i].el].r + EL.H.r));
+      bonds.push({a:i, b:j, o:1}); added++;
+    }
+  }
+  return added;
+}
+function connected(){
+  if(!atoms.length) return false;
+  const vis = new Set([0]), st = [0];
+  while(st.length){ const i = st.pop(); for(const j of neighbors(i)) if(!vis.has(j)){ vis.add(j); st.push(j); } }
+  return vis.size === atoms.length;
+}
+function centroid(){
+  const c = new THREE.Vector3(); atoms.forEach(a => c.add(a.p));
+  return atoms.length ? c.multiplyScalar(1/atoms.length) : c;
+}
+function formula(){
+  const cnt = {}; atoms.forEach(a => cnt[a.el] = (cnt[a.el]||0) + 1);
+  const keys = Object.keys(cnt).sort((a,b) => a==='C' ? -1 : b==='C' ? 1 : a==='H' ? -1 : b==='H' ? 1 : a.localeCompare(b));
+  return keys.map(k => k + (cnt[k] > 1 ? cnt[k] : '')).join('');
+}
+
+/* ================= undo / persistence ================= */
+const serialize = () => JSON.stringify({a:atoms.map(a => [a.el, a.p.x, a.p.y, a.p.z]), b:bonds.map(b => [b.a, b.b, b.o])});
+function restore(s){
+  try{
+    const d = JSON.parse(s);
+    atoms = d.a.map(([el,x,y,z]) => ({el, p:new THREE.Vector3(x,y,z)}));
+    bonds = d.b.map(([a,b,o]) => ({a, b, o}));
+  }catch{ atoms = []; bonds = []; }
+}
+function act(fn){
+  const snap = serialize();
+  const ok = fn();
+  if(ok !== false){ undoStack.push(snap); if(undoStack.length > 60) undoStack.shift(); changed(); }
+}
+function changed(){
+  rebuild(); updateInfo();
+  try{ localStorage.setItem('qm.work', serialize()); }catch{}
+}
+
+/* ================= toy force field + FIRE optimiser ================= */
+function buildFF(){
+  const n = atoms.length;
+  const bl = bonds.map(b => [b.a, b.b, (EL[atoms[b.a].el].r + EL[atoms[b.b].el].r) * ORDER[b.o]]);
+  const ang = [];
+  for(let j=0;j<n;j++){
+    const nb = neighbors(j), c0 = hybCos(j);
+    for(let x=0;x<nb.length;x++) for(let y=x+1;y<nb.length;y++) ang.push([nb[x], j, nb[y], c0]);
+  }
+  const key = (i,k) => i < k ? i*4096 + k : k*4096 + i, ex = new Set();
+  bl.forEach(([a,b]) => ex.add(key(a,b))); ang.forEach(([i,,k]) => ex.add(key(i,k)));
+  const nbp = [];
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
+    if(ex.has(key(i,j))) continue;
+    const hi = atoms[i].el === 'H', hj = atoms[j].el === 'H';
+    nbp.push([i, j, hi && hj ? 2.0 : (hi || hj) ? 2.4 : 2.9]);
+  }
+  return {n, bl, ang, nbp};
+}
+function egrad(ff, x, g){
+  g.fill(0); let E = 0;
+  for(const [a,b,r0] of ff.bl){
+    const dx=x[3*a]-x[3*b], dy=x[3*a+1]-x[3*b+1], dz=x[3*a+2]-x[3*b+2];
+    const r = Math.sqrt(dx*dx+dy*dy+dz*dz) || 1e-9, d = r - r0;
+    E += KB*d*d; const f = 2*KB*d/r;
+    g[3*a]+=f*dx; g[3*a+1]+=f*dy; g[3*a+2]+=f*dz; g[3*b]-=f*dx; g[3*b+1]-=f*dy; g[3*b+2]-=f*dz;
+  }
+  for(const [i,j,k,c0] of ff.ang){
+    const ax=x[3*i]-x[3*j], ay=x[3*i+1]-x[3*j+1], az=x[3*i+2]-x[3*j+2];
+    const bx=x[3*k]-x[3*j], by=x[3*k+1]-x[3*j+1], bz=x[3*k+2]-x[3*j+2];
+    const la = Math.sqrt(ax*ax+ay*ay+az*az) || 1e-9, lb = Math.sqrt(bx*bx+by*by+bz*bz) || 1e-9;
+    const c = (ax*bx+ay*by+az*bz)/(la*lb), d = c - c0;
+    E += KA*d*d; const f = 2*KA*d, iab = 1/(la*lb), ia2 = c/(la*la), ib2 = c/(lb*lb);
+    const gix=f*(bx*iab-ax*ia2), giy=f*(by*iab-ay*ia2), giz=f*(bz*iab-az*ia2);
+    const gkx=f*(ax*iab-bx*ib2), gky=f*(ay*iab-by*ib2), gkz=f*(az*iab-bz*ib2);
+    g[3*i]+=gix; g[3*i+1]+=giy; g[3*i+2]+=giz; g[3*k]+=gkx; g[3*k+1]+=gky; g[3*k+2]+=gkz;
+    g[3*j]-=gix+gkx; g[3*j+1]-=giy+gky; g[3*j+2]-=giz+gkz;
+  }
+  for(const [i,j,d0] of ff.nbp){
+    const dx=x[3*i]-x[3*j], dy=x[3*i+1]-x[3*j+1], dz=x[3*i+2]-x[3*j+2], r2 = dx*dx+dy*dy+dz*dz;
+    if(r2 >= d0*d0) continue;
+    const r = Math.sqrt(r2) || 1e-9, d = d0 - r;
+    E += KR*d*d; const f = -2*KR*d/r;
+    g[3*i]+=f*dx; g[3*i+1]+=f*dy; g[3*i+2]+=f*dz; g[3*j]-=f*dx; g[3*j+1]-=f*dy; g[3*j+2]-=f*dz;
+  }
+  return E;
+}
+function fire(ff, x, {mask=null, maxSteps=4000, ftol=0.02, record=null} = {}){
+  const n3 = x.length, v = new Float64Array(n3), g = new Float64Array(n3);
+  let dt = 0.02, alpha = 0.1, np = 0, E = 0, fmax = 0;
+  for(let s=0; s<maxSteps; s++){
+    E = egrad(ff, x, g);
+    if(mask) for(let i=0;i<n3;i++) if(!mask[(i/3)|0]) g[i] = 0;
+    fmax = 0;
+    for(let a=0; a<n3; a+=3) fmax = Math.max(fmax, Math.hypot(g[a], g[a+1], g[a+2]));
+    if(record && s % 4 === 0) record.push(Float64Array.from(x));
+    if(fmax < ftol) break;
+    let P = 0, vn = 0, fn = 0;
+    for(let i=0;i<n3;i++){ P -= g[i]*v[i]; vn += v[i]*v[i]; fn += g[i]*g[i]; }
+    vn = Math.sqrt(vn); fn = Math.sqrt(fn) || 1e-12;
+    if(P > 0){
+      for(let i=0;i<n3;i++) v[i] = (1-alpha)*v[i] - alpha*vn*g[i]/fn;
+      if(++np > 5){ dt = Math.min(dt*1.1, 0.07); alpha *= 0.99; }
+    } else { v.fill(0); dt = Math.max(dt*0.5, 1e-3); alpha = 0.1; np = 0; }
+    for(let a=0; a<n3; a+=3){
+      for(let q=0;q<3;q++) v[a+q] -= g[a+q]*dt;
+      let sx = v[a]*dt, sy = v[a+1]*dt, sz = v[a+2]*dt;
+      const L = Math.hypot(sx, sy, sz); if(L > 0.1){ const k = 0.1/L; sx*=k; sy*=k; sz*=k; }
+      x[a]+=sx; x[a+1]+=sy; x[a+2]+=sz;
+    }
+    if(mask) for(let i=0;i<n3;i++) if(!mask[(i/3)|0]) v[i] = 0;
+  }
+  if(record) record.push(Float64Array.from(x));
+  return {E, fmax, converged: fmax < ftol};
+}
+function sane(ff, x){
+  const P = i => [x[3*i], x[3*i+1], x[3*i+2]];
+  const dist = (i,j) => { const a = P(i), b = P(j); return Math.hypot(a[0]-b[0], a[1]-b[1], a[2]-b[2]); };
+  for(const [a,b,r0] of ff.bl){ const r = dist(a,b); if(r > 1.2*r0 || r < 0.8*r0) return false; }
+  for(const [i,j,k] of ff.ang){
+    if(atoms[i].el === 'H' || atoms[k].el === 'H') continue;
+    const a = P(i), b = P(j), c = P(k);
+    const u = [a[0]-b[0], a[1]-b[1], a[2]-b[2]], w = [c[0]-b[0], c[1]-b[1], c[2]-b[2]];
+    const cos = (u[0]*w[0]+u[1]*w[1]+u[2]*w[2]) / (Math.hypot(...u)*Math.hypot(...w));
+    if(cos > 0.643) return false;          // angle below ~50°
+  }
+  for(const [i,j] of ff.nbp) if(atoms[i].el !== 'H' && atoms[j].el !== 'H' && dist(i,j) < 1.6) return false;
+  return true;
+}
+
+/* ================= RDKit (SMILES) ================= */
+let RD = null;
+{
+  const s = document.createElement('script');
+  s.src = 'https://unpkg.com/@rdkit/rdkit/dist/RDKit_minimal.js';
+  s.onload = () => window.initRDKitModule({locateFile: () => 'https://unpkg.com/@rdkit/rdkit/dist/RDKit_minimal.wasm'})
+    .then(m => { RD = m; updateInfo(); }).catch(() => toast('Chemistry engine failed to load — novelty bonuses are off'));
+  s.onerror = () => toast('Chemistry engine failed to load — novelty bonuses are off');
+  document.head.appendChild(s);
+}
+const p3 = n => String(n).padStart(3);
+const f10 = v => v.toFixed(4).padStart(10);
+function molblock(){
+  const L = ['QuMol', '  QuMol          3D', ''];
+  L.push(p3(atoms.length) + p3(bonds.length) + '  0  0  0  0  0  0  0  0999 V2000');
+  atoms.forEach(a => L.push(f10(a.p.x) + f10(a.p.y) + f10(a.p.z) + ' ' + a.el.padEnd(3) + ' 0  0  0  0  0  0  0  0  0  0  0  0'));
+  bonds.forEach(b => L.push(p3(b.a+1) + p3(b.b+1) + p3(b.o) + '  0'));
+  L.push('M  END');
+  return L.join('\n');
+}
+function getSmiles(){
+  if(!RD || !atoms.length) return null;
+  let mol = null;
+  try{
+    mol = RD.get_mol(molblock());
+    if(!mol || (mol.is_valid && !mol.is_valid())) return null;
+    return mol.get_smiles();
+  }catch{ return null; }
+  finally{ try{ mol && mol.delete(); }catch{} }
+}
+
+/* ================= PubChem ================= */
+async function pubchemIsNew(smi){
+  if(pcCache[smi] !== undefined) return pcCache[smi];
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 9000);
+  try{
+    const r = await fetch('https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/cids/JSON', {
+      method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'smiles=' + encodeURIComponent(smi), signal:ctl.signal});
+    const j = await r.json().catch(() => null);
+    let res = null;
+    if(r.ok && j && j.IdentifierList) res = !(j.IdentifierList.CID || []).some(c => c > 0);
+    else if(r.status === 404 || (j && j.Fault && /NotFound/.test(j.Fault.Code || ''))) res = true;
+    if(res !== null){ pcCache[smi] = res; LS.set('qm.pubchem', pcCache); }
+    return res;
+  }catch{ return null; }
+  finally{ clearTimeout(to); }
+}
+
+/* ================= UI ================= */
+let toastT = 0;
+function toast(msg, ms=1800){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms); }
+function fail(msg){ toast(msg); SFX.err(); buzz([20,40,20]); return false; }
+function updateInfo(){
+  const h = heavyCount();
+  let s = `${h}/${MAX_HEAVY} heavy`;
+  if(atoms.length){ s += ` · ${formula()}`; const smi = getSmiles(); if(smi) s += ` · ${smi}`; }
+  else s += ' · tap to place an atom';
+  $('info').textContent = s;
+  $('total').textContent = `${total.toLocaleString()} ⭐`;
+}
+
+// element buttons
+for(const e of Object.keys(EL)){
+  const b = document.createElement('button');
+  b.className = 'el' + (e === element ? ' on' : ''); b.textContent = e;
+  const hex = '#' + EL[e].c.toString(16).padStart(6,'0');
+  b.style.background = hex; b.style.color = e === 'H' || e === 'S' || e === 'F' || e === 'Cl' ? '#111' : '#fff';
+  b.onclick = () => { unlockAudio(); element = e; document.querySelectorAll('.el').forEach(x => x.classList.toggle('on', x === b)); SFX.tick(); if(mode !== 'add') setMode('add'); };
+  $('els').appendChild(b);
+}
+function setMode(m){
+  mode = m; bondFirst = null;
+  document.querySelectorAll('.mode').forEach(x => x.classList.toggle('on', x.dataset.mode === m));
+  rebuild();
+}
+document.querySelectorAll('.mode').forEach(b => b.onclick = () => { unlockAudio(); setMode(b.dataset.mode); SFX.tick(1); });
+$('hplus').onclick = () => { unlockAudio(); act(() => { const n = fillH(); if(!n) return fail('No open valences to fill'); SFX.chime(); }); };
+$('undo').onclick = () => { unlockAudio(); if(!undoStack.length) return fail('Nothing to undo'); restore(undoStack.pop()); bondFirst = null; SFX.tick(2); changed(); };
+$('clear').onclick = () => { unlockAudio(); if(!atoms.length) return; act(() => { atoms.forEach(a => burst(a.p, EL[a.el].c, 8, 3, 0.5)); atoms = []; bonds = []; SFX.del(); }); };
+$('submit').onclick = () => { unlockAudio(); submit(); };
+$('mute').textContent = muted ? '🔇' : '🔊';
+$('mute').onclick = () => { unlockAudio(); muted = !muted; LS.set('qm.muted', muted); $('mute').textContent = muted ? '🔇' : '🔊'; };
+$('help').onclick = () => { unlockAudio(); showHelp(); };
+$('total').onclick = () => { unlockAudio(); showCollection(); };
+
+/* ================= pointer input ================= */
+const pointers = new Map();
+let gesture = null, dragSnap = null;
+const raycaster = new THREE.Raycaster(), dragPlane = new THREE.Plane(), tmpV = new THREE.Vector3();
+function pick(cx, cy){
+  const rect = canvas.getBoundingClientRect();
+  let best = -1, bd = Infinity;
+  atoms.forEach((a, i) => {
+    const v = a.p.clone().add(world.position).project(camera);
+    if(v.z > 1) return;
+    const sx = (v.x+1)/2*rect.width + rect.left, sy = (1-v.y)/2*rect.height + rect.top;
+    const d = Math.hypot(sx - cx, sy - cy);
+    if(d < bd){ bd = d; best = i; }
+  });
+  return bd < 32 ? best : -1;
+}
+function rayTo(cx, cy){
+  const rect = canvas.getBoundingClientRect();
+  raycaster.setFromCamera(new THREE.Vector2((cx-rect.left)/rect.width*2-1, -((cy-rect.top)/rect.height)*2+1), camera);
+  return raycaster.ray;
+}
+canvas.addEventListener('pointerdown', e => {
+  unlockAudio();
+  pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(pointers.size > 1){ gesture = null; if(dragging !== null){ dragging = null; controls.enabled = true; rebuild(); } return; }
+  const hit = busy ? -1 : pick(e.clientX, e.clientY);
+  gesture = {x:e.clientX, y:e.clientY, t:performance.now(), hit, moved:false};
+  if(mode === 'move' && hit >= 0 && !busy){
+    dragging = hit; dragSnap = serialize(); controls.enabled = false;
+    camera.getWorldDirection(tmpV);
+    dragPlane.setFromNormalAndCoplanarPoint(tmpV.clone(), atoms[hit].p.clone().add(world.position));
+    try{ canvas.setPointerCapture(e.pointerId); }catch{}
+    SFX.tick(3); rebuild();
+  }
+}, {capture:true});
+canvas.addEventListener('pointermove', e => {
+  if(!pointers.has(e.pointerId)) return;
+  pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
+  if(gesture && Math.hypot(e.clientX-gesture.x, e.clientY-gesture.y) > 10) gesture.moved = true;
+  if(dragging !== null && pointers.size === 1){
+    const pt = rayTo(e.clientX, e.clientY).intersectPlane(dragPlane, new THREE.Vector3());
+    if(pt){ atoms[dragging].p.copy(pt.sub(world.position)); rebuild(); }
+  }
+});
+function endPointer(e){
+  pointers.delete(e.pointerId);
+  if(dragging !== null){
+    if(gesture && gesture.moved){ undoStack.push(dragSnap); changed(); }
+    dragging = null; controls.enabled = true; gesture = null; rebuild(); return;
+  }
+  if(gesture && !gesture.moved && performance.now() - gesture.t < 500 && pointers.size === 0) onTap(gesture.hit);
+  gesture = null;
+}
+canvas.addEventListener('pointerup', endPointer);
+canvas.addEventListener('pointercancel', endPointer);
+
+function onTap(hit){
+  if(busy) return;
+  if(mode === 'add'){
+    if(hit >= 0) act(() => growFrom(hit, element));
+    else if(!atoms.length) act(() => { if(element === 'H') return fail('Start with a heavier atom!'); addAtom(element, new THREE.Vector3()); SFX.pop(element); buzz(10); burst(new THREE.Vector3(), EL[element].c, 24, 3, 0.6, 0.25); });
+    else toast('Tap an atom to grow from it');
+  } else if(mode === 'bond'){
+    if(hit < 0){ bondFirst = null; rebuild(); return; }
+    if(bondFirst === null){ bondFirst = hit; SFX.tick(); rebuild(); }
+    else if(hit === bondFirst){ bondFirst = null; rebuild(); }
+    else { const a = bondFirst; bondFirst = null; act(() => cycleBond(a, hit)); rebuild(); }
+  } else if(mode === 'delete'){
+    if(hit >= 0) act(() => deleteAtom(hit));
+  }
+}
+
+/* ================= submit & scoring ================= */
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function setCoords(x){ atoms.forEach((a,i) => a.p.set(x[3*i], x[3*i+1], x[3*i+2])); }
+async function animateFrames(frames, ms){
+  const step = Math.max(1, Math.floor(frames.length / 60)), sel = [];
+  for(let i=0;i<frames.length;i+=step) sel.push(frames[i]);
+  sel.push(frames[frames.length-1]);
+  const per = ms / sel.length;
+  for(const f of sel){ setCoords(f); rebuild(); await sleep(per); }
+}
+
+async function submit(){
+  if(busy) return;
+  if(!atoms.some(a => a.el !== 'H')) return fail('Build something first!');
+  const snap = serialize();
+  fillH();
+  if(!connected()){ restore(snap); changed(); return fail('Your molecule is in pieces — connect everything'); }
+  busy = true; document.body.classList.add('busy'); bondFirst = null;
+  undoStack.push(snap);
+  try{
+    const ff = buildFF();
+    const x = new Float64Array(atoms.length*3);
+    atoms.forEach((a,i) => x.set([a.p.x, a.p.y, a.p.z], 3*i));
+    // tidy hydrogens only, so you're judged on the skeleton you built
+    fire(ff, x, {mask: atoms.map(a => a.el === 'H'), maxSteps: 1500});
+    const E0 = egrad(ff, x, new Float64Array(x.length));
+    const frames = [Float64Array.from(x)];
+    let res = fire(ff, x, {record: frames});
+    // nudge test: if a small kick lowers the energy, we were stuck on a saddle point
+    const y = Float64Array.from(x);
+    for(let i=0;i<y.length;i++) y[i] += (Math.random()-0.5)*0.12;
+    const r2 = fire(ff, y, {});
+    let saddle = false;
+    if(r2.E < res.E - 0.05){ saddle = true; x.set(y); res = r2; frames.push(Float64Array.from(x)); }
+    const E1 = res.E, dEpa = Math.max(0, E0 - E1) / atoms.length;
+    const stable = res.converged && sane(ff, x);
+
+    toast('Optimising…', 1300); SFX.whoosh();
+    await animateFrames(frames, 1300);
+    setCoords(x); changed();
+    burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 40, 4, 0.8, 0.28);
+
+    const smiles = getSmiles(), form = formula(), heavy = heavyCount();
+    const lines = [];
+    const already = smiles && seen.has(smiles);
+    let pubNew = null;
+    if(already){
+      lines.push(['Already in your collection', 0, smiles]);
+      lines.push(['Try something new for points!', 0]);
+    } else {
+      lines.push(['Geometry skill', Math.round(100*Math.exp(-dEpa/2)), `ΔE ${dEpa.toFixed(2)} kcal/mol per atom`]);
+      if(saddle) lines.push(['Started on a saddle point — rolled off!', 0]);
+      lines.push([stable ? 'Stable structure' : 'Unstable — no bonuses', stable ? 50 : 0]);
+      lines.push(['Hand-built', 50]);
+      if(stable && smiles){
+        lines.push(['New to QuMol', 100, smiles]);
+        const rec = records[form];
+        if(rec === undefined){ lines.push([`First claim: ${form}`, 30]); records[form] = E1; }
+        else if(E1 < rec - 0.01){ lines.push([`New record for ${form}!`, 300]); records[form] = E1; }
+        toast('Checking PubChem…', 3000);
+        pubNew = await pubchemIsNew(smiles);
+        if(pubNew === true) lines.push(['NOT IN PUBCHEM! 🤯', 1000]);
+        else if(pubNew === false) lines.push(['Known in PubChem', 0]);
+        else lines.push(['PubChem check unavailable', 0]);
+      } else if(!smiles) lines.push(['Chemistry engine offline — no novelty bonus', 0]);
+    }
+    const raw = lines.reduce((s,l) => s + l[1], 0);
+    const mult = 1/Math.sqrt(Math.max(1, heavy));
+    const score = already ? 0 : Math.max(1, Math.round(raw*mult));
+
+    if(!already){
+      total += score;
+      if(stable && smiles){ seen.add(smiles); LS.set('qm.seen', [...seen]); }
+      history.unshift({smiles: smiles || form, formula: form, score, pubNew: pubNew === true});
+      if(history.length > 200) history.length = 200;
+      LS.set('qm.total', total); LS.set('qm.records', records); LS.set('qm.history', history);
+    }
+    await showScore(lines, mult, heavy, score, pubNew === true && !already);
+    updateInfo();
+  } finally {
+    busy = false; document.body.classList.remove('busy');
+  }
+}
+
+function lineEl(label, pts, sub, cls=''){
+  const d = document.createElement('div'); d.className = 'line ' + cls;
+  const l = document.createElement('div'); l.textContent = label;
+  if(sub){ const s = document.createElement('small'); s.textContent = sub; l.appendChild(s); }
+  const p = document.createElement('div'); p.className = 'pts' + (pts === 0 ? ' zero' : ''); p.textContent = typeof pts === 'number' ? `+${pts}` : pts;
+  d.append(l, p); return d;
+}
+function openCard(){ const card = $('card'); card.innerHTML = ''; $('ov').classList.remove('hidden'); return card; }
+function closeBtn(card, text='Keep building'){
+  const b = document.createElement('button'); b.id = 'ovBtn'; b.textContent = text;
+  b.onclick = () => { $('ov').classList.add('hidden'); SFX.tick(); };
+  card.appendChild(b);
+}
+async function showScore(lines, mult, heavy, score, discovery){
+  const card = openCard();
+  const h = document.createElement('h2'); h.textContent = discovery ? '🚀 Discovery!' : score > 0 ? 'Molecule scored!' : 'Hmm…'; card.appendChild(h);
+  if(discovery){ const w = document.createElement('div'); w.className = 'wow'; w.textContent = 'Possibly new to science'; card.appendChild(w); }
+  for(let i=0;i<lines.length;i++){ const [l,p,s] = lines[i]; card.appendChild(lineEl(l, p, s)); SFX.tick(i); await sleep(330); }
+  if(score > 0){ card.appendChild(lineEl('Size multiplier', `×${mult.toFixed(2)}`, `${heavy} heavy atom${heavy>1?'s':''} — smaller scores more`, 'mult')); SFX.tick(lines.length); await sleep(330); }
+  const t = document.createElement('div'); t.id = 'ovTotal'; t.textContent = '0'; card.appendChild(t);
+  const t0 = performance.now(), dur = Math.min(1400, 300 + score*2);
+  await new Promise(res => {
+    (function step(){
+      const k = Math.min(1, (performance.now()-t0)/dur);
+      t.textContent = `+${Math.round(score*(1-Math.pow(1-k,3)))}`;
+      if(k < 1) requestAnimationFrame(step); else res();
+    })();
+  });
+  if(discovery){
+    SFX.fanfare(); shake = 0.6; buzz([60,40,60,40,120]);
+    const c = centroid();
+    for(let k=0;k<4;k++) setTimeout(() => burst(c, [0xffd166,0xff5ca8,0x7c5cff,0x20d3a7,0xffffff], 90, 7, 1.6, 0.35, 4), k*220);
+  } else if(score > 0){ SFX.chime(); buzz(30); }
+  else SFX.err();
+  closeBtn(card);
+}
+function showHelp(){
+  const card = openCard();
+  card.innerHTML = `<h2>How to play</h2>
+  <p>Build a molecule atom by atom, then hit <b>Submit ⚡</b>. It gets optimised and scored.</p>
+  <p><b>➕ Add</b> — pick an element, tap empty space for your first atom, then tap an atom to grow from it.</p>
+  <p><b>🔗 Bond</b> — tap two atoms to bond them. Tap the same pair again to cycle single → double → triple → none (great for rings).</p>
+  <p><b>✋ Move</b> — drag atoms to perfect the geometry. The closer you are to the optimum, the more points.</p>
+  <p><b>🗑</b> — tap an atom to delete it. <b>H+</b> fills open valences with hydrogens (Submit does this too).</p>
+  <p>One finger rotates, pinch zooms.</p>
+  <p><b>Points:</b> geometry skill, stability, hand-built bonus, new molecules, formula records — and a huge bonus if it's <b>not in PubChem</b>. Smaller molecules score more.</p>
+  <p style="opacity:.6;font-size:13px">Early prototype: energies come from a simple toy force field. A proper ML potential comes later.</p>`;
+  closeBtn(card, "Let's build!");
+}
+function showCollection(){
+  const card = openCard();
+  const h = document.createElement('h2'); h.textContent = `Your collection · ${total.toLocaleString()} ⭐`; card.appendChild(h);
+  if(!history.length){ const p = document.createElement('p'); p.textContent = 'Nothing yet — go build something!'; card.appendChild(p); }
+  history.slice(0, 50).forEach(e => card.appendChild(lineEl((e.pubNew ? '🤯 ' : '') + e.formula, e.score, e.smiles)));
+  closeBtn(card, 'Close');
+}
+
+/* ================= main loop ================= */
+let last = performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt = Math.min(0.05, (now - last)/1000); last = now;
+  updateBursts(dt);
+  if(atoms.some(a => a.born && now - a.born < 360)) rebuild();
+  if(shake > 0.001){ world.position.set((Math.random()-0.5)*shake, (Math.random()-0.5)*shake, 0); shake *= 0.9; }
+  else world.position.set(0,0,0);
+  if(atoms.length && dragging === null) controls.target.lerp(centroid(), 0.06);
+  scene.getObjectByName('stars').rotation.y += dt*0.01;
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+/* ================= start ================= */
+{
+  let w = null; try{ w = localStorage.getItem('qm.work'); }catch{}
+  if(w) restore(w);
+  rebuild(); updateInfo();
+  if(!LS.get('qm.seenHelp', false)){ LS.set('qm.seenHelp', true); showHelp(); }
+  requestAnimationFrame(loop);
+}
+</script>
+</body>
+</html>
