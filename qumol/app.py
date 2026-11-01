@@ -6,7 +6,9 @@ Run:  uvicorn qumol.app:app --host 0.0.0.0 --port 8000
 from __future__ import annotations
 
 import hashlib
+import logging
 import os
+import threading
 import re
 import secrets
 import sqlite3
@@ -35,13 +37,32 @@ SUBMITS_PER_IP_MIN = env_int("QUMOL_SUBMITS_PER_IP_MIN", 40)
 SUBMITS_PER_IP_DAY = env_int("QUMOL_SUBMITS_PER_IP_DAY", 3000)
 READS_PER_IP_MIN = env_int("QUMOL_READS_PER_IP_MIN", 120)
 
+log = logging.getLogger("qumol")
+if not logging.getLogger().handlers:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 NICK_RE = re.compile(r"^[A-Za-z0-9_\-. ]{2,24}$")
 
 @asynccontextmanager
 async def lifespan(_app):
     db.init()
+    if os.environ.get("QUMOL_METHOD", "toyff") != "toyff":
+        # Load the ML potential in the background at startup, so the first player doesn't wait
+        # for the download, and so a broken setup shows up in the log right away.
+        threading.Thread(target=_warm_up, daemon=True).start()
     yield
+
+
+def _warm_up():
+    from .chem import validate
+
+    try:
+        calc = get_calculator()
+        water = validate(["O", "H", "H"], [[0, 0, 0], [0.96, 0, 0], [-0.24, 0.93, 0]], [(0, 1, 1), (0, 2, 1)])
+        res = calc.optimize(water)
+        log.info("Energy method %s %s ready (water: %.4f %s)", calc.name, calc.version, res.e_opt, calc.energy_unit)
+    except Exception:
+        log.exception("Energy method failed to load. Submissions will fail until this is fixed")
 
 
 _docs = os.environ.get("QUMOL_DOCS") == "1"  # API docs are off unless asked for
@@ -189,6 +210,11 @@ def create_submission(body: Submission, request: Request, player=Depends(current
             )
     except (ChemError, ValueError) as e:
         raise HTTPException(400, str(e))
+    except HTTPException:
+        raise
+    except Exception as e:
+        log.exception("Submission failed in the energy calculation")
+        raise HTTPException(503, f"The energy model failed ({type(e).__name__}). The server log has details.")
 
 
 class GraphAtom(BaseModel):

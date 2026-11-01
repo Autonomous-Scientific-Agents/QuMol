@@ -76,10 +76,13 @@ echo "==> Front-end libraries (pinned, checksum-verified)"
 bash "$APP_DIR/scripts/fetch_vendor.sh"
 
 # Database folder readable only by the service user (it holds login-token hashes).
-mkdir -p "$APP_DIR/data/cache"
+mkdir -p "$APP_DIR/data/cache" "$APP_DIR/data/home"
 chmod 700 "$APP_DIR/data"
 
-if [ "$METHOD" = "uma" ]; then MEM_MAX=8G; else MEM_MAX=1500M; fi
+# The ML stack (torch, numba, CUDA libraries) needs more memory and threads, and is too large
+# to vet against a system-call allow-list, so UMA runs with a slightly looser sandbox.
+if [ "$METHOD" = "uma" ]; then MEM_MAX=8G; TASKS_MAX=4096; SYSCALL_FILTER="";
+else MEM_MAX=1500M; TASKS_MAX=256; SYSCALL_FILTER="SystemCallFilter=@system-service"; fi
 
 echo "==> systemd service"
 sudo tee /etc/systemd/system/qumol.service >/dev/null <<EOF
@@ -96,6 +99,11 @@ Environment=QUMOL_METHOD=$METHOD
 Environment=HF_HOME=$APP_DIR/data/cache/huggingface
 Environment=XDG_CACHE_HOME=$APP_DIR/data/cache
 Environment=FAIRCHEM_CACHE_DIR=$APP_DIR/data/cache/fairchem
+# The sandbox makes the real home read-only; libraries that write to ~ get a private one.
+Environment=HOME=$APP_DIR/data/home
+Environment=NUMBA_CACHE_DIR=$APP_DIR/data/cache/numba
+Environment=MPLCONFIGDIR=$APP_DIR/data/cache/matplotlib
+Environment=WANDB_MODE=disabled
 EnvironmentFile=-$APP_DIR/data/secrets.env
 UMask=0077
 # Only reachable through Tailscale on this machine; X-Forwarded-For is trusted only from localhost.
@@ -112,8 +120,7 @@ BindReadOnlyPaths=$APP_DIR
 BindPaths=$APP_DIR/data
 ReadWritePaths=$APP_DIR/data
 ProtectProc=invisible
-ProcSubset=pid
-SystemCallFilter=@system-service
+$SYSCALL_FILTER
 SystemCallErrorNumber=EPERM
 MemoryMax=$MEM_MAX
 PrivateTmp=yes
@@ -132,7 +139,7 @@ RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
 CapabilityBoundingSet=
 AmbientCapabilities=
 SystemCallArchitectures=native
-TasksMax=256
+TasksMax=$TASKS_MAX
 
 [Install]
 WantedBy=multi-user.target
