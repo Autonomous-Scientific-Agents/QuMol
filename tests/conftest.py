@@ -8,7 +8,9 @@ def client(tmp_path, monkeypatch):
     from fastapi.testclient import TestClient
 
     from qumol.app import app
+    from qumol.security import limiter
 
+    limiter.reset()
     with TestClient(app) as c:
         yield c
 

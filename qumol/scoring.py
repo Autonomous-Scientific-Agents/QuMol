@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import math
 import zlib
+from contextlib import nullcontext
 
 import numpy as np
 
@@ -41,7 +42,8 @@ def size_multiplier(n_heavy: int) -> float:
 
 
 def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "hand",
-           mode: str = "stable", method: str | None = None) -> dict:
+           mode: str = "stable", method: str | None = None, compute=nullcontext) -> dict:
+    """``compute`` is a context manager held only around the CPU-heavy part."""
     if input_method not in INPUT_METHODS:
         raise ValueError(f"input_method must be one of {INPUT_METHODS}")
     mol = validate(symbols, coords, bonds)
@@ -49,10 +51,11 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
     raw_xyz = to_xyz(mol.symbols, mol.coords, "raw submission")
     seed = zlib.crc32(raw_xyz.encode())
 
-    res = calc.optimize(mol, seed=seed)
-    stable = bool(res.converged and structure_intact(mol, res.coords_opt))
-    g_in = hash_geometry(mol.symbols, res.coords_input)
-    g_opt = hash_geometry(mol.symbols, res.coords_opt)
+    with compute():
+        res = calc.optimize(mol, seed=seed)
+        stable = bool(res.converged and structure_intact(mol, res.coords_opt))
+        g_in = hash_geometry(mol.symbols, res.coords_input)
+        g_opt = hash_geometry(mol.symbols, res.coords_opt)
     smiles = smiles_of(mol)
     inchikey = inchikey_of(smiles)
     n_heavy = mol.n_heavy

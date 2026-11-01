@@ -18,20 +18,16 @@ QuMol is a 3D molecule-building game that runs in the browser on phones and desk
 
 ```bash
 pip install -r requirements.txt
-uvicorn qumol.app:app --host 0.0.0.0 --port 8000
+bash scripts/fetch_vendor.sh          # pinned, checksum-verified three.js + RDKit.js → web/vendor/
+uvicorn qumol.app:app --host 127.0.0.1 --port 8000
 # open http://localhost:8000
 ```
 
-Share it over Tailscale:
-
-```bash
-tailscale serve 8000     # devices on your tailnet
-tailscale funnel 8000    # anyone with the link
-```
+For a real deployment, use the deploy script below. It runs the server as a sandboxed service behind Tailscale.
 
 The database is a single SQLite file, `qumol.db`, in the working directory. Set `QUMOL_DB` to put it somewhere else, and back it up by copying the file.
 
-If you open `web/index.html` without the server, the game runs in **offline mode**: scoring is done in the browser and saved only on that device.
+Without the backend (for example `cd web && python3 -m http.server`), the game runs in **offline mode**: scoring is done in the browser and saved only on that device.
 
 ## Deploy on a server (systemd + Tailscale)
 
@@ -44,12 +40,50 @@ curl -fsSL https://raw.githubusercontent.com/Autonomous-Scientific-Agents/QuMol/
 
 The script:
 
-1. Clones or updates the code into `~/qumol` and creates a virtualenv.
-2. Installs a `qumol` systemd service listening on `127.0.0.1:8010`.
-3. Stores the database in `~/qumol/data/qumol.db`.
+1. Clones or updates the code into `~/qumol`, creates a virtualenv, and downloads the pinned front-end libraries, checking their checksums.
+2. Installs a sandboxed `qumol` systemd service listening only on `127.0.0.1:8010`.
+3. Stores the database in `~/qumol/data/qumol.db`, readable only by the service.
 4. Publishes the game over Tailscale HTTPS on port 8443, so nothing you already serve on 443 is touched.
 
-Re-run it to update. Options: `APP_DIR`, `PORT`, `METHOD=uma`, `TAILSCALE=serve|funnel|off`, `TS_PORT`.
+Re-run it to update. Options: `APP_DIR`, `PORT`, `METHOD=uma`, `TAILSCALE=serve|funnel|off`, `TS_PORT`, and `REF` to pin a tag or commit.
+
+## Security
+
+The game is meant to be safe to expose publicly through Tailscale Funnel.
+
+- **Accounts:** random 256-bit login tokens and 80-bit recovery codes. Only SHA-256 hashes are stored, and codes are compared in constant time. Recovering an account rotates its token.
+- **Abuse limits:** these are per player and per IP, and can be changed with environment variables in `qumol/app.py`.
+  - Sign-ups: 20 per IP per hour.
+  - Recovery attempts: 10 per IP per hour, and 5 per IP per nickname.
+  - Submissions: 20 per minute and 1,000 per day per player; 40 per minute and 3,000 per day per IP.
+  - Reads: 120 per minute per IP.
+
+  Exceeding a limit returns `429` with `Retry-After`.
+- **Compute protection:**
+  - At most 2 optimisations run at once (`QUMOL_WORKERS`), and extra requests get a quick `503`; the game retries automatically.
+  - Each player can have only one submission in flight.
+  - Bonds longer than 4 Å are rejected.
+  - Health checks stay responsive under load. In a stress test with 55 concurrent worst-case submissions, health checks answered in under 0.05 s.
+- **Storage:**
+  - Request bodies are capped at 256 KB.
+  - Molecules are capped at 30 heavy atoms (150 atoms in total).
+  - New data is refused when the disk has less than 1 GB free (`QUMOL_MIN_FREE_MB`).
+  - Leaderboards and stats are cached for 30 s.
+- **Web:**
+  - A strict Content-Security-Policy with no inline or third-party scripts. SMILES are computed on the server, so the page needs no `eval`.
+  - `nosniff`, `frame-ancestors 'none'`, `no-referrer` and HSTS headers.
+  - All user-controlled text is rendered with `textContent`.
+  - All SQL is parameterised.
+  - Validation errors never echo input back.
+  - API docs are off unless `QUMOL_DOCS=1`.
+- **Supply chain:** three.js and RDKit.js are pinned and checked against SHA-256 checksums of their npm tarballs, then served from our own origin.
+- **Service sandbox:**
+  - Runs as a systemd service with `ProtectSystem=strict`.
+  - `ProtectHome=tmpfs` hides the rest of your home directory; only the app folder is mounted, read-only, and only `data/` is writable.
+  - `NoNewPrivileges`, a system-call filter, no capabilities, and a memory cap.
+- **Network:** the server binds to `127.0.0.1`, so it is reachable only through Tailscale. `X-Forwarded-For` is trusted only from localhost.
+
+After deploying, check that `journalctl -u qumol` shows players' real IP addresses. The per-IP limits depend on Tailscale passing them through.
 
 ## Configuration
 
