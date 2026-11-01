@@ -85,6 +85,18 @@ button.on{background:var(--acc);box-shadow:0 0 14px var(--acc)}
 .qexp{margin-top:10px;font-size:14px;line-height:1.45;animation:slide .25s both}
 .streak{text-align:center;font-size:14px;opacity:.85;margin-bottom:4px}
 #submit{background:linear-gradient(135deg,var(--acc),var(--acc2));padding:0 22px;font-size:17px}
+#submit svg{width:22px;height:22px}
+#els #hplus{margin-right:14px}
+@media (max-width:380px){
+  #bottom .row{gap:4px}
+  #bottom .row button{font-size:14px;padding:0 9px;height:42px}
+  #bottom .ico svg{width:17px;height:17px}
+  #els button{width:38px;min-width:38px;padding:0}
+  #els #hplus{margin-right:8px}
+  #top .right{gap:4px}
+  #top .right button{min-width:34px;height:38px;padding:0 6px;font-size:14px}
+  .pill{max-width:28vw;padding:8px}
+}
 .left{display:flex;gap:8px;align-items:center;min-width:0}
 .brand{font-weight:900;font-size:20px;background:linear-gradient(90deg,#7c5cff,#20d3a7);-webkit-background-clip:text;background-clip:text;color:transparent}
 .pill{background:var(--panel);border-radius:12px;padding:8px 12px;font-size:13px;min-width:0;max-width:52vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -143,12 +155,13 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6"/><path d="M10 11l4 5M14 11l-4 5"/></svg>Delete</button>
   </div>
   <div class="row">
-    <button id="hplus" data-tip="Saturate with hydrogens: every atom with free bonds gets H atoms until it has its full valence (C 4, N 3, O 2, S 2). Submit does this automatically">H+</button>
+    <button id="hplus" data-tip="Saturate with hydrogens: every atom with free bonds gets H atoms until it has its full valence (C 4, N 3, O 2, S 2). Build does this automatically">H+</button>
     <button id="undo" class="ico" data-tip="Undo: step back one change">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Undo</button>
     <button id="clear" class="ico" data-tip="Clear all: remove the whole molecule and start over (Undo brings it back)">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21l-4.3-4.3a2.4 2.4 0 0 1 0-3.4l9.6-9.6a2.4 2.4 0 0 1 3.4 0l5.6 5.6a2.4 2.4 0 0 1 0 3.4L13 21"/><path d="M22 21H7"/><path d="M5 11l9 9"/></svg>Clear</button>
-    <button id="submit" class="tip-right" data-tip="Submit: your molecule is optimised, checked for stability and scored">Submit ⚡</button>
+    <button id="submit" class="ico tip-right" data-tip="Build: your molecule is optimised, checked for stability and scored" aria-label="Build">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v6.2L4.6 18.6A1.6 1.6 0 0 0 6 21h12a1.6 1.6 0 0 0 1.4-2.4L14 9.2V3"/><path d="M7.2 15h9.6"/><circle cx="10.5" cy="18" r="0.6" fill="currentColor"/><circle cx="13.6" cy="17.2" r="0.5" fill="currentColor"/></svg>Build</button>
   </div>
 </div>
 

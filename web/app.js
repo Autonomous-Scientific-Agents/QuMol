@@ -594,6 +594,7 @@ for(const e of Object.keys(EL)){
     act(() => { bondFirst = null; return placeNew(e); });
   };
   $('els').appendChild(b);
+  if(e === 'H') $('els').appendChild($('hplus'));  // H+ sits right after H, with a gap before C
 }
 function setMode(m){
   mode = m; bondFirst = null;
@@ -1124,13 +1125,13 @@ async function showScore(lines, mult, heavy, score, discovery){
 function showHelp(){
   const card = openCard();
   card.innerHTML = `<h2>How to play</h2>
-  <p>Build a molecule atom by atom, then hit <b>Submit ⚡</b>. It gets optimised and scored.</p>
+  <p>Build a molecule atom by atom, then hit <b>Build</b> (the flask). It gets optimised and scored.</p>
   <p><b>➕ Add</b> — click an element button to drop an atom next to the molecule (it bonds automatically when close enough), or tap an atom to grow from it.</p>
   <p><b>Tap a bond</b> to change it: single → double → triple → single. On a computer, bonds light up when you hover.</p>
   <p><b>🔗 Bond</b> — tap two atoms to bond them. Tap the same pair again to cycle single → double → triple → none (great for rings).</p>
   <p><b>✋ Move</b> — drag atoms to perfect the geometry. The closer you are to the optimum, the more points.</p>
   <p><b>Delete</b> — tap an atom to remove it, or a bond to break it. <b>Undo</b> steps back one change, <b>Clear</b> starts over.</p>
-  <p><b>H+</b> — saturates your molecule: every atom with free bonds gets hydrogens until it has its full valence (C 4, N 3, O 2, S 2). Submit does this for you too.</p>
+  <p><b>H+</b> — saturates your molecule: every atom with free bonds gets hydrogens until it has its full valence (C 4, N 3, O 2, S 2). Build does this for you too.</p>
   <p><b>🎓 Learn</b> — how each element bonds, molecular shapes you can load in 3D, and a quiz. <b>XYZ</b> — shows the formula and coordinates as you build; edit the numbers to reshape the molecule directly.</p>
   <p style="opacity:.7">On a computer, hover over any button to see what it does. Loaded examples don't earn geometry or hand-built points; edited XYZ doesn't earn the hand-built bonus.</p>
   <p>One finger rotates, pinch zooms.</p>
