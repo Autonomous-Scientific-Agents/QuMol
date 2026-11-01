@@ -155,6 +155,7 @@ Authenticated calls send `Authorization: Bearer <token>`. Interactive docs are a
 | Best geometry yet for an existing SMILES | +100 |
 | New molecular formula (first time anyone builds it) | +1,000 |
 | Formal charges (⁻C≡O⁺, nitro groups, …) | +50 |
+| Radical (stable, up to 2 unpaired electrons) | +50 |
 | New lowest-energy record for a formula | +300 |
 | Not in PubChem | +1,000 |
 | Size multiplier | × 1/√(heavy atoms) |

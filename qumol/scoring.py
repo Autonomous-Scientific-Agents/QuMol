@@ -28,6 +28,7 @@ POINTS = {
     "smiles_record": 100,
     "not_in_pubchem": 1000,
     "formal_charges": 50,  # small bonus for zwitterionic bonding like ⁻C≡O⁺
+    "radical": 50,  # small: radicals are easy to make (leave a bond empty)
 }
 INPUT_METHODS = ("hand", "xyz", "smiles", "2d", "example")
 GEOMETRY_SCORED = ("hand", "xyz")  # 2D and SMILES inputs get auto-generated geometry
@@ -100,7 +101,8 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
             lines.append(["Stable structure" if stable else "Unstable: no bonuses", POINTS["stable"] if stable else 0, None])
             if mol.radicals:
                 n = mol.radicals
-                lines.append([f"Radical: {n} unpaired electron{'s' if n > 1 else ''}", 0, None])
+                lines.append([f"Radical: {n} unpaired electron{'s' if n > 1 else ''}",
+                              POINTS["radical"] if stable else 0, None])
             if stable and any(mol.charges or []):
                 lines.append(["Formal charges (⁺/⁻)", POINTS["formal_charges"], None])
             if input_method == "hand":
