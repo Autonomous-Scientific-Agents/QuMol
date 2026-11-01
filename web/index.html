@@ -19,6 +19,19 @@ button:active{transform:scale(.9)}
 button.on{background:var(--acc);box-shadow:0 0 14px var(--acc)}
 .el{width:44px;padding:0;border:3px solid transparent}
 .el.on{border-color:#fff;box-shadow:0 0 14px currentColor}
+.ico{display:inline-flex;align-items:center;gap:6px}
+.ico svg{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+/* hover tooltips (mouse/trackpad only; phones get the text labels) */
+[data-tip]{position:relative}
+@media (hover:hover){
+  [data-tip]:hover::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);
+    width:max-content;max-width:260px;white-space:normal;text-align:left;background:#0e1530;color:var(--txt);border:1px solid #2c3a66;
+    border-radius:10px;padding:8px 10px;font-size:13px;font-weight:500;line-height:1.35;box-shadow:0 6px 24px rgba(0,0,0,.45);
+    z-index:20;pointer-events:none;animation:tipIn .15s .35s both}
+  .tip-below[data-tip]:hover::after{bottom:auto;top:calc(100% + 10px)}
+  .tip-right[data-tip]:hover::after{left:auto;right:0;transform:none}
+}
+@keyframes tipIn{from{opacity:0}}
 #submit{background:linear-gradient(135deg,var(--acc),var(--acc2));padding:0 22px;font-size:17px}
 .left{display:flex;gap:8px;align-items:center;min-width:0}
 .brand{font-weight:900;font-size:20px;background:linear-gradient(90deg,#7c5cff,#20d3a7);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -61,22 +74,30 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
 
 <div id="top" class="bar">
   <div class="left"><span class="brand">QuMol</span><span id="info" class="pill">Loading…</span></div>
-  <div class="right"><button id="mute" title="Sound">🔊</button><button id="help" title="How to play">?</button><button id="lb" title="Leaderboards">🏆</button><button id="total" title="Your collection">0 ⭐</button></div>
+  <div class="right">
+    <button id="mute" class="tip-below" data-tip="Sound on/off" aria-label="Sound on/off">🔊</button>
+    <button id="help" class="tip-below" data-tip="How to play" aria-label="How to play">?</button>
+    <button id="lb" class="tip-below" data-tip="Leaderboards" aria-label="Leaderboards">🏆</button>
+    <button id="total" class="tip-below tip-right" data-tip="Your score and molecule collection" aria-label="Your score and molecule collection">0 ⭐</button>
+  </div>
 </div>
 
 <div id="bottom" class="bar">
   <div class="row" id="els"></div>
   <div class="row">
-    <button class="mode on" data-mode="add">➕ Add</button>
-    <button class="mode" data-mode="bond">🔗 Bond</button>
-    <button class="mode" data-mode="move">✋ Move</button>
-    <button class="mode" data-mode="delete">🗑</button>
+    <button class="mode on ico" data-mode="add" data-tip="Add atoms: tap empty space for your first atom, then tap any atom to grow the selected element from it">➕ Add</button>
+    <button class="mode ico" data-mode="bond" data-tip="Bond: tap two atoms to connect them. Tap the same pair again to cycle single → double → triple → no bond (great for closing rings)">🔗 Bond</button>
+    <button class="mode ico" data-mode="move" data-tip="Move: drag an atom to fine-tune the geometry. The closer to the optimum, the more points">✋ Move</button>
+    <button class="mode ico" data-mode="delete" data-tip="Delete: tap an atom to remove it, along with its hydrogens">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18"/><path d="M9 6V4h6v2"/><path d="M5 6l1.2 14h11.6L19 6"/><path d="M10 11l4 5M14 11l-4 5"/></svg>Delete</button>
   </div>
   <div class="row">
-    <button id="hplus">H+</button>
-    <button id="undo">↶</button>
-    <button id="clear">✖</button>
-    <button id="submit">Submit ⚡</button>
+    <button id="hplus" data-tip="Saturate with hydrogens: every atom with free bonds gets H atoms until it has its full valence (C 4, N 3, O 2, S 2). Submit does this automatically">H+</button>
+    <button id="undo" class="ico" data-tip="Undo: step back one change">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Undo</button>
+    <button id="clear" class="ico" data-tip="Clear all: remove the whole molecule and start over (Undo brings it back)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21l-4.3-4.3a2.4 2.4 0 0 1 0-3.4l9.6-9.6a2.4 2.4 0 0 1 3.4 0l5.6 5.6a2.4 2.4 0 0 1 0 3.4L13 21"/><path d="M22 21H7"/><path d="M5 11l9 9"/></svg>Clear</button>
+    <button id="submit" class="tip-right" data-tip="Submit: your molecule is optimised, checked for stability and scored">Submit ⚡</button>
   </div>
 </div>
 
@@ -89,13 +110,12 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 
 /* ================= chemistry data ================= */
 const EL = {
-  C: {c:0x9aa3ad, r:0.76, val:4, vis:0.36},
-  N: {c:0x3d6bff, r:0.71, val:3, vis:0.34},
-  O: {c:0xff3b3b, r:0.66, val:2, vis:0.33},
-  S: {c:0xffd23f, r:1.05, val:2, vis:0.42},
-  F: {c:0x7ee06a, r:0.57, val:1, vis:0.30},
-  Cl:{c:0x2fe08a, r:1.02, val:1, vis:0.40},
-  H: {c:0xffffff, r:0.31, val:1, vis:0.22},
+  H: {c:0xffffff, r:0.31, val:1, vis:0.22, name:'Hydrogen'},
+  C: {c:0x9aa3ad, r:0.76, val:4, vis:0.36, name:'Carbon'},
+  N: {c:0x3d6bff, r:0.71, val:3, vis:0.34, name:'Nitrogen'},
+  O: {c:0xff3b3b, r:0.66, val:2, vis:0.33, name:'Oxygen'},
+  S: {c:0xe040fb, r:1.05, val:2, vis:0.42, name:'Sulfur'},
+  F: {c:0x7ee06a, r:0.57, val:1, vis:0.30, name:'Fluorine'},
 };
 const ORDER = [0, 1, 0.87, 0.78];   // bond-length factor for single/double/triple
 const MAX_HEAVY = 30;
@@ -264,7 +284,7 @@ function tone(f, d=0.12, type='sine', vol=0.2, f2=null, delay=0){
   o.connect(g).connect(ac.destination); o.start(t); o.stop(t+d+0.03);
 }
 const SFX = {
-  pop(el){ const f = {H:950,C:520,N:600,O:680,S:420,F:760,Cl:460}[el] || 520; tone(f, 0.13, 'sine', 0.25, f*1.6); },
+  pop(el){ const f = {H:950,C:520,N:600,O:680,S:420,F:760}[el] || 520; tone(f, 0.13, 'sine', 0.25, f*1.6); },
   bond(o){ tone(300+o*120, 0.08, 'triangle', 0.22); tone(450+o*170, 0.11, 'triangle', 0.16, null, 0.05); },
   del(){ tone(420, 0.2, 'sawtooth', 0.1, 90); },
   err(){ tone(150, 0.1, 'square', 0.1); tone(120, 0.13, 'square', 0.1, null, 0.12); },
@@ -548,8 +568,10 @@ function updateInfo(){
 for(const e of Object.keys(EL)){
   const b = document.createElement('button');
   b.className = 'el' + (e === element ? ' on' : ''); b.textContent = e;
+  b.dataset.tip = `${EL[e].name}: forms ${EL[e].val} bond${EL[e].val > 1 ? 's' : ''}. Pick it, then tap an atom to attach one.`;
+  b.setAttribute('aria-label', b.dataset.tip);
   const hex = '#' + EL[e].c.toString(16).padStart(6,'0');
-  b.style.background = hex; b.style.color = e === 'H' || e === 'S' || e === 'F' || e === 'Cl' ? '#111' : '#fff';
+  b.style.background = hex; b.style.color = e === 'H' || e === 'F' ? '#111' : '#fff';
   b.onclick = () => { unlockAudio(); element = e; document.querySelectorAll('.el').forEach(x => x.classList.toggle('on', x === b)); SFX.tick(); if(mode !== 'add') setMode('add'); };
   $('els').appendChild(b);
 }
@@ -791,7 +813,9 @@ function showHelp(){
   <p><b>➕ Add</b> — pick an element, tap empty space for your first atom, then tap an atom to grow from it.</p>
   <p><b>🔗 Bond</b> — tap two atoms to bond them. Tap the same pair again to cycle single → double → triple → none (great for rings).</p>
   <p><b>✋ Move</b> — drag atoms to perfect the geometry. The closer you are to the optimum, the more points.</p>
-  <p><b>🗑</b> — tap an atom to delete it. <b>H+</b> fills open valences with hydrogens (Submit does this too).</p>
+  <p><b>Delete</b> — tap an atom to remove it. <b>Undo</b> steps back one change, <b>Clear</b> starts over.</p>
+  <p><b>H+</b> — saturates your molecule: every atom with free bonds gets hydrogens until it has its full valence (C 4, N 3, O 2, S 2). Submit does this for you too.</p>
+  <p style="opacity:.7">On a computer, hover over any button to see what it does.</p>
   <p>One finger rotates, pinch zooms.</p>
   <p><b>Points:</b> geometry skill, stability, hand-built bonus, new molecules, formula records — and a huge bonus if it's <b>not in PubChem</b>. Smaller molecules score more.</p>
   <p style="opacity:.6;font-size:13px">Early prototype: energies come from a simple toy force field. A proper ML potential comes later.</p>`;

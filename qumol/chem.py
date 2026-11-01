@@ -16,7 +16,6 @@ ELEMENTS: dict[str, dict] = {
     "O": {"z": 8, "r": 0.66, "val": 2},
     "F": {"z": 9, "r": 0.57, "val": 1},
     "S": {"z": 16, "r": 1.05, "val": 2},
-    "Cl": {"z": 17, "r": 1.02, "val": 1},
 }
 Z_TO_SYMBOL = {v["z"]: k for k, v in ELEMENTS.items()}
 
