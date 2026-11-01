@@ -36,11 +36,11 @@ def local_path() -> str:
 
 def _local_con():
     path = local_path()
-    if _local["path"] != path:
+    if _local["path"] != path or (_local["con"] is None and os.path.exists(path)):
         if _local["con"] is not None:
             _local["con"].close()
         _local["path"], _local["con"] = path, None
-        if os.path.exists(path):
+        if os.path.exists(path):  # picked up as soon as the file is copied in, no restart needed
             _local["con"] = sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
     return _local["con"]
 

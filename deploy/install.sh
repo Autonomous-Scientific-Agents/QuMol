@@ -64,13 +64,16 @@ if [ "$METHOD" = "uma" ]; then
   # then pass your token (HF_TOKEN=hf_... bash install.sh) or log in once with `hf auth login`.
   TOKEN="${HF_TOKEN:-}"
   [ -z "$TOKEN" ] && [ -f "$HOME/.cache/huggingface/token" ] && TOKEN="$(cat "$HOME/.cache/huggingface/token")"
-  if [ -z "$TOKEN" ]; then
+  if [ -n "$TOKEN" ]; then
+    mkdir -p "$APP_DIR/data" && chmod 700 "$APP_DIR/data"
+    umask 077
+    printf 'HF_TOKEN=%s\n' "$TOKEN" > "$APP_DIR/data/secrets.env"
+    umask 022
+  elif [ -f "$APP_DIR/data/secrets.env" ]; then
+    echo "    using the Hugging Face token saved earlier"
+  else
     echo "!! No Hugging Face token found. Accept the UMA terms, then re-run with HF_TOKEN=hf_..."; exit 1
   fi
-  mkdir -p "$APP_DIR/data" && chmod 700 "$APP_DIR/data"
-  umask 077
-  printf 'HF_TOKEN=%s\n' "$TOKEN" > "$APP_DIR/data/secrets.env"
-  umask 022
 fi
 
 echo "==> Front-end libraries (pinned, checksum-verified)"
