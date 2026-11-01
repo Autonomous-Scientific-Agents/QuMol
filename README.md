@@ -7,6 +7,8 @@ QuMol is a 3D molecule-building game that runs in the browser on phones and desk
 ## In the game
 
 - **3D builder** with H, C, N, O, S and F, plus Add, Bond, Move and Delete modes, Undo, H+ (saturate with hydrogens) and Clear. Every button has a hover tooltip.
+- **Quick placement:** clicking an element button drops an atom. The first goes at the centre, the second 1 Å away, and later ones 1 Å from the newest atom that still has a free bond, in a VSEPR-like direction, never closer than 0.95 Å to anything. If every atom is saturated, the new atom goes into open space beside the molecule. Bonds are perceived from distance (within 1.2× the covalent radii, respecting valence, and never closing a 3-ring with a bond just made).
+- **Tap a bond** to cycle single → double → triple → single, within each atom's valence. In Delete mode, tapping a bond breaks it. On desktop, bonds highlight on hover.
 - **🎓 Learn**:
   - **Elements**: animated Lewis dots, bonds vs. lone pairs, valence electrons, shapes, bond lengths and a fun fact for each element.
   - **Bonds & shapes**: tetrahedral, pyramidal, bent, trigonal planar, linear, single/double/triple bonds and rings. Each has a *Show me* button that loads an example into the 3D view.
