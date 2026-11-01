@@ -95,6 +95,8 @@ const cylGeo = new THREE.CylinderGeometry(1, 1, 1, 14);
 const mats = {}; for(const e in EL) mats[e] = new THREE.MeshStandardMaterial({color:EL[e].c, roughness:0.32, metalness:0.08});
 const selMat = new THREE.MeshStandardMaterial({color:0xffffff, emissive:0x7c5cff, emissiveIntensity:1.3});
 const bondMat = new THREE.MeshStandardMaterial({color:0xc9d1e8, roughness:0.4});
+const hoverBondMat = new THREE.MeshStandardMaterial({color:0xffffff, emissive:0x20d3a7, emissiveIntensity:0.9, roughness:0.3});
+let hoverBond = -1;
 const Y = new THREE.Vector3(0,1,0);
 
 function randUnit(){
@@ -115,19 +117,19 @@ function rebuild(){
     if(a.born){ const t = (now - a.born)/350; if(t < 1) s *= t < 0.6 ? t/0.6*1.25 : 1.25 - 0.25*(t-0.6)/0.4; }
     m.scale.setScalar(Math.max(s, 0.001)); m.position.copy(a.p); molGroup.add(m);
   });
-  for(const b of bonds){
+  bonds.forEach((b, bi) => {
     const p1 = atoms[b.a].p, p2 = atoms[b.b].p;
-    const dir = p2.clone().sub(p1); const L = dir.length(); if(L < 1e-6) continue; dir.normalize();
+    const dir = p2.clone().sub(p1); const L = dir.length(); if(L < 1e-6) return; dir.normalize();
     const perp = perpOf(dir).multiplyScalar(0.13);
     const offs = b.o === 1 ? [0] : b.o === 2 ? [-0.5, 0.5] : [-1, 0, 1];
     const rad = b.o === 1 ? 0.09 : 0.055;
     const mid = p1.clone().add(p2).multiplyScalar(0.5);
     for(const k of offs){
-      const m = new THREE.Mesh(cylGeo, bondMat);
+      const m = new THREE.Mesh(cylGeo, bi === hoverBond ? hoverBondMat : bondMat);
       m.scale.set(rad, L, rad); m.position.copy(mid).addScaledVector(perp, k);
       m.quaternion.setFromUnitVectors(Y, dir); molGroup.add(m);
     }
-  }
+  });
 }
 
 /* ================= particles ================= */
@@ -247,6 +249,90 @@ function cycleBond(a, b){
   buzz(12);
   burst(atoms[a].p.clone().add(atoms[b].p).multiplyScalar(0.5), 0xc9d1e8, 14, 2, 0.4, 0.18);
 }
+// Tap a bond: single → double → triple → single (within each atom's valence).
+function cycleOrder(k){
+  const b = bonds[k]; if(!b) return false;
+  let next = b.o % 3 + 1;
+  const need = next - b.o;
+  if(need > 0 && (freeVal(b.a) < need || freeVal(b.b) < need)){
+    if(b.o === 1){
+      const full = freeVal(b.a) < need ? b.a : b.b;
+      return fail(`${EL[atoms[full].el].name} has no free bond left for a double bond (max ${EL[atoms[full].el].val})`);
+    }
+    next = 1;
+  }
+  b.o = next;
+  SFX.bond(next); buzz(12);
+  burst(atoms[b.a].p.clone().add(atoms[b.b].p).multiplyScalar(0.5), 0x20d3a7, 14, 2, 0.4, 0.18);
+  toast(['', 'Single bond', 'Double bond', 'Triple bond'][next], 900);
+}
+function removeBond(k){
+  const b = bonds[k]; if(!b) return false;
+  burst(atoms[b.a].p.clone().add(atoms[b.b].p).multiplyScalar(0.5), 0xc9d1e8, 14, 2, 0.4, 0.18);
+  bonds.splice(k, 1); SFX.del(); buzz(12);
+}
+
+// Bond a freshly placed atom to neighbours closer than 1.2 × the sum of covalent radii,
+// nearest first, within valence. Skip a bond that would close a 3-membered ring with a
+// bond just made: at 1 Å spacing, atoms two bonds apart are only ~1.6 Å away.
+const PLACE_DIST = 1.0;
+function perceiveFor(j){
+  const pj = atoms[j].p, rj = EL[atoms[j].el].r, made = [];
+  const cands = atoms.map((a, i) => ({i, d: a.p.distanceTo(pj), cut: 1.2 * (EL[a.el].r + rj)}))
+    .filter(c => c.i !== j && c.d < c.cut).sort((x, y) => x.d - y.d);
+  for(const c of cands){
+    if(freeVal(j) < 1) break;
+    if(freeVal(c.i) < 1) continue;
+    if(made.some(m => neighbors(m).includes(c.i))) continue;
+    bonds.push({a: c.i, b: j, o: 1}); made.push(c.i);
+  }
+  return made.length;
+}
+function minDistTo(p, skip = -1){
+  let m = Infinity; atoms.forEach((a, i) => { if(i !== skip) m = Math.min(m, a.p.distanceTo(p)); }); return m;
+}
+// Element button: drop a new atom near the molecule.
+function placeNew(el){
+  if(el !== 'H' && heavyCount() >= MAX_HEAVY) return fail(`Max ${MAX_HEAVY} heavy atoms`);
+  if(atoms.length >= 150) return fail('That\'s a lot of atoms! Max 150');
+  let pos;
+  if(!atoms.length) pos = new THREE.Vector3();
+  else if(atoms.length === 1){
+    const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);  // to the right on screen
+    pos = atoms[0].p.clone().addScaledVector(right, PLACE_DIST);
+  } else {
+    let anchor = -1;
+    for(let i = atoms.length - 1; i >= 0; i--) if(freeVal(i) > 0){ anchor = i; break; }
+    let best = null, bestGap = -1;
+    if(anchor >= 0){
+      for(let t = 0; t < 24; t++){
+        const p = atoms[anchor].p.clone().addScaledVector(newDir(anchor, t ? 0.1 + 0.04 * t : 0.05), PLACE_DIST);
+        const gap = minDistTo(p, anchor);
+        if(gap > bestGap){ bestGap = gap; best = p; }
+        if(gap > 1.4) break;
+      }
+    }
+    if(!best || bestGap < 0.95){  // nothing free or too crowded: open space next to the molecule
+      const c = centroid(), R = Math.max(...atoms.map(a => a.p.distanceTo(c)));
+      const right = new THREE.Vector3(1, 0, 0).applyQuaternion(camera.quaternion);
+      const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
+      best = null; bestGap = -1;
+      for(let t = 0; t < 32; t++){
+        // directions in the screen plane, favouring left/right so new atoms stay visible above the toolbar
+        const ang = (t / 32) * Math.PI * 2;
+        const d = right.clone().multiplyScalar(Math.cos(ang)).addScaledVector(up, 0.6 * Math.sin(ang)).normalize();
+        const p = c.clone().addScaledVector(d, R + 1.2);
+        const gap = minDistTo(p);
+        if(gap > bestGap){ bestGap = gap; best = p; }
+      }
+    }
+    pos = best;
+  }
+  const j = addAtom(el, pos);
+  const nb = atoms.length > 1 ? perceiveFor(j) : 0;
+  SFX.pop(el); buzz(10); burst(atoms[j].p, EL[el].c, 18, 2.5, 0.5, 0.22);
+  if(atoms.length > 1 && !nb) toast('Placed but not bonded — drag it closer (✋ Move) or connect with 🔗 Bond', 2600);
+}
 function deleteAtom(i){
   const rm = new Set([i]);
   if(atoms[i].el !== 'H') neighbors(i).forEach(j => { if(atoms[j].el === 'H') rm.add(j); });
@@ -308,6 +394,7 @@ function act(fn){
 }
 function changed(){
   if(!atoms.length) inputMethod = 'hand';
+  hoverBond = -1;
   rebuild(); updateInfo(); refreshXYZ();
   try{ localStorage.setItem('qm.work', serialize()); }catch{}
 }
@@ -495,11 +582,17 @@ function updateInfo(){
 for(const e of Object.keys(EL)){
   const b = document.createElement('button');
   b.className = 'el' + (e === element ? ' on' : ''); b.textContent = e;
-  b.dataset.tip = `${EL[e].name}: forms ${EL[e].val} bond${EL[e].val > 1 ? 's' : ''}. Pick it, then tap an atom to attach one.`;
+  b.dataset.tip = `${EL[e].name} (forms ${EL[e].val} bond${EL[e].val > 1 ? 's' : ''}): click to add one. It appears 1 Å from the newest atom with a free bond and bonds automatically if close enough. Or tap an atom to grow ${e} from it.`;
   b.setAttribute('aria-label', b.dataset.tip);
   const hex = '#' + EL[e].c.toString(16).padStart(6,'0');
   b.style.background = hex; b.style.color = e === 'H' || e === 'F' ? '#111' : '#fff';
-  b.onclick = () => { unlockAudio(); element = e; document.querySelectorAll('.el').forEach(x => x.classList.toggle('on', x === b)); SFX.tick(); if(mode !== 'add') setMode('add'); };
+  b.onclick = () => {
+    unlockAudio(); element = e;
+    document.querySelectorAll('.el').forEach(x => x.classList.toggle('on', x === b));
+    if(mode !== 'add') setMode('add');
+    if(busy) return;
+    act(() => { bondFirst = null; return placeNew(e); });
+  };
   $('els').appendChild(b);
 }
 function setMode(m){
@@ -788,6 +881,30 @@ function pick(cx, cy){
   });
   return bd < 32 ? best : -1;
 }
+function toScreen(p, rect){
+  const v = p.clone().add(world.position).project(camera);
+  return {x: (v.x+1)/2*rect.width + rect.left, y: (1-v.y)/2*rect.height + rect.top, z: v.z};
+}
+// Nearest atom and nearest bond under the pointer; a bond wins when the tap is
+// clearly on its middle rather than on an atom.
+function pickAll(cx, cy){
+  const rect = canvas.getBoundingClientRect();
+  let atom = -1, da = Infinity, bond = -1, db = Infinity;
+  const scr = atoms.map(a => toScreen(a.p, rect));
+  scr.forEach((s, i) => { if(s.z <= 1){ const d = Math.hypot(s.x - cx, s.y - cy); if(d < da){ da = d; atom = i; } } });
+  bonds.forEach((b, k) => {
+    const A = scr[b.a], B = scr[b.b]; if(!A || !B || A.z > 1 || B.z > 1) return;
+    const dx = B.x - A.x, dy = B.y - A.y, L2 = dx*dx + dy*dy; if(L2 < 4) return;
+    const t = ((cx - A.x)*dx + (cy - A.y)*dy) / L2; if(t < 0.2 || t > 0.8) return;
+    const d = Math.hypot(A.x + t*dx - cx, A.y + t*dy - cy);
+    if(d < db){ db = d; bond = k; }
+  });
+  if(da >= 32) atom = -1;
+  if(db >= 16) bond = -1;
+  if(bond >= 0 && atom >= 0 && db > da * 0.5) bond = -1;  // closer to the atom: treat as an atom tap
+  if(bond >= 0) atom = -1;
+  return {atom, bond};
+}
 function rayTo(cx, cy){
   const rect = canvas.getBoundingClientRect();
   raycaster.setFromCamera(new THREE.Vector2((cx-rect.left)/rect.width*2-1, -((cy-rect.top)/rect.height)*2+1), camera);
@@ -797,8 +914,9 @@ canvas.addEventListener('pointerdown', e => {
   unlockAudio();
   pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
   if(pointers.size > 1){ gesture = null; if(dragging !== null){ dragging = null; controls.enabled = true; rebuild(); } return; }
-  const hit = busy ? -1 : pick(e.clientX, e.clientY);
-  gesture = {x:e.clientX, y:e.clientY, t:performance.now(), hit, moved:false};
+  const pk = busy ? {atom:-1, bond:-1} : pickAll(e.clientX, e.clientY);
+  const hit = mode === 'move' && !busy ? pick(e.clientX, e.clientY) : pk.atom;
+  gesture = {x:e.clientX, y:e.clientY, t:performance.now(), hit, bond: pk.bond, moved:false};
   if(mode === 'move' && hit >= 0 && !busy){
     dragging = hit; dragSnap = serialize(); controls.enabled = false;
     camera.getWorldDirection(tmpV);
@@ -808,7 +926,15 @@ canvas.addEventListener('pointerdown', e => {
   }
 }, {capture:true});
 canvas.addEventListener('pointermove', e => {
-  if(!pointers.has(e.pointerId)) return;
+  if(!pointers.has(e.pointerId)){
+    if(e.pointerType === 'mouse' && !pointers.size && !busy){  // hover feedback on desktop
+      const pk = pickAll(e.clientX, e.clientY);
+      const hb = mode === 'move' ? -1 : pk.bond;
+      canvas.style.cursor = (pk.atom >= 0 || hb >= 0) ? 'pointer' : '';
+      if(hb !== hoverBond){ hoverBond = hb; rebuild(); }
+    }
+    return;
+  }
   pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
   if(gesture && Math.hypot(e.clientX-gesture.x, e.clientY-gesture.y) > 10) gesture.moved = true;
   if(dragging !== null && pointers.size === 1){
@@ -822,18 +948,22 @@ function endPointer(e){
     if(gesture && gesture.moved){ undoStack.push(dragSnap); changed(); }
     dragging = null; controls.enabled = true; gesture = null; rebuild(); return;
   }
-  if(gesture && !gesture.moved && performance.now() - gesture.t < 500 && pointers.size === 0) onTap(gesture.hit);
+  if(gesture && !gesture.moved && performance.now() - gesture.t < 500 && pointers.size === 0) onTap(gesture.hit, gesture.bond);
   gesture = null;
 }
 canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', endPointer);
 
-function onTap(hit){
+function onTap(hit, bondHit = -1){
   if(busy) return;
+  if(bondHit >= 0 && (mode === 'add' || (mode === 'bond' && bondFirst === null))){
+    act(() => cycleOrder(bondHit)); return;
+  }
+  if(bondHit >= 0 && mode === 'delete'){ act(() => removeBond(bondHit)); return; }
   if(mode === 'add'){
     if(hit >= 0) act(() => growFrom(hit, element));
     else if(!atoms.length) act(() => { if(element === 'H') return fail('Start with a heavier atom!'); addAtom(element, new THREE.Vector3()); SFX.pop(element); buzz(10); burst(new THREE.Vector3(), EL[element].c, 24, 3, 0.6, 0.25); });
-    else toast('Tap an atom to grow from it');
+    else toast('Tap an atom to grow from it, tap a bond to change its order, or click an element button to add one');
   } else if(mode === 'bond'){
     if(hit < 0){ bondFirst = null; rebuild(); return; }
     if(bondFirst === null){ bondFirst = hit; SFX.tick(); rebuild(); }
@@ -995,10 +1125,11 @@ function showHelp(){
   const card = openCard();
   card.innerHTML = `<h2>How to play</h2>
   <p>Build a molecule atom by atom, then hit <b>Submit ⚡</b>. It gets optimised and scored.</p>
-  <p><b>➕ Add</b> — pick an element, tap empty space for your first atom, then tap an atom to grow from it.</p>
+  <p><b>➕ Add</b> — click an element button to drop an atom next to the molecule (it bonds automatically when close enough), or tap an atom to grow from it.</p>
+  <p><b>Tap a bond</b> to change it: single → double → triple → single. On a computer, bonds light up when you hover.</p>
   <p><b>🔗 Bond</b> — tap two atoms to bond them. Tap the same pair again to cycle single → double → triple → none (great for rings).</p>
   <p><b>✋ Move</b> — drag atoms to perfect the geometry. The closer you are to the optimum, the more points.</p>
-  <p><b>Delete</b> — tap an atom to remove it. <b>Undo</b> steps back one change, <b>Clear</b> starts over.</p>
+  <p><b>Delete</b> — tap an atom to remove it, or a bond to break it. <b>Undo</b> steps back one change, <b>Clear</b> starts over.</p>
   <p><b>H+</b> — saturates your molecule: every atom with free bonds gets hydrogens until it has its full valence (C 4, N 3, O 2, S 2). Submit does this for you too.</p>
   <p><b>🎓 Learn</b> — how each element bonds, molecular shapes you can load in 3D, and a quiz. <b>XYZ</b> — shows the formula and coordinates as you build; edit the numbers to reshape the molecule directly.</p>
   <p style="opacity:.7">On a computer, hover over any button to see what it does. Loaded examples don't earn geometry or hand-built points; edited XYZ doesn't earn the hand-built bonus.</p>
