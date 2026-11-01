@@ -51,7 +51,25 @@ echo "==> Python environment"
 "$APP_DIR/.venv/bin/pip" install -q --upgrade pip
 "$APP_DIR/.venv/bin/pip" install -q -r "$APP_DIR/requirements.txt"
 if [ "$METHOD" = "uma" ]; then
+  echo "==> UMA (fairchem-core)"
+  "$APP_DIR/.venv/bin/python" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' \
+    || { echo "!! UMA needs Python 3.11 or newer (fairchem-core)"; exit 1; }
+  if ! command -v nvidia-smi >/dev/null; then
+    # No GPU: the CPU build of PyTorch is far smaller than the default CUDA one.
+    "$APP_DIR/.venv/bin/pip" install -q torch --index-url https://download.pytorch.org/whl/cpu
+  fi
   "$APP_DIR/.venv/bin/pip" install -q ase fairchem-core
+  # The weights are gated on Hugging Face: accept the terms at https://huggingface.co/facebook/UMA,
+  # then pass your token (HF_TOKEN=hf_... bash install.sh) or log in once with `hf auth login`.
+  TOKEN="${HF_TOKEN:-}"
+  [ -z "$TOKEN" ] && [ -f "$HOME/.cache/huggingface/token" ] && TOKEN="$(cat "$HOME/.cache/huggingface/token")"
+  if [ -z "$TOKEN" ]; then
+    echo "!! No Hugging Face token found. Accept the UMA terms, then re-run with HF_TOKEN=hf_..."; exit 1
+  fi
+  mkdir -p "$APP_DIR/data" && chmod 700 "$APP_DIR/data"
+  umask 077
+  printf 'HF_TOKEN=%s\n' "$TOKEN" > "$APP_DIR/data/secrets.env"
+  umask 022
 fi
 
 echo "==> Front-end libraries (pinned, checksum-verified)"
@@ -77,6 +95,8 @@ Environment=QUMOL_DB=$APP_DIR/data/qumol.db
 Environment=QUMOL_METHOD=$METHOD
 Environment=HF_HOME=$APP_DIR/data/cache/huggingface
 Environment=XDG_CACHE_HOME=$APP_DIR/data/cache
+Environment=FAIRCHEM_CACHE_DIR=$APP_DIR/data/cache/fairchem
+EnvironmentFile=-$APP_DIR/data/secrets.env
 UMask=0077
 # Only reachable through Tailscale on this machine; X-Forwarded-For is trusted only from localhost.
 ExecStart=$APP_DIR/.venv/bin/uvicorn qumol.app:app --host 127.0.0.1 --port $PORT --proxy-headers --forwarded-allow-ips 127.0.0.1 --no-server-header

@@ -93,7 +93,7 @@ def _uma():
     # Requires: pip install fairchem-core, plus access to the UMA weights on Hugging Face.
     from fairchem.core import FAIRChemCalculator, pretrained_mlip
 
-    model = os.environ.get("QUMOL_UMA_MODEL", "uma-s-1p1")
+    model = os.environ.get("QUMOL_UMA_MODEL", "uma-s-1p2p1")
     device = os.environ.get("QUMOL_DEVICE", "cpu")
     predictor = pretrained_mlip.get_predict_unit(model, device=device)
     return FAIRChemCalculator(predictor, task_name="omol")
@@ -103,6 +103,6 @@ def _uma():
 register("emt")(lambda: ASECalculator("emt", "ase", _emt, kind="test"))
 register("uma")(
     lambda: ASECalculator(
-        "uma", os.environ.get("QUMOL_UMA_MODEL", "uma-s-1p1"), _uma, params={"task": "omol"}
+        "uma", os.environ.get("QUMOL_UMA_MODEL", "uma-s-1p2p1"), _uma, params={"task": "omol"}
     )
 )
