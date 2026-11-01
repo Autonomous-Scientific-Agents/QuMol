@@ -33,6 +33,24 @@ The database is a single SQLite file, `qumol.db`, in the working directory. Set 
 
 If you open `web/index.html` without the server, the game runs in **offline mode**: scoring is done in the browser and saved only on that device.
 
+## Deploy on a server (systemd + Tailscale)
+
+On an Ubuntu or Debian machine with Tailscale installed, run:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Autonomous-Scientific-Agents/QuMol/main/deploy/install.sh | bash                    # tailnet only
+curl -fsSL https://raw.githubusercontent.com/Autonomous-Scientific-Agents/QuMol/main/deploy/install.sh | TAILSCALE=funnel bash   # public link
+```
+
+The script:
+
+1. Clones or updates the code into `~/qumol` and creates a virtualenv.
+2. Installs a `qumol` systemd service listening on `127.0.0.1:8010`.
+3. Stores the database in `~/qumol/data/qumol.db`.
+4. Publishes the game over Tailscale HTTPS on port 8443, so nothing you already serve on 443 is touched.
+
+Re-run it to update. Options: `APP_DIR`, `PORT`, `METHOD=uma`, `TAILSCALE=serve|funnel|off`, `TS_PORT`.
+
 ## Configuration
 
 | Variable | Default | Meaning |
