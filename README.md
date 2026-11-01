@@ -4,6 +4,16 @@
 
 QuMol is a 3D molecule-building game that runs in the browser on phones and desktops. Players build molecules atom by atom and submit them. Each submission is optimised and checked for stability, then scored. The biggest rewards go to small, stable molecules that are new to QuMol and not found in PubChem. Every submission adds to a growing molecular dataset.
 
+## In the game
+
+- **3D builder** with H, C, N, O, S and F, plus Add, Bond, Move and Delete modes, Undo, H+ (saturate with hydrogens) and Clear. Every button has a hover tooltip.
+- **🎓 Learn**:
+  - **Elements**: animated Lewis dots, bonds vs. lone pairs, valence electrons, shapes, bond lengths and a fun fact for each element.
+  - **Bonds & shapes**: tetrahedral, pyramidal, bent, trigonal planar, linear, single/double/triple bonds and rings. Each has a *Show me* button that loads an example into the 3D view.
+  - **Quiz**: 12 questions with explanations and a streak counter.
+- **XYZ panel**: the live formula, SMILES and XYZ coordinates as you build. Editing the coordinates changes the molecule. Adding or removing lines adds or removes atoms, and bonds are then guessed from distances. It can be turned off and remembers your choice.
+- **Fair scoring by input method**: a molecule loaded from Learn is `example` (no geometry or hand-built points). Coordinates edited in the XYZ panel make it `xyz` (geometry points, but no hand-built bonus). Clear resets it to `hand`.
+
 ## Quick start (game + server)
 
 ```bash
@@ -66,7 +76,7 @@ The server is authoritative: it recomputes every energy itself, so scores can't 
 | POST | `/api/players` | `{nickname}` → token and recovery code |
 | POST | `/api/players/recover` | `{nickname, recovery_code}` → new token |
 | GET | `/api/me` | totals for the signed-in player |
-| POST | `/api/submissions` | `{atoms:[{el,x,y,z}], bonds:[[i,j,order]], input_method, mode}` |
+| POST | `/api/submissions` | `{atoms:[{el,x,y,z}], bonds:[[i,j,order]], input_method (hand\|xyz\|example\|smiles\|2d), mode}` |
 | GET | `/api/submissions/mine` | the player's history |
 | GET | `/api/leaderboards` | the available categories |
 | GET | `/api/leaderboard/{category}` | overall, hand, xyz, weekly, small, discoveries, molecules, records |

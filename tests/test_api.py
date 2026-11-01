@@ -53,6 +53,10 @@ def test_input_methods(client):
     labels = [l[0] for l in j["lines"]]
     assert "Geometry skill" in labels and "Hand-built" not in labels
     assert "New to QuMol" not in labels  # someone else found it first
+    h3, _ = player(client, "learner")
+    j = client.post("/api/submissions", json={**ethanol(), "input_method": "example"}, headers=h3).json()
+    labels = [l[0] for l in j["lines"]]
+    assert "Example molecule: no geometry points" in labels and "Hand-built" not in labels
     assert client.post("/api/submissions", json={**ethanol(), "input_method": "magic"}, headers=h).status_code == 400
 
 
