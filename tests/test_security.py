@@ -74,7 +74,7 @@ def test_audit_fixes(client):
     from qumol.security import one_at_a_time
 
     h, _ = player(client)
-    # atoms hundreds of Å apart would cost thousands of optimiser steps: rejected up front
+    # atoms hundreds of Å apart would cost thousands of optimizer steps: rejected up front
     far = {"atoms": [{"el": "C", "x": 0, "y": 0, "z": 0}, {"el": "C", "x": 400, "y": 0, "z": 0}], "bonds": [[0, 1, 1]]}
     assert "too long" in client.post("/api/submissions", json=far, headers=h).json()["detail"]
     # duplicate bonds on the live-SMILES endpoint: clean 400, not a 500

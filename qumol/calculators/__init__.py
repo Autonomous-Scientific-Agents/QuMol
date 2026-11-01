@@ -22,14 +22,14 @@ from ..chem import Molecule
 @dataclass
 class OptResult:
     e_input: float  # energy of the submitted skeleton (hydrogens tidied)
-    e_opt: float  # energy after optimisation
+    e_opt: float  # energy after optimization
     coords_input: np.ndarray  # the hydrogen-tidied input that was scored
     coords_opt: np.ndarray
     fmax: float
     converged: bool
     saddle: bool  # a small kick lowered the energy: it had stopped on a saddle point
     n_steps: int
-    frames: list[np.ndarray] = field(default_factory=list)  # optimisation trajectory
+    frames: list[np.ndarray] = field(default_factory=list)  # optimization trajectory
 
 
 class Calculator:

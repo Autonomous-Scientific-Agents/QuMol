@@ -158,7 +158,7 @@ def assign_charges(symbols, bonds, strict: bool = False):
             if strict:
                 raise ChemError(
                     f"Atom {i + 1} ({symbols[i]}) has {total[i]} bonds, so it needs a + charge, "
-                    "but no neighbour has a free bond to take the − charge (like C≡O or a nitro group)")
+                    "but no neighbor has a free bond to take the − charge (like C≡O or a nitro group)")
             continue
         charges[i] = 1
         charges[partner] = -1
@@ -210,7 +210,7 @@ def hash_geometry(symbols, coords, charge: int = 0, multiplicity: int | None = N
     principal-axes frame, so identical structures map to one identifier and one
     standardized geometry (recovered with ``hashmol3d.descriptor_geometry``,
     which re-hashes to the same identifier). If HashMol3D fell back to the
-    distance method there are no frame coordinates; the centred input is kept.
+    distance method there are no frame coordinates; the centered input is kept.
     """
     numbers = [ELEMENTS[s]["z"] for s in symbols]
     r = hash_molecule(numbers, np.asarray(coords, dtype=float), charge=charge, multiplicity=multiplicity)
@@ -305,7 +305,7 @@ def inchikey_of(smiles: str | None) -> str | None:
 
 
 def structure_intact(mol: Molecule, coords: np.ndarray) -> bool:
-    """Did the optimised structure keep its bonds without collapsing?"""
+    """Did the optimized structure keep its bonds without collapsing?"""
     x = np.asarray(coords)
     r = {s: ELEMENTS[s]["r"] for s in ELEMENTS}
     factor = {1: 1.0, 2: 0.87, 3: 0.78}
@@ -324,7 +324,7 @@ def structure_intact(mol: Molecule, coords: np.ndarray) -> bool:
                 continue
             if np.linalg.norm(x[i] - x[j]) < 1.6:
                 # an unbonded heavy-atom pair this close: collapsed structure,
-                # unless they are 1-3 neighbours sharing an atom
+                # unless they are 1-3 neighbors sharing an atom
                 if not set(mol.neighbors(i)) & set(mol.neighbors(j)):
                     return False
     return True

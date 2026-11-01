@@ -1,4 +1,4 @@
-"""Export collected molecules as extended XYZ (one frame per optimised geometry).
+"""Export collected molecules as extended XYZ (one frame per optimized geometry).
 
 Usage:
     python scripts/export_dataset.py --db qumol.db --out qumol_dataset.xyz [--stable-only] [--method toyff]

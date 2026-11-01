@@ -1,6 +1,6 @@
 """Toy force field: the same model the browser prototype uses.
 
-Harmonic bonds and angles plus soft non-bonded repulsion, minimised with FIRE.
+Harmonic bonds and angles plus soft non-bonded repulsion, minimized with FIRE.
 It is a gameplay placeholder, not real chemistry: it has no torsions,
 electrostatics or dispersion, so every bonding pattern relaxes to an energy
 near zero. Swap in a real potential (see ``ase_calc.py``) for science.

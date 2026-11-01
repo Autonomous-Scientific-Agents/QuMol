@@ -112,6 +112,7 @@ body.busy #bottom button{opacity:.45;pointer-events:none}
 .card p{line-height:1.45;margin:6px 0}
 .line{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid #22305a;animation:slide .3s both}
 .line small{display:block;opacity:.6;font-size:12px;word-break:break-all}
+.line small a{color:#9fb0ff;text-decoration:underline;opacity:1}
 .pts{font-weight:800;color:var(--acc2);white-space:nowrap}
 .pts.zero{color:#8090b8}
 .mult .pts{color:#ffd166}
@@ -160,7 +161,7 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Undo</button>
     <button id="clear" class="ico" data-tip="Clear all: remove the whole molecule and start over (Undo brings it back)">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21l-4.3-4.3a2.4 2.4 0 0 1 0-3.4l9.6-9.6a2.4 2.4 0 0 1 3.4 0l5.6 5.6a2.4 2.4 0 0 1 0 3.4L13 21"/><path d="M22 21H7"/><path d="M5 11l9 9"/></svg>Clear</button>
-    <button id="submit" class="ico tip-right" data-tip="Build: your molecule is optimised, checked for stability and scored" aria-label="Build">
+    <button id="submit" class="ico tip-right" data-tip="Build: your molecule is optimized, checked for stability and scored" aria-label="Build">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v6.2L4.6 18.6A1.6 1.6 0 0 0 6 21h12a1.6 1.6 0 0 0 1.4-2.4L14 9.2V3"/><path d="M7.2 15h9.6"/><circle cx="10.5" cy="18" r="0.6" fill="currentColor"/><circle cx="13.6" cy="17.2" r="0.5" fill="currentColor"/></svg>Build</button>
   </div>
 </div>

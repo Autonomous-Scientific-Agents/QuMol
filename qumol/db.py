@@ -5,8 +5,8 @@ Tables
 players        nickname + hashed login token + hashed recovery code (Google ID later)
 methods        energy methods (name + version); new potentials are new rows
 geometries     unique 3D structures, keyed by their HashMol3D identifier
-calculations   results of a method on a geometry (single point, optimisation, ...)
-submissions    one row per player submission, linking input and optimised geometries
+calculations   results of a method on a geometry (single point, optimization, ...)
+submissions    one row per player submission, linking input and optimized geometries
 pubchem_cache  remembered PubChem lookups
 """
 
@@ -64,7 +64,7 @@ CREATE TABLE IF NOT EXISTS calculations (
     energy        REAL,
     fmax          REAL,
     converged     INTEGER,
-    result_geometry_id TEXT REFERENCES geometries(id),  -- for optimisations: where it ended up
+    result_geometry_id TEXT REFERENCES geometries(id),  -- for optimizations: where it ended up
     extra_json    TEXT NOT NULL DEFAULT '{}',          -- forces, frequencies, steps, ...
     created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     UNIQUE (geometry_id, method_id, kind)

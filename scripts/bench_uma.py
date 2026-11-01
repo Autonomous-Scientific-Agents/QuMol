@@ -1,4 +1,4 @@
-"""Time geometry optimisations with an ASE energy method on this machine.
+"""Time geometry optimizations with an ASE energy method on this machine.
 
     ~/qumol/.venv/bin/python scripts/bench_uma.py                 # UMA, default settings, BFGS vs FIRE
     QUMOL_UMA_SETTINGS=batch ~/qumol/.venv/bin/python scripts/bench_uma.py

@@ -312,7 +312,7 @@ function removeBond(k){
   bonds.splice(k, 1); SFX.del(); buzz(12);
 }
 
-// Bond a freshly placed atom to neighbours closer than 1.2 × the sum of covalent radii,
+// Bond a freshly placed atom to neighbors closer than 1.2 × the sum of covalent radii,
 // nearest first, within valence. Skip a bond that would close a 3- or 4-membered ring with
 // a bond just made: at 1 Å spacing, atoms two or three bonds apart can sit within bonding
 // distance. (Small rings can still be closed on purpose with the Bond tool.)
@@ -371,7 +371,7 @@ function placeNew(el){
       const up = new THREE.Vector3(0, 1, 0).applyQuaternion(camera.quaternion);
       best = null; bestGap = -1;
       for(let t = 0; t < 32; t++){
-        // directions in the screen plane, favouring left/right so new atoms stay visible above the toolbar
+        // directions in the screen plane, favoring left/right so new atoms stay visible above the toolbar
         const ang = (t / 32) * Math.PI * 2;
         const d = right.clone().multiplyScalar(Math.cos(ang)).addScaledVector(up, 0.6 * Math.sin(ang)).normalize();
         const p = c.clone().addScaledVector(d, R + 1.2);
@@ -452,7 +452,7 @@ function changed(){
   try{ localStorage.setItem('qm.work', serialize()); }catch{}
 }
 
-/* ================= toy force field + FIRE optimiser ================= */
+/* ================= toy force field + FIRE optimizer ================= */
 function buildFF(){
   const n = atoms.length;
   const bl = bonds.map(b => [b.a, b.b, (EL[atoms[b.a].el].r + EL[atoms[b.b].el].r) * ORDER[b.o]]);
@@ -903,7 +903,7 @@ function learnShapes(body){
     ['C=C', 'Double bond', '1.34 Å, locked flat.', 'ethylene'],
     ['C≡C', 'Triple bond', '1.20 Å, straight line.', 'acetylene'],
     ['⬡', 'Ring', 'Close a chain with 🔗 Bond. Small rings (3–4 atoms) are strained.', 'benzene'],
-    ['⁻C≡O⁺', 'Formal charges', 'O can make a 3rd bond (N a 4th) as a + ion when a neighbour takes the −. QuMol does this automatically.', 'co'],
+    ['⁻C≡O⁺', 'Formal charges', 'O can make a 3rd bond (N a 4th) as a + ion when a neighbor takes the −. QuMol does this automatically.', 'co'],
     ['•', 'Radicals', 'Leave a bond empty for an unpaired electron (up to 2 per molecule).', 'methyl'],
   ];
   for(const [ang, title, text, ex] of rows){
@@ -1063,7 +1063,7 @@ async function submit(){
   const vs = valenceState();
   if(vs.unbalanced.length){
     const i = vs.unbalanced[0];
-    return fail(`${EL[atoms[i].el].name} with ${orderSum(i)} bonds needs a + charge, but no neighbour has a free bond to take the − (like in C≡O)`);
+    return fail(`${EL[atoms[i].el].name} with ${orderSum(i)} bonds needs a + charge, but no neighbor has a free bond to take the − (like in C≡O)`);
   }
   const snap = serialize();
   const free = freeHeavy();
@@ -1094,7 +1094,7 @@ async function submit(){
     const E1 = res.E, dEpa = Math.max(0, E0 - E1) / atoms.length;
     const stable = res.converged && sane(ff, x);
 
-    toast('Optimising…', 1300); SFX.whoosh();
+    toast('Optimizing…', 1300); SFX.whoosh();
     await animateFrames(frames, 1300);
     setCoords(x); changed();
     burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 40, 4, 0.8, 0.28);
@@ -1104,28 +1104,27 @@ async function submit(){
     const already = smiles && seen.has(smiles);
     let pubNew = null;
     if(already){
-      lines.push(['Already in your collection', 0, smiles]);
-      lines.push(['Try something new for points!', 0]);
+      lines.push(['Already collected', 0, smiles]);
     } else {
-      if(inputMethod === 'example') lines.push(['Example molecule: no geometry points', 0]);
-      else lines.push(['Geometry skill', Math.round(100*Math.exp(-dEpa/2)), `ΔE ${dEpa.toFixed(2)} kcal/mol per atom`]);
-      if(saddle) lines.push(['Started on a saddle point — rolled off!', 0]);
-      lines.push([stable ? 'Stable structure' : 'Unstable — no bonuses', stable ? 50 : 0]);
+      if(inputMethod === 'example') lines.push(['Geometry', 0, 'example molecule']);
+      else lines.push(['Geometry', Math.round(100*Math.exp(-dEpa/2)), `ΔE ${dEpa.toFixed(2)} kcal/mol per atom`]);
+      if(saddle) lines.push(['Saddle point', 0, 'rolled off to a minimum']);
+      lines.push(stable ? ['Stable', 50] : ['Unstable', 0, 'no bonuses']);
       const nRad = freeHeavy();
-      if(nRad) lines.push([`Radical: ${nRad} unpaired electron${nRad > 1 ? 's' : ''}`, 0]);
-      if(stable && valenceState().charge.some(q => q)) lines.push(['Formal charges (⁺/⁻)', 50]);
+      if(nRad) lines.push(['Radical', 0, `${nRad} unpaired electron${nRad > 1 ? 's' : ''}`]);
+      if(stable && valenceState().charge.some(q => q)) lines.push(['Formal charges', 50]);
       if(inputMethod === 'hand') lines.push(['Hand-built', 50]);
       if(stable && smiles){
-        lines.push(['New to QuMol', 100, smiles]);
+        lines.push(['New SMILES', 100, smiles]);
         const rec = records[form];
-        if(rec === undefined){ lines.push([`New formula: ${form}!`, 1000]); records[form] = E1; }
-        else if(E1 < rec - 0.01){ lines.push([`New record for ${form}!`, 300]); records[form] = E1; }
+        if(rec === undefined){ lines.push(['New formula', 1000, form]); records[form] = E1; }
+        else if(E1 < rec - 0.01){ lines.push(['Formula record', 300, `lowest energy yet for ${form}`]); records[form] = E1; }
         toast('Checking PubChem…', 3000);
         pubNew = await pubchemIsNew(smiles);
-        if(pubNew === true) lines.push(['NOT IN PUBCHEM! 🤯', 1000]);
-        else if(pubNew === false) lines.push(['Known in PubChem', 0]);
-        else lines.push(['PubChem check unavailable', 0]);
-      } else if(!smiles) lines.push(['Chemistry engine offline — no novelty bonus', 0]);
+        if(pubNew === true) lines.push(['Not in PubChem', 1000, 'possibly new to science']);
+        else if(pubNew === false) lines.push(['In PubChem', 0]);
+        else lines.push(['PubChem', 0, 'check unavailable']);
+      } else if(!smiles) lines.push(['New SMILES', 0, 'chemistry engine offline']);
     }
     const raw = lines.reduce((s,l) => s + l[1], 0);
     const mult = 1/Math.sqrt(Math.max(1, heavy));
@@ -1173,7 +1172,7 @@ async function submitOnline(){
     bonds: bonds.map(b => [b.a, b.b, b.o]),
     input_method: inputMethod, mode: 'stable',
   };
-  toast('Optimising…', 4000); SFX.whoosh();
+  toast('Optimizing…', 4000); SFX.whoosh();
   let r;
   for(let attempt = 0; ; attempt++){
     try{ r = await api('/api/submissions', {method:'POST', body}); break; }
@@ -1187,14 +1186,22 @@ async function submitOnline(){
   setCoords(r.coords_opt.flat()); changed();
   burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 40, 4, 0.8, 0.28);
   total = r.total; LS.set('qm.total', total);
-  await showScore(r.lines, r.multiplier, r.n_heavy, r.score, r.discovery);
+  await showScore(r.lines, r.multiplier, r.n_heavy, r.score, r.discovery, r.pubchem && r.pubchem.name);
   updateInfo();
 }
 
-function lineEl(label, pts, sub, cls=''){
+const PUBCHEM_LINK = /^https:\/\/pubchem\.ncbi\.nlm\.nih\.gov\/compound\/\d+$/;
+function lineEl(label, pts, sub, cls='', link=null){
   const d = document.createElement('div'); d.className = 'line ' + cls;
   const l = document.createElement('div'); l.textContent = label;
-  if(sub){ const s = document.createElement('small'); s.textContent = sub; l.appendChild(s); }
+  if(sub){
+    const s = document.createElement('small');
+    if(link && PUBCHEM_LINK.test(link)){  // only ever link to a PubChem compound page
+      const a = document.createElement('a'); a.href = link; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      a.textContent = sub + ' ↗'; s.appendChild(a);
+    } else s.textContent = sub;
+    l.appendChild(s);
+  }
   const p = document.createElement('div'); p.className = 'pts' + (pts === 0 ? ' zero' : ''); p.textContent = typeof pts === 'number' ? `+${pts}` : pts;
   d.append(l, p); return d;
 }
@@ -1204,12 +1211,12 @@ function closeBtn(card, text='Keep building'){
   b.onclick = () => { $('ov').classList.add('hidden'); SFX.tick(); };
   card.appendChild(b);
 }
-async function showScore(lines, mult, heavy, score, discovery){
+async function showScore(lines, mult, heavy, score, discovery, name=null){
   const card = openCard();
-  const h = document.createElement('h2'); h.textContent = discovery ? '🚀 Discovery!' : score > 0 ? 'Molecule scored!' : 'Hmm…'; card.appendChild(h);
+  const h = document.createElement('h2'); h.textContent = discovery ? '🚀 Discovery!' : name ? name : score > 0 ? 'Molecule scored!' : 'Hmm…'; card.appendChild(h);
   if(discovery){ const w = document.createElement('div'); w.className = 'wow'; w.textContent = 'Possibly new to science'; card.appendChild(w); }
-  for(let i=0;i<lines.length;i++){ const [l,p,s] = lines[i]; card.appendChild(lineEl(l, p, s)); SFX.tick(i); await sleep(330); }
-  if(score > 0){ card.appendChild(lineEl('Size multiplier', `×${mult.toFixed(2)}`, `${heavy} heavy atom${heavy>1?'s':''} — smaller scores more`, 'mult')); SFX.tick(lines.length); await sleep(330); }
+  for(let i=0;i<lines.length;i++){ const [l,p,s,link] = lines[i]; card.appendChild(lineEl(l, p, s, '', link)); SFX.tick(i); await sleep(330); }
+  if(score > 0){ card.appendChild(lineEl('Size', `×${mult.toFixed(2)}`, `${heavy} heavy atom${heavy>1?'s':''} — smaller scores more`, 'mult')); SFX.tick(lines.length); await sleep(330); }
   const t = document.createElement('div'); t.id = 'ovTotal'; t.textContent = '0'; card.appendChild(t);
   const t0 = performance.now(), dur = Math.min(1400, 300 + score*2);
   await new Promise(res => {
@@ -1230,12 +1237,12 @@ async function showScore(lines, mult, heavy, score, discovery){
 function showHelp(){
   const card = openCard();
   card.innerHTML = `<h2>How to play</h2>
-  <p>Build a molecule atom by atom, then hit <b>Build</b> (the flask). It gets optimised and scored.</p>
+  <p>Build a molecule atom by atom, then hit <b>Build</b> (the flask). It gets optimized and scored.</p>
   <p><b>➕ Add</b> — click an element button to drop an atom next to the molecule (it bonds automatically when close enough), or tap an atom to grow from it.</p>
   <p><b>Tap a bond</b> to change it: single → double → triple → single. On a computer, bonds light up when you hover.</p>
   <p><b>🔗 Bond</b> — tap two atoms to bond them. Tap the same pair again to cycle single → double → triple → none (great for rings).</p>
   <p><b>✋ Move</b> — drag atoms to perfect the geometry. The closer you are to the optimum, the more points.</p>
-  <p><b>Charges & radicals</b> — O can make a 3rd bond (N a 4th): QuMol gives it a + charge and a neighbour the −, like ⁻C≡O⁺. If bonds are left free when you Build, you can fill them with H or keep a radical (up to 2 unpaired electrons).</p>
+  <p><b>Charges & radicals</b> — O can make a 3rd bond (N a 4th): QuMol gives it a + charge and a neighbor the −, like ⁻C≡O⁺. If bonds are left free when you Build, you can fill them with H or keep a radical (up to 2 unpaired electrons).</p>
   <p><b>Delete</b> — tap an atom to remove it, or a bond to break it. <b>Undo</b> steps back one change, <b>Clear</b> starts over.</p>
   <p><b>H+</b> — saturates your molecule: every atom with free bonds gets hydrogens until it has its full valence (C 4, N 3, O 2, S 2). Build does this for you too.</p>
   <p><b>🎓 Learn</b> — how each element bonds, molecular shapes you can load in 3D, and a quiz. <b>XYZ</b> — shows the formula and coordinates as you build; edit the numbers to reshape the molecule directly.</p>

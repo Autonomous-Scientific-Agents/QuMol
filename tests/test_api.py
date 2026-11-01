@@ -24,7 +24,7 @@ def test_submission_scoring_and_storage(client):
     j = r.json()
     assert j["stable"] and j["smiles"] == "CCO" and j["formula"] == "C2H6O"
     labels = [l[0] for l in j["lines"]]
-    assert "Hand-built" in labels and "New to QuMol" in labels and "New formula: C2H6O!" in labels
+    assert "Hand-built" in labels and "New SMILES" in labels and "New formula" in labels
     assert j["score"] == j["total"] > 0
     assert j["optimized_geometry_id"].startswith("hm3d_") and "_C2H6O_q0m1_" in j["optimized_geometry_id"]
     assert len(j["frames"]) > 1 and len(j["coords_opt"]) == 9
@@ -46,17 +46,16 @@ def test_submission_scoring_and_storage(client):
 def test_input_methods(client):
     h, _ = player(client)
     j = client.post("/api/submissions", json={**ethanol(), "input_method": "smiles"}, headers=h).json()
-    labels = [l[0] for l in j["lines"]]
-    assert "Geometry skill" not in labels and "Hand-built" not in labels
+    geo = next(l for l in j["lines"] if l[0] == "Geometry")
+    assert geo[1] == 0 and geo[2] == "auto-generated geometry" and "Hand-built" not in [l[0] for l in j["lines"]]
     h2, _ = player(client, "xyzfan")
     j = client.post("/api/submissions", json={**ethanol(), "input_method": "xyz"}, headers=h2).json()
     labels = [l[0] for l in j["lines"]]
-    assert "Geometry skill" in labels and "Hand-built" not in labels
-    assert "New to QuMol" not in labels  # someone else found it first
+    assert next(l for l in j["lines"] if l[0] == "Geometry")[1] > 0 and "Hand-built" not in labels
+    assert "New SMILES" not in labels  # someone else found it first
     h3, _ = player(client, "learner")
     j = client.post("/api/submissions", json={**ethanol(), "input_method": "example"}, headers=h3).json()
-    labels = [l[0] for l in j["lines"]]
-    assert "Example molecule: no geometry points" in labels and "Hand-built" not in labels
+    assert ["Geometry", 0, "example molecule"] in j["lines"] and "Hand-built" not in [l[0] for l in j["lines"]]
     assert client.post("/api/submissions", json={**ethanol(), "input_method": "magic"}, headers=h).status_code == 422
 
 
@@ -105,11 +104,39 @@ def test_charges_and_radicals_scoring(client):
     co = {"atoms": [{"el": "C", "x": 0, "y": 0, "z": 0}, {"el": "O", "x": 1.13, "y": 0, "z": 0}], "bonds": [[0, 1, 3]]}
     j = client.post("/api/submissions", json=co, headers=h).json()
     labels = [l[0] for l in j["lines"]]
-    assert j["smiles"] == "[C-]#[O+]" and "Formal charges (⁺/⁻)" in labels and "New formula: CO!" in labels
+    assert j["smiles"] == "[C-]#[O+]" and "Formal charges" in labels and ["New formula", 1000, "CO"] in j["lines"]
     assert "_q0m1_" in j["optimized_geometry_id"]
     methyl = {"atoms": [{"el": "C", "x": 0, "y": 0, "z": 0}, {"el": "H", "x": 1.08, "y": 0, "z": 0},
                         {"el": "H", "x": -0.54, "y": 0.94, "z": 0}, {"el": "H", "x": -0.54, "y": -0.94, "z": 0}],
               "bonds": [[0, 1, 1], [0, 2, 1], [0, 3, 1]]}
     j = client.post("/api/submissions", json=methyl, headers=h).json()
     assert j["smiles"] == "[CH3]" and "_q0m2_" in j["optimized_geometry_id"]
-    assert any(l[0].startswith("Radical: 1 unpaired") for l in j["lines"])
+    assert ["Radical", 0, "1 unpaired electron"] in j["lines"]
+
+
+def test_local_pubchem_table(client, tmp_path, monkeypatch):
+    import sqlite3
+
+    path = tmp_path / "pubchem.sqlite"
+    con = sqlite3.connect(path)
+    con.executescript("""
+        CREATE TABLE compounds (cid INTEGER PRIMARY KEY, inchikey TEXT, key14 TEXT, heavy INTEGER, title TEXT);
+        INSERT INTO compounds VALUES (702, 'LFQSCWFLJHTTHZ-UHFFFAOYSA-N', 'LFQSCWFLJHTTHZ', 3, 'Ethanol');
+        INSERT INTO compounds VALUES (107689, 'JVTAAEKCZFNVCJ-REOHCLBHSA-N', 'JVTAAEKCZFNVCJ', 6, 'L-lactic acid');
+    """)
+    con.commit()
+    con.close()
+    monkeypatch.setenv("QUMOL_PUBCHEM_DB", str(path))
+    h, _ = player(client)
+    j = client.post("/api/submissions", json=ethanol(), headers=h).json()
+    assert j["pubchem"] == {"known": True, "cid": 702, "name": "Ethanol",
+                            "url": "https://pubchem.ncbi.nlm.nih.gov/compound/702"}
+    assert ["In PubChem", 0, "Ethanol · CID 702", "https://pubchem.ncbi.nlm.nih.gov/compound/702"] in j["lines"]
+    assert not j["discovery"]
+    # not in the table (and the web check is off in tests): counts as new
+    co = {"atoms": [{"el": "C", "x": 0, "y": 0, "z": 0}, {"el": "O", "x": 1.13, "y": 0, "z": 0}], "bonds": [[0, 1, 3]]}
+    j = client.post("/api/submissions", json=co, headers=h).json()
+    assert ["Not in PubChem", 1000, "possibly new to science", None] in j["lines"] and j["discovery"]
+    # stereo variant only in the table: matched on the connectivity block of the InChIKey
+    from qumol import pubchem
+    assert pubchem.lookup_local("JVTAAEKCZFNVCJ-UHFFFAOYSA-N")[:2] == (True, 107689)

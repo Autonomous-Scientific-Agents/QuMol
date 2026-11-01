@@ -21,7 +21,7 @@ class ASECalculator(Calculator):
     needs_bonds = False
     fmax_target = 0.05
     max_steps = 300
-    nudge_steps = 40  # the saddle-point check only needs a short re-optimisation
+    nudge_steps = 40  # the saddle-point check only needs a short re-optimization
 
     def __init__(self, name: str, version: str, factory, kind: str = "mlip", params: dict | None = None):
         self.name, self.version, self.kind = name, version, kind
@@ -47,7 +47,7 @@ class ASECalculator(Calculator):
         return at
 
     def _relax(self, atoms, max_steps, record=None):
-        # Each optimiser step is one model call, so the optimiser choice dominates the cost
+        # Each optimizer step is one model call, so the optimizer choice dominates the cost
         # with an ML potential. BFGS needs far fewer steps than FIRE for small molecules.
         from ase import optimize
 

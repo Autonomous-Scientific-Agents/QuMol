@@ -3,7 +3,7 @@
 - BodyLimit: rejects request bodies over a size cap (uvicorn has none by default).
 - SecurityHeaders: CSP and friends on every response.
 - RateLimiter: in-memory sliding-window limits (one process; fine for one server).
-- compute_slot: caps how many optimisations run at once so the box can't be swamped.
+- compute_slot: caps how many optimizations run at once so the box can't be swamped.
 """
 
 from __future__ import annotations
@@ -152,10 +152,10 @@ _slots = threading.BoundedSemaphore(env_int("QUMOL_WORKERS", 2))
 
 @contextmanager
 def compute_slot(timeout: float = 2.0):
-    """Cap concurrent optimisations. Waits only briefly, so queued requests can't pile up
+    """Cap concurrent optimizations. Waits only briefly, so queued requests can't pile up
     and starve the web server's thread pool; callers get 503 instead."""
     if not _slots.acquire(timeout=timeout):
-        raise HTTPException(503, "The server is busy optimising other molecules. Try again in a few seconds.",
+        raise HTTPException(503, "The server is busy optimizing other molecules. Try again in a few seconds.",
                             headers={"Retry-After": "5"})
     try:
         yield

@@ -1,4 +1,4 @@
-"""Submission pipeline: optimise, hash, store and score.
+"""Submission pipeline: optimize, hash, store and score.
 
 The server is authoritative: it recomputes energies itself, so scores cannot be
 faked from the browser.
@@ -31,10 +31,10 @@ POINTS = {
 }
 INPUT_METHODS = ("hand", "xyz", "smiles", "2d", "example")
 GEOMETRY_SCORED = ("hand", "xyz")  # 2D and SMILES inputs get auto-generated geometry
-NO_GEOMETRY_LABEL = {
-    "example": "Example molecule: no geometry points",
-    "smiles": "Auto-generated geometry: no geometry points",
-    "2d": "Auto-generated geometry: no geometry points",
+NO_GEOMETRY_NOTE = {
+    "example": "example molecule",
+    "smiles": "auto-generated geometry",
+    "2d": "auto-generated geometry",
 }
 
 
@@ -63,8 +63,11 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
     d_e_per_atom = max(0.0, res.e_input - res.e_opt) / len(mol.symbols)
     tol = calc.skill_scale * 0.005
 
-    # Network lookup happens before taking the write lock.
-    known = pubchem.in_pubchem(con, smiles) if (stable and smiles) else None
+    # Lookups happen before taking the write lock. The web API is only asked about
+    # stable structures (it can award the discovery bonus); the local table always.
+    pc = pubchem.lookup(con, smiles, inchikey, use_web=stable) if smiles else \
+        {"known": None, "cid": None, "name": None, "url": None}
+    known = pc["known"]
 
     lines: list[list] = []
     with db.write_lock(), con:
@@ -86,54 +89,61 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
             "SELECT 1 FROM submissions WHERE player_id=? AND smiles=? AND stable=1 LIMIT 1", player_id, smiles
         ) is not None
 
+        def pubchem_line(points):
+            if known is True:
+                name = pc["name"] or (f"CID {pc['cid']}" if pc["cid"] else "known compound")
+                detail = f"{name} · CID {pc['cid']}" if pc["name"] and pc["cid"] else name
+                return ["In PubChem", 0, detail, pc["url"]]
+            if known is False:
+                return ["Not in PubChem", points, "possibly new to science", None]
+            return ["PubChem", 0, "check unavailable", None]
+
         if already:
-            lines.append(["Already in your collection", 0, smiles])
-            lines.append(["Try something new for points!", 0, None])
+            lines.append(["Already collected", 0, smiles])
+            if smiles:
+                lines.append(pubchem_line(0))
         else:
             if input_method in GEOMETRY_SCORED:
                 pts = round(POINTS["geometry_max"] * math.exp(-d_e_per_atom / calc.skill_scale))
-                lines.append(["Geometry skill", pts, f"ΔE {d_e_per_atom:.3g} {calc.energy_unit} per atom"])
+                lines.append(["Geometry", pts, f"ΔE {d_e_per_atom:.3g} {calc.energy_unit} per atom"])
             else:
-                lines.append([NO_GEOMETRY_LABEL[input_method], 0, None])
+                lines.append(["Geometry", 0, NO_GEOMETRY_NOTE[input_method]])
             if res.saddle:
-                lines.append(["Started on a saddle point and rolled off!", 0, None])
-            lines.append(["Stable structure" if stable else "Unstable: no bonuses", POINTS["stable"] if stable else 0, None])
+                lines.append(["Saddle point", 0, "rolled off to a minimum"])
+            lines.append(["Stable", POINTS["stable"], None] if stable else ["Unstable", 0, "no bonuses"])
             if mol.radicals:
                 n = mol.radicals
-                lines.append([f"Radical: {n} unpaired electron{'s' if n > 1 else ''}", 0, None])
+                lines.append(["Radical", 0, f"{n} unpaired electron{'s' if n > 1 else ''}"])
             if stable and any(mol.charges or []):
-                lines.append(["Formal charges (⁺/⁻)", POINTS["formal_charges"], None])
+                lines.append(["Formal charges", POINTS["formal_charges"], None])
             if input_method == "hand":
                 lines.append(["Hand-built", POINTS["hand_built"], None])
             if stable and smiles:
                 seen = scalar("SELECT 1 FROM submissions WHERE smiles=? AND stable=1 LIMIT 1", smiles)
                 if seen is None:
-                    lines.append(["New to QuMol", POINTS["new_to_game"], smiles])
+                    lines.append(["New SMILES", POINTS["new_to_game"], smiles])
                 else:
                     best_s = scalar(
                         "SELECT MIN(e_opt) FROM submissions WHERE smiles=? AND method_id=? AND stable=1", smiles, mid
                     )
                     if best_s is not None and res.e_opt < best_s - tol:
-                        lines.append(["Best geometry yet for this molecule", POINTS["smiles_record"], smiles])
+                        lines.append(["SMILES record", POINTS["smiles_record"], "lowest energy yet for this molecule"])
                 best_f = scalar(
                     "SELECT MIN(e_opt) FROM submissions WHERE formula=? AND method_id=? AND stable=1",
                     g_opt.formula, mid,
                 )
                 if best_f is None:
-                    lines.append([f"New formula: {g_opt.formula}!", POINTS["new_formula"], None])
+                    lines.append(["New formula", POINTS["new_formula"], g_opt.formula])
                 elif res.e_opt < best_f - tol:
-                    lines.append([f"New record for {g_opt.formula}!", POINTS["formula_record"], None])
-                if known is False:
-                    lines.append(["NOT IN PUBCHEM! 🤯", POINTS["not_in_pubchem"], None])
-                elif known is True:
-                    lines.append(["Known in PubChem", 0, None])
-                else:
-                    lines.append(["PubChem check unavailable", 0, None])
+                    lines.append(["Formula record", POINTS["formula_record"], f"lowest energy yet for {g_opt.formula}"])
+                lines.append(pubchem_line(POINTS["not_in_pubchem"]))
             elif stable and not smiles:
-                lines.append(["Could not read the bonding as a molecule: no novelty bonus", 0, None])
+                lines.append(["New SMILES", 0, "couldn't read the bonding"])
+            elif smiles:
+                lines.append(pubchem_line(0))
 
         mult = size_multiplier(n_heavy)
-        raw = sum(p for _, p, _ in lines)
+        raw = sum(line[1] for line in lines)
         score = 0 if already else max(1, round(raw * mult))
         discovery = (known is False) and not already and stable
 
@@ -164,6 +174,7 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
         "discovery": discovery,
         "smiles": smiles,
         "formula": g_opt.formula,
+        "pubchem": pc,
         "input_geometry_id": g_in.id,
         "optimized_geometry_id": g_opt.id,
         "method": {"name": calc.name, "version": calc.version, "energy_unit": calc.energy_unit},

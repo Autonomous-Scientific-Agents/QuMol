@@ -2,12 +2,12 @@
 
 > You played with building blocks as a kid. Now play with the universe's: **atoms**.
 
-QuMol is a 3D molecule-building game that runs in the browser on phones and desktops. Players build molecules atom by atom and submit them. Each submission is optimised and checked for stability, then scored. The biggest rewards go to small, stable molecules that are new to QuMol and not found in PubChem. Every submission adds to a growing molecular dataset.
+QuMol is a 3D molecule-building game that runs in the browser on phones and desktops. Players build molecules atom by atom and submit them. Each submission is optimized and checked for stability, then scored. The biggest rewards go to small, stable molecules that are new to QuMol and not found in PubChem. Every submission adds to a growing molecular dataset.
 
 ## In the game
 
 - **3D builder** with H, C, N, O, S and F, plus Add, Bond, Move and Delete modes, Undo, H+ (saturate with hydrogens) and Clear. Every button has a hover tooltip.
-- **Quick placement:** clicking an element button drops an atom. The first goes at the centre, the second 1 Å away, and later ones 1 Å from the newest atom that still has a free bond, in a VSEPR-like direction, never closer than 0.95 Å to anything. If every atom is saturated, the new atom goes into open space beside the molecule. Bonds are perceived from distance (within 1.2× the covalent radii, respecting valence, and never closing a 3-ring with a bond just made).
+- **Quick placement:** clicking an element button drops an atom. The first goes at the center, the second 1 Å away, and later ones 1 Å from the newest atom that still has a free bond, in a VSEPR-like direction, never closer than 0.95 Å to anything. If every atom is saturated, the new atom goes into open space beside the molecule. Bonds are perceived from distance (within 1.2× the covalent radii, respecting valence, and never closing a 3-ring with a bond just made).
 - **Formal charges and radicals:**
   - Charges are automatic. An O with 3 bonds or an N with 4 becomes **+**, and the nearest atom that is one bond short becomes **−**, so molecules stay neutral: carbon monoxide is `[C-]#[O+]`, nitromethane is `C[N+](=O)[O-]`. S can make 2, 4 or 6 bonds without a charge.
   - If free bonds remain at Build, the player chooses: fill them with H, or build a **radical**. Radicals can have at most 2 unpaired electrons, and the spin multiplicity is stored in the HashMol3D ID (`m2`, `m3`) and passed to UMA.
@@ -67,7 +67,7 @@ The game is meant to be safe to expose publicly through Tailscale Funnel.
 
   Exceeding a limit returns `429` with `Retry-After`.
 - **Compute protection:**
-  - At most 2 optimisations run at once (`QUMOL_WORKERS`), and extra requests get a quick `503`; the game retries automatically.
+  - At most 2 optimizations run at once (`QUMOL_WORKERS`), and extra requests get a quick `503`; the game retries automatically.
   - Each player can have only one submission in flight.
   - Bonds longer than 4 Å are rejected.
   - Health checks stay responsive under load. In a stress test with 55 concurrent worst-case submissions, health checks answered in under 0.05 s.
@@ -107,7 +107,7 @@ After deploying, check that `journalctl -u qumol` shows players' real IP address
 ```
 web/index.html          the game: three.js builder, effects, sign-up, leaderboards
 qumol/app.py            FastAPI: players, submissions, leaderboards, stats, serves the game
-qumol/scoring.py        submission pipeline: optimise → hash → store → score
+qumol/scoring.py        submission pipeline: optimize → hash → store → score
 qumol/chem.py           validation, HashMol3D identifiers, SMILES (RDKit), sanity checks
 qumol/calculators/      pluggable energy methods (toy force field; any ASE calculator, e.g. UMA)
 qumol/db.py             SQLite schema
@@ -122,8 +122,8 @@ Players choose a nickname and get a secret login token, kept in their browser, p
 
 - **geometries** holds unique 3D structures keyed by their **HashMol3D** identifier (library defaults: frame method, 1e-4 Å grid). Each row also keeps the quantized canonical descriptor and the standardized principal-axes geometry, so the same structure submitted twice, translated or rotated, is stored once.
 - **methods** has one row per energy method and version. Adding a new potential means adding a row; old results stay.
-- **calculations** holds results of a method on a geometry: a single point on the input, and an optimisation pointing to the optimised geometry. They are unique per geometry, method and kind, so rescoring with a better potential just adds rows.
-- **submissions** has one row per player submission. It stores the raw XYZ and bonds exactly as sent, the input and optimised geometry ids, the SMILES and InChIKey, energies, stability, PubChem status, score and score breakdown.
+- **calculations** holds results of a method on a geometry: a single point on the input, and an optimization pointing to the optimized geometry. They are unique per geometry, method and kind, so rescoring with a better potential just adds rows.
+- **submissions** has one row per player submission. It stores the raw XYZ and bonds exactly as sent, the input and optimized geometry ids, the SMILES and InChIKey, energies, stability, PubChem status, score and score breakdown.
 - **pubchem_cache** remembers PubChem lookups.
 
 The server is authoritative: it recomputes every energy itself, so scores can't be faked from the browser.
@@ -146,20 +146,34 @@ Authenticated calls send `Authorization: Bearer <token>`. Interactive docs are a
 
 ## Scoring
 
-| Component | Points |
-|---|---|
-| Geometry skill, for hand-built and XYZ inputs: closeness of the submitted geometry to the optimum | up to 100 |
-| Stable structure | +50 |
-| Hand-built in the 3D editor | +50 |
-| SMILES new to QuMol | +100 |
-| Best geometry yet for an existing SMILES | +100 |
-| New molecular formula (first time anyone builds it) | +1,000 |
-| Formal charges (⁻C≡O⁺, nitro groups, …) | +50 |
-| New lowest-energy record for a formula | +300 |
-| Not in PubChem | +1,000 |
-| Size multiplier | × 1/√(heavy atoms) |
+Each score line has the same shape: a label, points, and a short detail.
+
+| Label | Points | Detail |
+|---|---|---|
+| Geometry | up to 100 | ΔE per atom between your geometry and the optimum (hand-built and XYZ only) |
+| Stable | +50 | |
+| Hand-built | +50 | built in the 3D editor |
+| New SMILES | +100 | first time anyone builds this molecule |
+| SMILES record | +100 | lowest energy yet for an existing molecule |
+| New formula | +1,000 | first time anyone builds this molecular formula |
+| Formula record | +300 | lowest energy yet for a formula |
+| Formal charges | +50 | e.g. ⁻C≡O⁺, nitro groups |
+| Radical | 0 | number of unpaired electrons |
+| Not in PubChem | +1,000 | otherwise **In PubChem** shows the compound's name with a link |
+| Size | × 1/√(heavy atoms) | smaller molecules score more |
 
 Resubmitting a molecule you already have is stored but scores 0. Point values live in `POINTS` in `qumol/scoring.py`.
+
+### PubChem names and links
+
+QuMol looks molecules up by InChIKey in a local table built from the PubChem dump (`CID-InChI-Key.gz`, `CID-Title.gz`). Only compounds the game can build are kept: at most 10 heavy atoms, only H, C, N, O, S and F, and a single neutral component. Build the table once and copy it next to the database:
+
+```bash
+python3 scripts/build_pubchem_index.py --src /path/to/pubchem --out pubchem.sqlite
+scp pubchem.sqlite chemgraphserver:~/qumol/data/pubchem.sqlite
+```
+
+Without the table, QuMol falls back to PubChem's web API. That fallback gives a yes/no answer and a CID, but no names. A compound missing from the table is double-checked online before the +1,000 bonus is awarded, because the dump may be older than PubChem.
 
 ## Known limitations
 
