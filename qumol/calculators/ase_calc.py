@@ -20,7 +20,8 @@ class ASECalculator(Calculator):
     skill_scale = 0.087
     needs_bonds = False
     fmax_target = 0.05
-    max_steps = 500
+    max_steps = 300
+    nudge_steps = 40  # the saddle-point check only needs a short re-optimisation
 
     def __init__(self, name: str, version: str, factory, kind: str = "mlip", params: dict | None = None):
         self.name, self.version, self.kind = name, version, kind
@@ -46,11 +47,15 @@ class ASECalculator(Calculator):
         return at
 
     def _relax(self, atoms, max_steps, record=None):
-        from ase.optimize import FIRE
+        # Each optimiser step is one model call, so the optimiser choice dominates the cost
+        # with an ML potential. BFGS needs far fewer steps than FIRE for small molecules.
+        from ase import optimize
 
-        opt = FIRE(atoms, logfile=None)
+        name = os.environ.get("QUMOL_OPTIMIZER", "BFGS")
+        opt_cls = {"BFGS": optimize.BFGS, "LBFGS": optimize.LBFGS, "FIRE": optimize.FIRE}.get(name, optimize.BFGS)
+        opt = opt_cls(atoms, logfile=None, maxstep=0.2)
         if record is not None:
-            opt.attach(lambda: record.append(atoms.get_positions().copy()), interval=2)
+            opt.attach(lambda: record.append(atoms.get_positions().copy()), interval=1)
         conv = opt.run(fmax=self.fmax_target, steps=max_steps)
         f = atoms.get_forces()
         return float(atoms.get_potential_energy()), float(np.linalg.norm(f, axis=1).max()), bool(conv), opt.nsteps
@@ -62,7 +67,7 @@ class ASECalculator(Calculator):
         heavy = [i for i, s in enumerate(mol.symbols) if s != "H"]
         if len(heavy) < len(mol.symbols):
             at.set_constraint(FixAtoms(indices=heavy))
-            self._relax(at, 200)
+            self._relax(at, 100)
             at.set_constraint()
         coords_input = at.get_positions().copy()
         e_input = float(at.get_potential_energy())
@@ -72,7 +77,7 @@ class ASECalculator(Calculator):
         frames.append(x.copy())
         rng = np.random.default_rng(seed)
         at2 = self._atoms(mol, x + rng.uniform(-0.03, 0.03, size=x.shape))
-        E2, fmax2, conv2, _ = self._relax(at2, self.max_steps)
+        E2, fmax2, conv2, _ = self._relax(at2, self.nudge_steps)
         saddle = E2 < E - 0.002
         if saddle:
             x, E, fmax, conv = at2.get_positions().copy(), E2, fmax2, conv2
@@ -95,7 +100,11 @@ def _uma():
 
     model = os.environ.get("QUMOL_UMA_MODEL", "uma-s-1p2p1")
     device = os.environ.get("QUMOL_DEVICE", "cpu")
-    predictor = pretrained_mlip.get_predict_unit(model, device=device)
+    # fairchem's "default" uses UMA Nitro on NVIDIA GPUs (compute capability 8.x+) and a
+    # merged/compiled model elsewhere; "batch" skips merging and compiling, which may suit
+    # a CPU serving many different small molecules. Benchmark with scripts/bench_uma.py.
+    settings = os.environ.get("QUMOL_UMA_SETTINGS", "default")
+    predictor = pretrained_mlip.get_predict_unit(model, inference_settings=settings, device=device)
     return FAIRChemCalculator(predictor, task_name="omol")
 
 

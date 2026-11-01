@@ -15,6 +15,7 @@
 #   TS_PORT   HTTPS port on the tailnet name: 443, 8443 or 10000 (default: 8443,
 #             so it won't replace anything you already serve on 443)
 #   REF       git tag or commit to deploy instead of the latest main (recommended once you tag releases)
+#   UMA_SETTINGS  fairchem inference settings for METHOD=uma: default | batch (default: default)
 set -euo pipefail
 TAILSCALE="${TAILSCALE:-serve}"
 TS_PORT="${TS_PORT:-8443}"
@@ -96,6 +97,7 @@ User=$RUN_USER
 WorkingDirectory=$APP_DIR
 Environment=QUMOL_DB=$APP_DIR/data/qumol.db
 Environment=QUMOL_METHOD=$METHOD
+Environment=QUMOL_UMA_SETTINGS=${UMA_SETTINGS:-default}
 Environment=HF_HOME=$APP_DIR/data/cache/huggingface
 Environment=XDG_CACHE_HOME=$APP_DIR/data/cache
 Environment=FAIRCHEM_CACHE_DIR=$APP_DIR/data/cache/fairchem
