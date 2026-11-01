@@ -23,7 +23,7 @@ POINTS = {
     "stable": 50,
     "hand_built": 50,
     "new_to_game": 100,
-    "first_claim": 30,
+    "new_formula": 1000,  # 10x a new SMILES
     "formula_record": 300,
     "smiles_record": 100,
     "not_in_pubchem": 1000,
@@ -114,7 +114,7 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
                     g_opt.formula, mid,
                 )
                 if best_f is None:
-                    lines.append([f"First claim: {g_opt.formula}", POINTS["first_claim"], None])
+                    lines.append([f"New formula: {g_opt.formula}!", POINTS["new_formula"], None])
                 elif res.e_opt < best_f - tol:
                     lines.append([f"New record for {g_opt.formula}!", POINTS["formula_record"], None])
                 if known is False:

@@ -235,7 +235,7 @@ LEADERBOARDS = {
     "hand": ("Hand builders", "SUM(s.score)", "AND s.input_method='hand'"),
     "xyz": ("XYZ submitters", "SUM(s.score)", "AND s.input_method='xyz'"),
     "weekly": ("This week", "SUM(s.score)", "AND s.created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days')"),
-    "small": ("Small-molecule masters (≤ 8 heavy atoms)", "SUM(s.score)", "AND s.n_heavy <= 8"),
+    "small": ("Small-molecule masters (≤ 5 heavy atoms)", "SUM(s.score)", "AND s.n_heavy <= 5"),
     "discoveries": ("Discoverers (not in PubChem)", "COUNT(DISTINCT s.smiles)", "AND s.stable=1 AND s.in_pubchem=0"),
     "molecules": ("Collectors (distinct molecules)", "COUNT(DISTINCT s.smiles)", "AND s.stable=1"),
 }
