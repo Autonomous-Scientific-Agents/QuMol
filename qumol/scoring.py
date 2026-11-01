@@ -27,8 +27,13 @@ POINTS = {
     "smiles_record": 100,
     "not_in_pubchem": 1000,
 }
-INPUT_METHODS = ("hand", "xyz", "smiles", "2d")
+INPUT_METHODS = ("hand", "xyz", "smiles", "2d", "example")
 GEOMETRY_SCORED = ("hand", "xyz")  # 2D and SMILES inputs get auto-generated geometry
+NO_GEOMETRY_LABEL = {
+    "example": "Example molecule: no geometry points",
+    "smiles": "Auto-generated geometry: no geometry points",
+    "2d": "Auto-generated geometry: no geometry points",
+}
 
 
 def size_multiplier(n_heavy: int) -> float:
@@ -85,7 +90,7 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
                 pts = round(POINTS["geometry_max"] * math.exp(-d_e_per_atom / calc.skill_scale))
                 lines.append(["Geometry skill", pts, f"ΔE {d_e_per_atom:.3g} {calc.energy_unit} per atom"])
             else:
-                lines.append(["Auto-generated geometry: no geometry points", 0, None])
+                lines.append([NO_GEOMETRY_LABEL[input_method], 0, None])
             if res.saddle:
                 lines.append(["Started on a saddle point and rolled off!", 0, None])
             lines.append(["Stable structure" if stable else "Unstable: no bonuses", POINTS["stable"] if stable else 0, None])

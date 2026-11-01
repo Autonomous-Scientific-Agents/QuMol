@@ -32,6 +32,58 @@ button.on{background:var(--acc);box-shadow:0 0 14px var(--acc)}
   .tip-right[data-tip]:hover::after{left:auto;right:0;transform:none}
 }
 @keyframes tipIn{from{opacity:0}}
+#xyzBtn{font-size:13px;letter-spacing:.5px}
+#xyzBtn.on,#learn.on{background:var(--acc)}
+/* formula / XYZ panel */
+#xyzPanel{position:fixed;top:64px;right:8px;width:320px;max-height:calc(100vh - 260px);display:flex;flex-direction:column;gap:6px;
+  background:var(--panel);border:1px solid #2c3a66;border-radius:16px;padding:10px;z-index:5;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.phead{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.phead button{min-width:34px;height:34px;padding:0;font-size:15px}
+.pformula{font-size:24px;font-weight:800;line-height:1.1}
+.pformula sub{font-size:.6em}
+.psmiles{font-family:ui-monospace,Menlo,monospace;font-size:12px;opacity:.7;word-break:break-all}
+#xyzText{flex:1;min-height:140px;resize:none;background:#0e1530;color:var(--txt);border:1px solid #2c3a66;border-radius:10px;padding:8px;
+  font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.45;white-space:pre;overflow:auto;
+  user-select:text;-webkit-user-select:text;touch-action:auto}
+#xyzText:focus{outline:2px solid var(--acc);outline-offset:-1px}
+#xyzText.bad{border-color:#ff6b6b}
+.pmsg{font-size:12px;opacity:.75;line-height:1.35}
+.pmsg.err{opacity:1;color:#ff8a8a}
+.pmsg.ok{opacity:1;color:var(--acc2)}
+.pill b sub{font-size:.7em}
+@media (max-width:640px){
+  .brand{display:none}
+  #top .right button{min-width:38px;padding:0 8px}
+  #xyzPanel{left:8px;right:8px;width:auto;max-height:34vh}
+  #xyzText{min-height:90px}
+}
+/* learn panel */
+.card.wide{width:min(94vw,520px)}
+.lgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:8px 0}
+.lgrid button{height:52px;font-size:20px;padding:0;border:3px solid transparent}
+.lgrid button.on{border-color:#fff}
+.ecard{background:#0e1530;border-radius:14px;padding:12px;animation:slide .25s both}
+.ecard h3{margin:0 0 4px;font-size:20px}
+.ecard .row2{display:flex;gap:12px;align-items:center}
+.ecard svg.lewis{width:92px;height:92px;flex:none}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:3px 10px;font-size:14px}
+.facts b{color:#9fb0ff;font-weight:600}
+.slots{display:flex;gap:4px;margin:6px 0}
+.slots span{width:22px;height:8px;border-radius:4px;background:var(--acc2)}
+.slots span.lp{background:#ffd166}
+.legend{font-size:12px;opacity:.75}
+.try{margin-top:10px;width:100%;background:linear-gradient(135deg,#ff5ca8,#7c5cff)}
+.shape{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #22305a}
+.shape .ang{font-size:22px;font-weight:900;color:#ffd166;min-width:72px;text-align:center}
+.shape p{margin:0;font-size:14px}
+.shape button{flex:none;height:38px;font-size:13px}
+.quizq{font-size:18px;font-weight:700;margin:6px 0 10px}
+.quizopts{display:grid;gap:8px}
+.quizopts button{text-align:left;height:auto;min-height:44px;padding:10px 12px;font-weight:600}
+.quizopts button.right{background:#1f7a5c}
+.quizopts button.wrong{background:#7a2a3a}
+.qexp{margin-top:10px;font-size:14px;line-height:1.45;animation:slide .25s both}
+.streak{text-align:center;font-size:14px;opacity:.85;margin-bottom:4px}
 #submit{background:linear-gradient(135deg,var(--acc),var(--acc2));padding:0 22px;font-size:17px}
 .left{display:flex;gap:8px;align-items:center;min-width:0}
 .brand{font-weight:900;font-size:20px;background:linear-gradient(90deg,#7c5cff,#20d3a7);-webkit-background-clip:text;background-clip:text;color:transparent}
@@ -75,6 +127,8 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
 <div id="top" class="bar">
   <div class="left"><span class="brand">QuMol</span><span id="info" class="pill">Loading…</span></div>
   <div class="right">
+    <button id="learn" class="tip-below" data-tip="Learn chemistry: how each element bonds, molecular shapes, and a quiz" aria-label="Learn chemistry">🎓</button>
+    <button id="xyzBtn" class="tip-below" data-tip="Formula and XYZ coordinates panel. Edit the coordinates to change the molecule directly" aria-label="Formula and XYZ panel">XYZ</button>
     <button id="mute" class="tip-below" data-tip="Sound on/off" aria-label="Sound on/off">🔊</button>
     <button id="help" class="tip-below" data-tip="How to play" aria-label="How to play">?</button>
     <button id="lb" class="tip-below" data-tip="Leaderboards" aria-label="Leaderboards">🏆</button>
@@ -100,6 +154,15 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
     <button id="submit" class="tip-right" data-tip="Submit: your molecule is optimised, checked for stability and scored">Submit ⚡</button>
   </div>
 </div>
+
+<aside id="xyzPanel" class="hidden" aria-label="Formula and coordinates">
+  <div class="phead">
+    <div><div id="pFormula" class="pformula">—</div><div id="pSmiles" class="psmiles"></div></div>
+    <button id="xyzClose" class="tip-below tip-right" data-tip="Hide panel" aria-label="Hide panel">✕</button>
+  </div>
+  <textarea id="xyzText" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="XYZ coordinates"></textarea>
+  <div id="xyzMsg" class="pmsg">Edit coordinates (Å) to change the molecule. Add or remove lines to add or remove atoms.</div>
+</aside>
 
 <div id="toast"></div>
 <div id="ov" class="hidden"><div class="card" id="card"></div></div>
@@ -394,13 +457,19 @@ function formula(){
 }
 
 /* ================= undo / persistence ================= */
-const serialize = () => JSON.stringify({a:atoms.map(a => [a.el, a.p.x, a.p.y, a.p.z]), b:bonds.map(b => [b.a, b.b, b.o])});
+// How the current molecule was made decides which points it can earn:
+// 'hand' (built in 3D) > 'xyz' (coordinates edited) > 'example' (loaded from Learn).
+let inputMethod = 'hand';
+const METHOD_RANK = {hand:0, xyz:1, example:2};
+function taint(m){ if(METHOD_RANK[m] > METHOD_RANK[inputMethod]) inputMethod = m; }
+const serialize = () => JSON.stringify({a:atoms.map(a => [a.el, a.p.x, a.p.y, a.p.z]), b:bonds.map(b => [b.a, b.b, b.o]), m:inputMethod});
 function restore(s){
   try{
     const d = JSON.parse(s);
-    atoms = d.a.map(([el,x,y,z]) => ({el, p:new THREE.Vector3(x,y,z)}));
-    bonds = d.b.map(([a,b,o]) => ({a, b, o}));
-  }catch{ atoms = []; bonds = []; }
+    atoms = d.a.filter(([el]) => EL[el]).map(([el,x,y,z]) => ({el, p:new THREE.Vector3(x,y,z)}));
+    bonds = d.a.length === atoms.length ? d.b.map(([a,b,o]) => ({a, b, o})) : [];
+    inputMethod = d.m || 'hand';
+  }catch{ atoms = []; bonds = []; inputMethod = 'hand'; }
 }
 function act(fn){
   const snap = serialize();
@@ -408,7 +477,8 @@ function act(fn){
   if(ok !== false){ undoStack.push(snap); if(undoStack.length > 60) undoStack.shift(); changed(); }
 }
 function changed(){
-  rebuild(); updateInfo();
+  if(!atoms.length) inputMethod = 'hand';
+  rebuild(); updateInfo(); refreshXYZ();
   try{ localStorage.setItem('qm.work', serialize()); }catch{}
 }
 
@@ -555,12 +625,15 @@ async function pubchemIsNew(smi){
 let toastT = 0;
 function toast(msg, ms=1800){ const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), ms); }
 function fail(msg){ toast(msg); SFX.err(); buzz([20,40,20]); return false; }
+const formulaHTML = f => f.replace(/(\d+)/g, '<sub>$1</sub>');
+const escapeHTML = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function updateInfo(){
   const h = heavyCount();
-  let s = `${h}/${MAX_HEAVY} heavy`;
-  if(atoms.length){ s += ` · ${formula()}`; const smi = getSmiles(); if(smi) s += ` · ${smi}`; }
-  else s += ' · tap to place an atom';
-  $('info').textContent = s;
+  const info = $('info');
+  if(atoms.length){
+    const smi = getSmiles();
+    info.innerHTML = `<b>${formulaHTML(formula())}</b>${smi ? ' · ' + escapeHTML(smi) : ''} · ${h}/${MAX_HEAVY}`;
+  } else info.textContent = `Tap to place an atom · 0/${MAX_HEAVY}`;
   $('total').textContent = `${total.toLocaleString()} ⭐`;
 }
 
@@ -590,6 +663,260 @@ $('mute').onclick = () => { unlockAudio(); muted = !muted; LS.set('qm.muted', mu
 $('help').onclick = () => { unlockAudio(); showHelp(); };
 $('total').onclick = () => { unlockAudio(); showCollection(); };
 $('lb').onclick = () => { unlockAudio(); showLeaderboard(); };
+
+/* ================= formula / XYZ panel ================= */
+let xyzOpen = LS.get('qm.xyzOpen', innerWidth > 640);
+let xyzTimer = 0;
+function setXYZOpen(open){
+  xyzOpen = open; LS.set('qm.xyzOpen', open);
+  $('xyzPanel').classList.toggle('hidden', !open);
+  $('xyzBtn').classList.toggle('on', open);
+  if(open) refreshXYZ(true);
+}
+function toXYZ(){
+  const f = (v) => v.toFixed(4).padStart(10);
+  return `${atoms.length}\n${atoms.length ? formula() : 'empty'}\n` +
+    atoms.map(a => `${a.el.padEnd(2)} ${f(a.p.x)} ${f(a.p.y)} ${f(a.p.z)}`).join('\n');
+}
+function refreshXYZ(force=false){
+  if(!xyzOpen) return;
+  $('pFormula').innerHTML = atoms.length ? formulaHTML(formula()) : '—';
+  $('pSmiles').textContent = atoms.length ? (getSmiles() || '') : 'Nothing built yet';
+  const ta = $('xyzText');
+  if(force || document.activeElement !== ta){ ta.value = toXYZ(); ta.classList.remove('bad'); }
+}
+function xyzMsg(text, cls=''){ const m = $('xyzMsg'); m.textContent = text; m.className = 'pmsg ' + cls; }
+function parseXYZ(text){
+  let lines = text.split('\n').map(l => l.trim());
+  while(lines.length && !lines[0]) lines.shift();
+  if(lines.length && /^\d+$/.test(lines[0])) lines = lines.slice(2);  // header: count + comment
+  const out = [];
+  for(const [k, l] of lines.entries()){
+    if(!l || l.startsWith('#')) continue;
+    const t = l.split(/[\s,]+/);
+    if(t.length < 4) throw new Error(`Line "${l}": need an element and x y z`);
+    const el = t[0][0].toUpperCase() + t[0].slice(1).toLowerCase();
+    if(!EL[el]) throw new Error(`Unknown element "${t[0]}". Allowed: ${Object.keys(EL).join(' ')}`);
+    const xyz = t.slice(1, 4).map(Number);
+    if(xyz.some(v => !Number.isFinite(v) || Math.abs(v) > 500)) throw new Error(`Line "${l}": coordinates must be numbers`);
+    out.push({el, p: new THREE.Vector3(...xyz)});
+  }
+  if(out.filter(a => a.el !== 'H').length > MAX_HEAVY) throw new Error(`Max ${MAX_HEAVY} heavy atoms`);
+  return out;
+}
+// Guess bonds from distances, then raise bond orders where both atoms still have free valence.
+function perceiveBonds(list){
+  const n = list.length, cand = [], fv = list.map(a => EL[a.el].val), out = [];
+  for(let i=0;i<n;i++) for(let j=i+1;j<n;j++){
+    const r0 = EL[list[i].el].r + EL[list[j].el].r, d = list[i].p.distanceTo(list[j].p);
+    if(d > 0.4 && d < 1.25*r0) cand.push({a:i, b:j, k:d/r0});
+  }
+  cand.sort((x,y) => x.k - y.k);
+  for(const c of cand) if(fv[c.a] > 0 && fv[c.b] > 0){ out.push({a:c.a, b:c.b, o:1, k:c.k}); fv[c.a]--; fv[c.b]--; }
+  for(let pass=0; pass<2; pass++)
+    for(const b of out) if(b.o < 3 && fv[b.a] > 0 && fv[b.b] > 0 && b.k < 0.97){ b.o++; fv[b.a]--; fv[b.b]--; }
+  return out.map(({a,b,o}) => ({a,b,o}));
+}
+function applyXYZ(){
+  const ta = $('xyzText');
+  let list;
+  try{ list = parseXYZ(ta.value); }
+  catch(e){ ta.classList.add('bad'); xyzMsg(e.message, 'err'); return false; }
+  ta.classList.remove('bad');
+  const sameEls = list.length === atoms.length && list.every((a,i) => a.el === atoms[i].el);
+  if(sameEls && list.every((a,i) => a.p.distanceTo(atoms[i].p) < 1e-5)){ xyzMsg('Up to date.'); return; }
+  act(() => {
+    if(sameEls) list.forEach((a,i) => atoms[i].p.copy(a.p));
+    else {
+      const now = performance.now();
+      atoms = list.map((a,i) => ({el:a.el, p:a.p, born: i >= atoms.length || atoms[i].el !== a.el ? now : undefined}));
+      bonds = perceiveBonds(atoms);
+    }
+    taint('xyz'); bondFirst = null;
+  });
+  xyzMsg(sameEls ? 'Coordinates applied ✓' : `Applied ✓ — bonds guessed from distances (${bonds.length}). Fix any with 🔗 Bond.`, 'ok');
+  SFX.tick(2);
+}
+$('xyzBtn').onclick = () => { unlockAudio(); setXYZOpen(!xyzOpen); SFX.tick(); };
+$('xyzClose').onclick = () => { setXYZOpen(false); SFX.tick(); };
+$('xyzText').addEventListener('input', () => { clearTimeout(xyzTimer); xyzTimer = setTimeout(applyXYZ, 700); });
+$('xyzText').addEventListener('blur', () => {
+  clearTimeout(xyzTimer);
+  const ok = applyXYZ(); refreshXYZ(true);
+  if(ok === false) xyzMsg('That edit had an error, so the panel went back to the current molecule.', 'err');
+});
+$('xyzText').addEventListener('keydown', e => e.stopPropagation());
+
+/* ================= example molecules (Learn → "Show me") ================= */
+const t3 = 0.629;  // 1.09 Å / √3, tetrahedral C–H components
+const EXAMPLES = {
+  methane:{name:'Methane, CH₄', say:'Carbon: 4 single bonds point to the corners of a tetrahedron, 109.5° apart.',
+    atoms:[['C',0,0,0],['H',t3,t3,t3],['H',-t3,-t3,t3],['H',-t3,t3,-t3],['H',t3,-t3,-t3]], bonds:[[0,1,1],[0,2,1],[0,3,1],[0,4,1]]},
+  ammonia:{name:'Ammonia, NH₃', say:'Nitrogen: 3 bonds + 1 lone pair. The lone pair pushes the H atoms down into a pyramid (~107°).',
+    atoms:[['N',0,0,0.116],['H',0,0.939,-0.271],['H',0.813,-0.469,-0.271],['H',-0.813,-0.469,-0.271]], bonds:[[0,1,1],[0,2,1],[0,3,1]]},
+  water:{name:'Water, H₂O', say:'Oxygen: 2 bonds + 2 lone pairs → a bent shape (104.5°). That bend makes water polar.',
+    atoms:[['O',0,0,0],['H',0.757,0.586,0],['H',-0.757,0.586,0]], bonds:[[0,1,1],[0,2,1]]},
+  h2s:{name:'Hydrogen sulfide, H₂S', say:'Sulfur bonds like oxygen (2 bonds) but its bonds are longer (1.34 Å) and the angle is tighter (92°).',
+    atoms:[['S',0,0,0],['H',0.961,0.927,0],['H',-0.961,0.927,0]], bonds:[[0,1,1],[0,2,1]]},
+  fluoromethane:{name:'Fluoromethane, CH₃F', say:'Fluorine makes exactly one bond and hoards electrons: the C–F bond is one of the strongest single bonds.',
+    atoms:[['C',0,0,0],['F',0,0,1.38],['H',1.027,0,-0.363],['H',-0.513,0.889,-0.363],['H',-0.513,-0.889,-0.363]], bonds:[[0,1,1],[0,2,1],[0,3,1],[0,4,1]]},
+  ethane:{name:'Ethane, C₂H₆', say:'C–C single bond, 1.54 Å. Single bonds can spin freely.',
+    atoms:[['C',0,0,0.765],['C',0,0,-0.765],['H',1.027,0,1.128],['H',-0.513,0.889,1.128],['H',-0.513,-0.889,1.128],
+           ['H',-1.027,0,-1.128],['H',0.513,0.889,-1.128],['H',0.513,-0.889,-1.128]],
+    bonds:[[0,1,1],[0,2,1],[0,3,1],[0,4,1],[1,5,1],[1,6,1],[1,7,1]]},
+  ethylene:{name:'Ethylene, C₂H₄', say:'C=C double bond, 1.34 Å: shorter, stronger, and it locks the molecule flat (120° angles).',
+    atoms:[['C',0.667,0,0],['C',-0.667,0,0],['H',1.232,0.924,0],['H',1.232,-0.924,0],['H',-1.232,0.924,0],['H',-1.232,-0.924,0]],
+    bonds:[[0,1,2],[0,2,1],[0,3,1],[1,4,1],[1,5,1]]},
+  acetylene:{name:'Acetylene, C₂H₂', say:'C≡C triple bond, 1.20 Å: the shortest carbon bond, and the molecule is a straight line (180°).',
+    atoms:[['C',0,0,0.601],['C',0,0,-0.601],['H',0,0,1.663],['H',0,0,-1.663]], bonds:[[0,1,3],[0,2,1],[1,3,1]]},
+  formaldehyde:{name:'Formaldehyde, CH₂O', say:'A C=O double bond makes carbon trigonal planar: three groups, 120° apart, all flat.',
+    atoms:[['C',0,0,0],['O',0,0,1.205],['H',0.943,0,-0.587],['H',-0.943,0,-0.587]], bonds:[[0,1,2],[0,2,1],[0,3,1]]},
+  co2:{name:'Carbon dioxide, CO₂', say:'Two C=O double bonds use all 4 of carbon\'s bonds: two groups → a straight line.',
+    atoms:[['C',0,0,0],['O',1.16,0,0],['O',-1.16,0,0]], bonds:[[0,1,2],[0,2,2]]},
+  benzene:{name:'Benzene, C₆H₆', say:'A flat ring of 6 carbons with alternating double bonds. Rings: close a chain with 🔗 Bond.',
+    atoms:[...Array.from({length:6}, (_,k) => ['C', 1.397*Math.cos(k*Math.PI/3), 1.397*Math.sin(k*Math.PI/3), 0]),
+           ...Array.from({length:6}, (_,k) => ['H', 2.48*Math.cos(k*Math.PI/3), 2.48*Math.sin(k*Math.PI/3), 0])],
+    bonds:[[0,1,2],[1,2,1],[2,3,2],[3,4,1],[4,5,2],[5,0,1],[0,6,1],[1,7,1],[2,8,1],[3,9,1],[4,10,1],[5,11,1]]},
+};
+function loadExample(key){
+  const ex = EXAMPLES[key];
+  act(() => {
+    const now = performance.now();
+    atoms = ex.atoms.map(([el,x,y,z], i) => ({el, p:new THREE.Vector3(x,y,z), born: now + i*40}));
+    bonds = ex.bonds.map(([a,b,o]) => ({a,b,o}));
+    inputMethod = 'example'; bondFirst = null;
+  });
+  $('ov').classList.add('hidden');
+  SFX.chime(); burst(new THREE.Vector3(), [0xff5ca8, 0x7c5cff, 0x20d3a7], 40, 4, 0.8, 0.28);
+  toast(`${ex.name}: ${ex.say}`, 6000);
+}
+
+/* ================= Learn panel ================= */
+const ELINFO = {
+  H:{ve:1, lp:0, shape:'Always on the outside — only one bond', fact:'The lightest and most common element in the universe. Its single electron pairs with one partner and it\'s done (2 electrons is a full shell for H).', ex:'methane', len:'C–H 1.09 Å'},
+  C:{ve:4, lp:0, shape:'4 singles: tetrahedral 109.5° · 1 double: flat 120° · 1 triple: linear 180°', fact:'The backbone of life. Four bonds in any combination: 4 singles, a double + 2 singles, 2 doubles, or a triple + a single. That flexibility is why there are millions of organic molecules.', ex:'methane', len:'C–C 1.54 · C=C 1.34 · C≡C 1.20 Å'},
+  N:{ve:5, lp:1, shape:'Trigonal pyramid (~107°) — the lone pair pushes the bonds down', fact:'Three bonds plus one lone pair. Nitrogen is in DNA bases, proteins and most drugs; its lone pair is what makes amines basic.', ex:'ammonia', len:'C–N 1.47 · C=N 1.28 · C≡N 1.16 Å'},
+  O:{ve:6, lp:2, shape:'Bent (~104.5°) — two lone pairs squeeze the bonds together', fact:'Two bonds plus two lone pairs. Oxygen is greedy for electrons, so its bonds are polar — that\'s why water is such a good solvent.', ex:'water', len:'C–O 1.43 · C=O 1.21 Å'},
+  S:{ve:6, lp:2, shape:'Bent (~92–100°)', fact:'Oxygen\'s bigger cousin: same 6 valence electrons, so it also makes 2 bonds here, but they are longer and softer. (Real sulfur can stretch to 4 or 6 bonds — not in this game yet!)', ex:'h2s', len:'C–S 1.82 Å'},
+  F:{ve:7, lp:3, shape:'One bond, three lone pairs — always on the outside', fact:'One electron short of a full octet, so exactly one bond. Fluorine is the most electronegative element: it pulls electrons harder than anything else.', ex:'fluoromethane', len:'C–F 1.35 Å'},
+};
+function lewisSVG(el){
+  const n = ELINFO[el].ve, c = '#' + EL[el].c.toString(16).padStart(6,'0');
+  const side = [[0,-1],[1,0],[0,1],[-1,0]], count = [0,0,0,0];
+  for(let i=0;i<n;i++) count[i < 4 ? i : i-4]++;  // one per side first, then pair up
+  if(el === 'H') count.splice(0, 4, 0, 1, 0, 0);
+  let dots = '';
+  side.forEach(([sx,sy], s) => {
+    const k = count[s];
+    for(let j=0;j<k;j++){
+      const off = k === 2 ? (j ? 7 : -7) : 0;
+      const x = 46 + sx*30 + (sy ? off : 0), y = 46 + sy*30 + (sx ? off : 0);
+      dots += `<circle cx="${x}" cy="${y}" r="4.5" fill="#ffd166"><animate attributeName="r" values="4.5;6;4.5" dur="1.6s" begin="${(s*0.2+j*0.1).toFixed(1)}s" repeatCount="indefinite"/></circle>`;
+    }
+  });
+  return `<svg class="lewis" viewBox="0 0 92 92"><circle cx="46" cy="46" r="20" fill="${c}"/><text x="46" y="53" text-anchor="middle" font-size="20" font-weight="800" fill="${el==='H'||el==='F'?'#111':'#fff'}">${el}</text>${dots}</svg>`;
+}
+let learnEl = 'C', learnTab = 'elements';
+const quizState = {streak:0, best:LS.get('qm.quizBest', 0), order:[], i:0};
+const QUIZ = [
+  {q:'How many bonds does nitrogen usually form?', a:['1','2','3','4'], c:2, e:'Nitrogen has 5 valence electrons. 3 bonds + 1 lone pair = a full octet.'},
+  {q:'Which bond is the shortest?', a:['C–C','C=C','C≡C'], c:2, e:'More shared electrons pull atoms closer: C≡C 1.20 Å < C=C 1.34 Å < C–C 1.54 Å.'},
+  {q:'What shape is methane (CH₄)?', a:['Flat square','Tetrahedral','Linear','Bent'], c:1, e:'Four bonds spread as far apart as possible in 3D: a tetrahedron, 109.5° apart.'},
+  {q:'Why is water bent and not straight?', a:['Hydrogen is heavy','Oxygen\'s two lone pairs push the bonds together','The bonds are double','It isn\'t — water is straight'], c:1, e:'Lone pairs take up space too. O has 2 bonds + 2 lone pairs, so the H–O–H angle closes to 104.5°.'},
+  {q:'How many lone pairs does fluorine have in CH₃F?', a:['0','1','2','3'], c:3, e:'F has 7 valence electrons: 1 goes into the bond, the other 6 form 3 lone pairs.'},
+  {q:'Carbon makes one double bond. How many single bonds can it still make?', a:['1','2','3','4'], c:1, e:'A double bond uses 2 of carbon\'s 4 bonds, leaving 2 singles — like in ethylene or formaldehyde.'},
+  {q:'What is the H–C–H angle in ethylene (C₂H₄)?', a:['90°','109.5°','About 120°','180°'], c:2, e:'Three groups around each carbon (a double bond counts as one group) → flat, about 120°.'},
+  {q:'What shape is CO₂?', a:['Bent','Linear','Tetrahedral','Pyramidal'], c:1, e:'Carbon\'s two double bonds are the only two groups, and they point in opposite directions: 180°.'},
+  {q:'Which element can only ever be on the outside of a molecule?', a:['Carbon','Oxygen','Hydrogen','Nitrogen'], c:2, e:'Hydrogen makes exactly one bond, so it can never connect two other atoms. (Fluorine is the same!)'},
+  {q:'What does the H+ button do?', a:['Adds a proton (positive charge)','Adds H atoms to every free bond until each atom\'s valence is full','Doubles every bond','Removes hydrogens'], c:1, e:'It saturates your molecule: C gets up to 4 bonds, N 3, O and S 2 — the rest are filled with H.'},
+  {q:'How many valence electrons does oxygen have?', a:['2','4','6','8'], c:2, e:'O has 6. It needs 2 more for an octet, which is why it makes 2 bonds.'},
+  {q:'Benzene\'s ring is…', a:['Puckered like a chair','Perfectly flat','A straight line','Tetrahedral'], c:1, e:'All six carbons are trigonal planar (120°), so the whole ring is flat.'},
+];
+function showLearn(tab = learnTab){
+  learnTab = tab;
+  const card = openCard(); card.classList.add('wide');
+  card.innerHTML = '<h2>🎓 Learn chemistry</h2>';
+  const tabs = document.createElement('div'); tabs.className = 'tabs';
+  for(const [k, label] of [['elements','⚛️ Elements'], ['shapes','📐 Bonds & shapes'], ['quiz','❓ Quiz']]){
+    const b = document.createElement('button'); b.textContent = label; b.className = k === tab ? 'on' : '';
+    b.onclick = () => { SFX.tick(); showLearn(k); }; tabs.appendChild(b);
+  }
+  card.appendChild(tabs);
+  const body = document.createElement('div'); card.appendChild(body);
+  ({elements: learnElements, shapes: learnShapes, quiz: learnQuiz})[tab](body);
+  closeBtn(card, 'Back to building');
+}
+function learnElements(body){
+  body.innerHTML = `<p style="margin-top:0">Atoms bond to fill their outer shell — usually <b>8 electrons</b> (the <b>octet rule</b>; hydrogen only needs 2). Each bond shares 2 electrons, so <b>bonds = 8 − valence electrons</b>. Tap an element:</p>`;
+  const grid = document.createElement('div'); grid.className = 'lgrid';
+  for(const e of Object.keys(EL)){
+    const b = document.createElement('button'); b.textContent = e; b.className = e === learnEl ? 'on' : '';
+    b.style.background = '#' + EL[e].c.toString(16).padStart(6,'0'); b.style.color = e==='H'||e==='F' ? '#111' : '#fff';
+    b.onclick = () => { learnEl = e; SFX.pop(e); showLearn('elements'); };
+    grid.appendChild(b);
+  }
+  body.appendChild(grid);
+  const e = learnEl, info = ELINFO[e], val = EL[e].val;
+  const slots = '<span></span>'.repeat(val) + '<span class="lp"></span>'.repeat(info.lp);
+  const c = document.createElement('div'); c.className = 'ecard';
+  c.innerHTML = `<div class="row2">${lewisSVG(e)}<div><h3>${EL[e].name}</h3>
+      <div class="slots">${slots}</div>
+      <div class="legend"><span style="color:var(--acc2)">■</span> bonds (${val}) &nbsp; <span style="color:#ffd166">■</span> lone pairs (${info.lp})</div></div></div>
+    <div class="facts" style="margin-top:8px">
+      <b>Valence e⁻</b><span>${info.ve} → needs ${e === 'H' ? 1 : 8 - info.ve} more → <b style="color:var(--acc2)">${val} bond${val>1?'s':''}</b></span>
+      <b>Shape</b><span>${info.shape}</span>
+      <b>Bond lengths</b><span>${info.len}</span>
+    </div>
+    <p style="font-size:14px;line-height:1.45">${info.fact}</p>`;
+  const tryB = document.createElement('button'); tryB.className = 'try';
+  tryB.textContent = `Show me ${EXAMPLES[info.ex].name} in 3D ✨`;
+  tryB.onclick = () => loadExample(info.ex);
+  c.appendChild(tryB);
+  body.appendChild(c);
+}
+function learnShapes(body){
+  body.innerHTML = `<p style="margin-top:0">Bonds and lone pairs repel each other, so they spread out as far as they can. Count the <b>groups</b> around an atom (a double or triple bond counts as one group) and you can predict its shape. Shorter, stronger bonds come from sharing more electrons.</p>`;
+  const rows = [
+    ['109.5°', 'Tetrahedral', '4 single bonds around carbon.', 'methane'],
+    ['~107°', 'Pyramidal', '3 bonds + 1 lone pair on nitrogen.', 'ammonia'],
+    ['104.5°', 'Bent', '2 bonds + 2 lone pairs on oxygen.', 'water'],
+    ['120°', 'Trigonal planar', 'A double bond + 2 singles: flat.', 'formaldehyde'],
+    ['180°', 'Linear', 'Two groups on opposite sides.', 'co2'],
+    ['C–C', 'Single bond', '1.54 Å, free to rotate.', 'ethane'],
+    ['C=C', 'Double bond', '1.34 Å, locked flat.', 'ethylene'],
+    ['C≡C', 'Triple bond', '1.20 Å, straight line.', 'acetylene'],
+    ['⬡', 'Ring', 'Close a chain with 🔗 Bond. Small rings (3–4 atoms) are strained.', 'benzene'],
+  ];
+  for(const [ang, title, text, ex] of rows){
+    const r = document.createElement('div'); r.className = 'shape';
+    r.innerHTML = `<div class="ang">${ang}</div><p><b>${title}</b> — ${text}</p>`;
+    const b = document.createElement('button'); b.textContent = 'Show me';
+    b.onclick = () => loadExample(ex); r.appendChild(b); body.appendChild(r);
+  }
+}
+function learnQuiz(body){
+  const s = quizState;
+  if(!s.order.length || s.i >= s.order.length){ s.order = QUIZ.map((_,i) => i).sort(() => Math.random() - 0.5); s.i = 0; }
+  const q = QUIZ[s.order[s.i]];
+  body.innerHTML = `<div class="streak">🔥 Streak ${s.streak} · Best ${s.best} · Question ${s.i+1}/${QUIZ.length}</div><div class="quizq">${q.q}</div>`;
+  const opts = document.createElement('div'); opts.className = 'quizopts'; body.appendChild(opts);
+  q.a.forEach((txt, k) => {
+    const b = document.createElement('button'); b.textContent = txt; opts.appendChild(b);
+    b.onclick = () => {
+      opts.querySelectorAll('button').forEach((x, j) => { x.disabled = true; if(j === q.c) x.classList.add('right'); });
+      const ok = k === q.c;
+      if(ok){ s.streak++; if(s.streak > s.best){ s.best = s.streak; LS.set('qm.quizBest', s.best); } SFX.chime(); buzz(30); }
+      else { b.classList.add('wrong'); s.streak = 0; SFX.err(); buzz([20,40,20]); }
+      const e = document.createElement('div'); e.className = 'qexp';
+      e.innerHTML = `<b>${ok ? (s.streak >= 3 ? `🔥 ${s.streak} in a row!` : '✅ Correct!') : '❌ Not quite.'}</b> ${q.e}`;
+      const next = document.createElement('button'); next.textContent = 'Next question →'; next.style.marginTop = '10px'; next.style.width = '100%';
+      next.onclick = () => { s.i++; SFX.tick(); showLearn('quiz'); };
+      body.append(e, next);
+      body.querySelector('.streak').textContent = `🔥 Streak ${s.streak} · Best ${s.best} · Question ${s.i+1}/${QUIZ.length}`;
+    };
+  });
+}
+$('learn').onclick = () => { unlockAudio(); SFX.tick(); showLearn(); };
 
 /* ================= pointer input ================= */
 const pointers = new Map();
@@ -714,10 +1041,11 @@ async function submit(){
       lines.push(['Already in your collection', 0, smiles]);
       lines.push(['Try something new for points!', 0]);
     } else {
-      lines.push(['Geometry skill', Math.round(100*Math.exp(-dEpa/2)), `ΔE ${dEpa.toFixed(2)} kcal/mol per atom`]);
+      if(inputMethod === 'example') lines.push(['Example molecule: no geometry points', 0]);
+      else lines.push(['Geometry skill', Math.round(100*Math.exp(-dEpa/2)), `ΔE ${dEpa.toFixed(2)} kcal/mol per atom`]);
       if(saddle) lines.push(['Started on a saddle point — rolled off!', 0]);
       lines.push([stable ? 'Stable structure' : 'Unstable — no bonuses', stable ? 50 : 0]);
-      lines.push(['Hand-built', 50]);
+      if(inputMethod === 'hand') lines.push(['Hand-built', 50]);
       if(stable && smiles){
         lines.push(['New to QuMol', 100, smiles]);
         const rec = records[form];
@@ -753,7 +1081,7 @@ async function submitOnline(){
   const body = {
     atoms: atoms.map(a => ({el:a.el, x:a.p.x, y:a.p.y, z:a.p.z})),
     bonds: bonds.map(b => [b.a, b.b, b.o]),
-    input_method: 'hand', mode: 'stable',
+    input_method: inputMethod, mode: 'stable',
   };
   toast('Optimising…', 4000); SFX.whoosh();
   let r;
@@ -777,7 +1105,7 @@ function lineEl(label, pts, sub, cls=''){
   const p = document.createElement('div'); p.className = 'pts' + (pts === 0 ? ' zero' : ''); p.textContent = typeof pts === 'number' ? `+${pts}` : pts;
   d.append(l, p); return d;
 }
-function openCard(){ const card = $('card'); card.innerHTML = ''; $('ov').classList.remove('hidden'); return card; }
+function openCard(){ const card = $('card'); card.innerHTML = ''; card.className = 'card'; $('ov').classList.remove('hidden'); return card; }
 function closeBtn(card, text='Keep building'){
   const b = document.createElement('button'); b.id = 'ovBtn'; b.textContent = text;
   b.onclick = () => { $('ov').classList.add('hidden'); SFX.tick(); };
@@ -815,7 +1143,8 @@ function showHelp(){
   <p><b>✋ Move</b> — drag atoms to perfect the geometry. The closer you are to the optimum, the more points.</p>
   <p><b>Delete</b> — tap an atom to remove it. <b>Undo</b> steps back one change, <b>Clear</b> starts over.</p>
   <p><b>H+</b> — saturates your molecule: every atom with free bonds gets hydrogens until it has its full valence (C 4, N 3, O 2, S 2). Submit does this for you too.</p>
-  <p style="opacity:.7">On a computer, hover over any button to see what it does.</p>
+  <p><b>🎓 Learn</b> — how each element bonds, molecular shapes you can load in 3D, and a quiz. <b>XYZ</b> — shows the formula and coordinates as you build; edit the numbers to reshape the molecule directly.</p>
+  <p style="opacity:.7">On a computer, hover over any button to see what it does. Loaded examples don't earn geometry or hand-built points; edited XYZ doesn't earn the hand-built bonus.</p>
   <p>One finger rotates, pinch zooms.</p>
   <p><b>Points:</b> geometry skill, stability, hand-built bonus, new molecules, formula records — and a huge bonus if it's <b>not in PubChem</b>. Smaller molecules score more.</p>
   <p style="opacity:.6;font-size:13px">Early prototype: energies come from a simple toy force field. A proper ML potential comes later.</p>`;
@@ -930,7 +1259,7 @@ function loop(now){
 {
   let w = null; try{ w = localStorage.getItem('qm.work'); }catch{}
   if(w) restore(w);
-  rebuild(); updateInfo();
+  rebuild(); updateInfo(); setXYZOpen(xyzOpen);
   requestAnimationFrame(loop);
   detectServer().then(async () => {
     $('lb').classList.toggle('hidden', !ONLINE);
