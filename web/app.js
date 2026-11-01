@@ -1112,7 +1112,7 @@ async function submit(){
       if(saddle) lines.push(['Started on a saddle point — rolled off!', 0]);
       lines.push([stable ? 'Stable structure' : 'Unstable — no bonuses', stable ? 50 : 0]);
       const nRad = freeHeavy();
-      if(nRad) lines.push([`Radical: ${nRad} unpaired electron${nRad > 1 ? 's' : ''}`, stable ? 50 : 0]);
+      if(nRad) lines.push([`Radical: ${nRad} unpaired electron${nRad > 1 ? 's' : ''}`, 0]);
       if(stable && valenceState().charge.some(q => q)) lines.push(['Formal charges (⁺/⁻)', 50]);
       if(inputMethod === 'hand') lines.push(['Hand-built', 50]);
       if(stable && smiles){
