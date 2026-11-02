@@ -872,7 +872,7 @@ const QUIZ = [
 function showLearn(tab = learnTab){
   learnTab = tab;
   const card = openCard(); card.classList.add('wide');
-  card.innerHTML = '<h2>🎓 Learn chemistry</h2>';
+  card.innerHTML = '<h2>🏫 Learn chemistry</h2>';
   const tabs = document.createElement('div'); tabs.className = 'tabs';
   for(const [k, label] of [['elements','⚛️ Elements'], ['shapes','📐 Bonds & shapes'], ['quiz','❓ Quiz']]){
     const b = document.createElement('button'); b.textContent = label; b.className = k === tab ? 'on' : '';
@@ -1131,37 +1131,37 @@ async function submit(){
       burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 40, 4, 0.8, 0.28);
     }
 
-    const smiles = getSmiles(), form = formula(), heavy = heavyCount();
+    const smiles = getSmiles(), form = formula();
     const lines = [];
     const already = smiles && seen.has(smiles);
     let pubNew = null;
+    if(stable && smiles && !already){ toast('Checking PubChem…', 3000); pubNew = await pubchemIsNew(smiles); }
+    // Same order as the server's score card.
     if(already){
-      lines.push(['Already collected', 0, smiles]);
+      lines.push(['Already collected', 0]);
     } else {
+      if(stable && smiles){
+        const rec = records[form];
+        if(rec === undefined){ lines.push(['New QuMol formula', 1000]); records[form] = E1; }
+        else if(E1 < rec - 0.01){ lines.push(['Formula record', 300, 'lowest energy yet for this formula']); records[form] = E1; }
+        lines.push(['New QuMol SMILES', 100]);
+      } else if(stable && !smiles) lines.push(['New QuMol SMILES', 0, 'chemistry engine offline']);
+      lines.push(stable ? ['Stable', 50] : broken ? ['Optimization failed', 0, 'structure fell apart; no bonuses']
+        : !res.converged ? ['Not converged', 0, 'no bonuses'] : ['Unstable', 0, 'no bonuses']);
+      if(inputMethod === 'hand') lines.push(['Hand-built', 50]);
       if(inputMethod === 'example') lines.push(['Geometry', 0, 'example molecule']);
       else lines.push(['Geometry', Math.round(100*Math.exp(-dEpa/2)), `ΔE ${dEpa.toFixed(2)} kcal/mol per atom`]);
       if(saddle) lines.push(['Saddle point', 0, 'rolled off to a minimum']);
-      lines.push(stable ? ['Stable', 50] : broken ? ['Optimization failed', 0, 'structure fell apart; no bonuses']
-        : !res.converged ? ['Not converged', 0, 'no bonuses'] : ['Unstable', 0, 'no bonuses']);
       const nRad = freeHeavy();
       if(nRad) lines.push(['Radical', 0, `${nRad} unpaired electron${nRad > 1 ? 's' : ''}`]);
       if(stable && valenceState().charge.some(q => q)) lines.push(['Formal charges', 50]);
-      if(inputMethod === 'hand') lines.push(['Hand-built', 50]);
-      if(stable && smiles){
-        lines.push(['New SMILES', 100, smiles]);
-        const rec = records[form];
-        if(rec === undefined){ lines.push(['New formula', 1000, form]); records[form] = E1; }
-        else if(E1 < rec - 0.01){ lines.push(['Formula record', 300, `lowest energy yet for ${form}`]); records[form] = E1; }
-        toast('Checking PubChem…', 3000);
-        pubNew = await pubchemIsNew(smiles);
-        if(pubNew === true) lines.push(['Not in PubChem', 1000, 'possibly new to science']);
-        else if(pubNew === false) lines.push(['In PubChem', 0]);
-        else lines.push(['PubChem', 0, 'check unavailable']);
-      } else if(!smiles) lines.push(['New SMILES', 0, 'chemistry engine offline']);
+      if(pubNew === true) lines.push(['Not in PubChem', 1000, 'possibly new to science']);
+      if(stable){
+        const n = atoms.length;
+        lines.push(['Size bonus', Math.max(0, 1000 - 50*(Math.max(2, n) - 2)), `${n} atoms: smaller scores more`]);
+      }
     }
-    const raw = lines.reduce((s,l) => s + l[1], 0);
-    const mult = 1/Math.sqrt(Math.max(1, heavy));
-    const score = already ? 0 : Math.max(1, Math.round(raw*mult));
+    const score = already ? 0 : lines.reduce((s,l) => s + l[1], 0);
 
     if(!already){
       total += score;
@@ -1170,7 +1170,8 @@ async function submit(){
       if(history.length > 200) history.length = 200;
       LS.set('qm.total', total); LS.set('qm.records', records); LS.set('qm.history', history);
     }
-    await showScore(lines, mult, heavy, score, pubNew === true && !already, null, warning);
+    await showScore({lines, score, discovery: pubNew === true && !already, formula: form, smiles,
+                     pubchem: smiles ? {known: pubNew === null ? null : !pubNew} : null, warning});
     updateInfo();
   } finally {
     busy = false; document.body.classList.remove('busy');
@@ -1225,7 +1226,8 @@ async function submitOnline(){
     burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 40, 4, 0.8, 0.28);
   }
   total = r.total; LS.set('qm.total', total);
-  await showScore(r.lines, r.multiplier, r.n_heavy, r.score, r.discovery, r.pubchem && r.pubchem.name, r.warning);
+  await showScore({lines: r.lines, score: r.score, discovery: r.discovery, name: r.pubchem && r.pubchem.name,
+                   formula: r.formula, smiles: r.smiles, pubchem: r.pubchem, warning: r.warning});
   updateInfo();
 }
 
@@ -1250,13 +1252,31 @@ function closeBtn(card, text='Keep building'){
   b.onclick = () => { $('ov').classList.add('hidden'); SFX.tick(); };
   card.appendChild(b);
 }
-async function showScore(lines, mult, heavy, score, discovery, name=null, warning=null){
+// Header: name, formula, SMILES and the PubChem link; then the score lines; then the total.
+async function showScore({lines, score, discovery, name=null, formula:form=null, smiles=null, pubchem=null, warning=null}){
   const card = openCard();
-  const h = document.createElement('h2'); h.textContent = discovery ? '🚀 Discovery!' : name ? name : score > 0 ? 'Molecule scored!' : 'Hmm…'; card.appendChild(h);
+  const h = document.createElement('h2'); h.className = 'mname';
+  h.textContent = name || (score > 0 || discovery ? 'New molecule' : 'Hmm…'); card.appendChild(h);
+  if(form){
+    const f = document.createElement('div'); f.className = 'mformula';
+    for(const part of String(form).match(/[A-Z][a-z]?|\d+/g) || []){  // H2O → H<sub>2</sub>O, built without innerHTML
+      if(/^\d+$/.test(part)){ const sb = document.createElement('sub'); sb.textContent = part; f.appendChild(sb); }
+      else f.appendChild(document.createTextNode(part));
+    }
+    card.appendChild(f);
+  }
+  if(smiles){ const sm = document.createElement('div'); sm.className = 'msmiles'; sm.textContent = smiles; card.appendChild(sm); }
+  const pc = document.createElement('div'); pc.className = 'mpubchem';
+  if(pubchem && pubchem.known && pubchem.url && PUBCHEM_LINK.test(pubchem.url)){
+    const a = document.createElement('a'); a.href = pubchem.url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+    a.textContent = `PubChem CID ${pubchem.cid} ↗`; pc.appendChild(a);
+  } else if(pubchem && pubchem.known) pc.textContent = 'In PubChem';
+  else if(pubchem && pubchem.known === false) pc.textContent = 'Not in PubChem';
+  else if(smiles) pc.textContent = 'PubChem check unavailable';
+  if(pc.textContent) card.appendChild(pc);
+  if(discovery){ const w = document.createElement('div'); w.className = 'wow'; w.textContent = '🚀 Possibly new to science'; card.appendChild(w); }
   if(warning){ const w = document.createElement('div'); w.className = 'warnbox'; w.textContent = '⚠️ ' + warning; card.appendChild(w); }
-  if(discovery){ const w = document.createElement('div'); w.className = 'wow'; w.textContent = 'Possibly new to science'; card.appendChild(w); }
-  for(let i=0;i<lines.length;i++){ const [l,p,s,link] = lines[i]; card.appendChild(lineEl(l, p, s, '', link)); SFX.tick(i); await sleep(330); }
-  if(score > 0){ card.appendChild(lineEl('Size', `×${mult.toFixed(2)}`, `${heavy} heavy atom${heavy>1?'s':''} — smaller scores more`, 'mult')); SFX.tick(lines.length); await sleep(330); }
+  for(let i=0;i<lines.length;i++){ const [l,p,sub] = lines[i]; card.appendChild(lineEl(l, p, sub)); SFX.tick(i); await sleep(330); }
   const t = document.createElement('div'); t.id = 'ovTotal'; t.textContent = '0'; card.appendChild(t);
   const t0 = performance.now(), dur = Math.min(1400, 300 + score*2);
   await new Promise(res => {
@@ -1284,9 +1304,9 @@ function showHelp(){
   <p><b>✋ Move</b> — drag atoms to perfect the geometry. The closer you are to the optimum, the more points.</p>
   <p><b>📏 Measure</b> — shows bond lengths (Å) on the bonds and the angles (°) around the atom you tap or drag, live as you move it. Typical values: C–H 1.09, C–C 1.54, C=C 1.34, C=O 1.21 Å; 109.5° around a carbon with four bonds, 120° with a double bond.</p>
   <p><b>Charges & radicals</b> — O can make a 3rd bond (N a 4th): QuMol gives it a + charge and a neighbor the −, like ⁻C≡O⁺. If bonds are left free when you Build, you can fill them with H or keep a radical (up to 2 unpaired electrons).</p>
-  <p><b>Delete</b> — tap an atom to remove it, or a bond to break it. <b>Undo</b> steps back one change, <b>Clear</b> starts over.</p>
+  <p><b>Delete</b> — tap an atom to remove it, or a bond to break it. <b>Undo</b> steps back one change, <b>Reset</b> starts over.</p>
   <p><b>H+</b> — saturates your molecule: every atom with free bonds gets hydrogens until it has its full valence (C 4, N 3, O 2, S 2). Build does this for you too.</p>
-  <p><b>🎓 Learn</b> — how each element bonds, molecular shapes you can load in 3D, and a quiz. <b>XYZ</b> — shows the formula and coordinates as you build; edit the numbers to reshape the molecule directly.</p>
+  <p><b>🏫 Learn</b> — how each element bonds, molecular shapes you can load in 3D, and a quiz. <b>XYZ</b> — shows the formula and coordinates as you build; edit the numbers to reshape the molecule directly.</p>
   <p style="opacity:.7">On a computer, hover over any button to see what it does. Loaded examples don't earn geometry or hand-built points; edited XYZ doesn't earn the hand-built bonus.</p>
   <p>One finger rotates, pinch zooms.</p>
   <p><b>Points:</b> geometry skill, stability, hand-built bonus, new molecules, formula records — and a huge bonus if it's <b>not in PubChem</b>. Smaller molecules score more.</p>

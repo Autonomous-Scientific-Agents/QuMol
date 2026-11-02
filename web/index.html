@@ -115,6 +115,12 @@ body.busy #bottom button{opacity:.45;pointer-events:none}
 .hidden{display:none!important}
 .card{background:#141c34;border:1px solid #2c3a66;border-radius:20px;padding:20px;width:min(92vw,440px);max-height:82vh;overflow:auto;animation:pop .4s cubic-bezier(.2,1.6,.4,1);touch-action:pan-y}
 .card h2{margin:0 0 10px;text-align:center}
+.card h2.mname{margin-bottom:2px}
+.mformula{text-align:center;font-size:22px;font-weight:800}
+.mformula sub{font-size:.6em}
+.msmiles{text-align:center;font-family:ui-monospace,Menlo,monospace;font-size:13px;opacity:.7;word-break:break-all;margin-top:2px}
+.mpubchem{text-align:center;font-size:14px;margin:6px 0 10px;opacity:.85}
+.mpubchem a{color:#9fb0ff}
 .card p{line-height:1.45;margin:6px 0}
 .line{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid #22305a;animation:slide .3s both}
 .line small{display:block;opacity:.6;font-size:12px;word-break:break-all}
@@ -144,9 +150,8 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
 <div id="top" class="bar">
   <div class="left"><span class="brand">QuMol</span><span id="info" class="pill">Loading…</span></div>
   <div class="right">
-    <button id="learn" class="tip-below" data-tip="Learn chemistry: how each element bonds, molecular shapes, and a quiz" aria-label="Learn chemistry">🎓</button>
+    <button id="learn" class="tip-below" data-tip="Learn chemistry: how each element bonds, molecular shapes, and a quiz" aria-label="Learn chemistry">🏫</button>
     <button id="xyzBtn" class="tip-below" data-tip="Formula and XYZ coordinates panel. Edit the coordinates to change the molecule directly" aria-label="Formula and XYZ panel">XYZ</button>
-    <button id="measure" class="tip-below" data-tip="Measure: show bond lengths (Å) on the bonds and the bond angles (°) around the atom you tap or drag. Updates live while you move atoms" aria-label="Measure bond lengths and angles">📏</button>
     <button id="mute" class="tip-below" data-tip="Sound on/off" aria-label="Sound on/off">🔊</button>
     <button id="help" class="tip-below" data-tip="How to play" aria-label="How to play">?</button>
     <button id="lb" class="tip-below" data-tip="Leaderboards" aria-label="Leaderboards">🏆</button>
@@ -167,8 +172,9 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
     <button id="hplus" data-tip="Saturate with hydrogens: every atom with free bonds gets H atoms until it has its full valence (C 4, N 3, O 2, S 2). Build does this automatically">H+</button>
     <button id="undo" class="ico" data-tip="Undo: step back one change">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>Undo</button>
-    <button id="clear" class="ico" data-tip="Clear all: remove the whole molecule and start over (Undo brings it back)">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 21l-4.3-4.3a2.4 2.4 0 0 1 0-3.4l9.6-9.6a2.4 2.4 0 0 1 3.4 0l5.6 5.6a2.4 2.4 0 0 1 0 3.4L13 21"/><path d="M22 21H7"/><path d="M5 11l9 9"/></svg>Clear</button>
+    <button id="clear" class="ico" data-tip="Reset: remove the whole molecule and start over (Undo brings it back)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>Reset</button>
+    <button id="measure" class="ico" data-tip="Measure: show bond lengths (Å) on the bonds and the bond angles (°) around the atom you tap or drag. Updates live while you move atoms" aria-label="Measure bond lengths and angles">📏 Measure</button>
     <button id="submit" class="ico tip-right" data-tip="Build: your molecule is optimized, checked for stability and scored" aria-label="Build">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v6.2L4.6 18.6A1.6 1.6 0 0 0 6 21h12a1.6 1.6 0 0 0 1.4-2.4L14 9.2V3"/><path d="M7.2 15h9.6"/><circle cx="10.5" cy="18" r="0.6" fill="currentColor"/><circle cx="13.6" cy="17.2" r="0.5" fill="currentColor"/></svg>Build</button>
   </div>

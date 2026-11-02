@@ -38,8 +38,10 @@ NO_GEOMETRY_NOTE = {
 }
 
 
-def size_multiplier(n_heavy: int) -> float:
-    return 1.0 / math.sqrt(max(1, n_heavy))
+def size_bonus(n_atoms: int) -> int:
+    """Smaller molecules are harder to find new: 1000 points for 2 atoms (hydrogens count),
+    50 fewer for each extra atom, nothing from 22 atoms up."""
+    return max(0, 1000 - 50 * (max(2, n_atoms) - 2))
 
 
 def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "hand",
@@ -102,27 +104,32 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
             "SELECT 1 FROM submissions WHERE player_id=? AND smiles=? AND stable=1 LIMIT 1", player_id, smiles
         ) is not None
 
-        def pubchem_line(points):
-            if known is True:
-                name = pc["name"] or (f"CID {pc['cid']}" if pc["cid"] else "known compound")
-                detail = f"{name} · CID {pc['cid']}" if pc["name"] and pc["cid"] else name
-                return ["In PubChem", 0, detail, pc["url"]]
-            if known is False:
-                return ["Not in PubChem", points, "possibly new to science", None]
-            return ["PubChem", 0, "check unavailable", None]
-
+        # Order on the score card: discoveries first, then quality, then bonuses. Whether the
+        # compound is in PubChem is shown in the card header (name and link), not as a line,
+        # unless it earns the discovery bonus.
         if already:
-            lines.append(["Already collected", 0, smiles])
-            if smiles:
-                lines.append(pubchem_line(0))
+            lines.append(["Already collected", 0, None])
         else:
-            if input_method in GEOMETRY_SCORED:
-                pts = round(POINTS["geometry_max"] * math.exp(-d_e_per_atom / calc.skill_scale))
-                lines.append(["Geometry", pts, f"ΔE {d_e_per_atom:.3g} {calc.energy_unit} per atom"])
-            else:
-                lines.append(["Geometry", 0, NO_GEOMETRY_NOTE[input_method]])
-            if res.saddle:
-                lines.append(["Saddle point", 0, "rolled off to a minimum"])
+            if stable and smiles:
+                best_f = scalar(
+                    "SELECT MIN(e_opt) FROM submissions WHERE formula=? AND method_id=? AND stable=1",
+                    g_opt.formula, mid,
+                )
+                if best_f is None:
+                    lines.append(["New QuMol formula", POINTS["new_formula"], None])
+                elif res.e_opt < best_f - tol:
+                    lines.append(["Formula record", POINTS["formula_record"], "lowest energy yet for this formula"])
+                seen = scalar("SELECT 1 FROM submissions WHERE smiles=? AND stable=1 LIMIT 1", smiles)
+                if seen is None:
+                    lines.append(["New QuMol SMILES", POINTS["new_to_game"], None])
+                else:
+                    best_s = scalar(
+                        "SELECT MIN(e_opt) FROM submissions WHERE smiles=? AND method_id=? AND stable=1", smiles, mid
+                    )
+                    if best_s is not None and res.e_opt < best_s - tol:
+                        lines.append(["SMILES record", POINTS["smiles_record"], "lowest energy yet for this molecule"])
+            elif stable and not smiles:
+                lines.append(["New QuMol SMILES", 0, "couldn't read the bonding"])
             if stable:
                 lines.append(["Stable", POINTS["stable"], None])
             elif opt_status == "broken":
@@ -131,40 +138,27 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
                 lines.append(["Not converged", 0, "no bonuses"])
             else:
                 lines.append(["Unstable", 0, "no bonuses"])
+            if input_method == "hand":
+                lines.append(["Hand-built", POINTS["hand_built"], None])
+            if input_method in GEOMETRY_SCORED:
+                pts = round(POINTS["geometry_max"] * math.exp(-d_e_per_atom / calc.skill_scale))
+                lines.append(["Geometry", pts, f"ΔE {d_e_per_atom:.3g} {calc.energy_unit} per atom"])
+            else:
+                lines.append(["Geometry", 0, NO_GEOMETRY_NOTE[input_method]])
+            if res.saddle:
+                lines.append(["Saddle point", 0, "rolled off to a minimum"])
             if mol.radicals:
                 n = mol.radicals
                 lines.append(["Radical", 0, f"{n} unpaired electron{'s' if n > 1 else ''}"])
             if stable and any(mol.charges or []):
                 lines.append(["Formal charges", POINTS["formal_charges"], None])
-            if input_method == "hand":
-                lines.append(["Hand-built", POINTS["hand_built"], None])
-            if stable and smiles:
-                seen = scalar("SELECT 1 FROM submissions WHERE smiles=? AND stable=1 LIMIT 1", smiles)
-                if seen is None:
-                    lines.append(["New SMILES", POINTS["new_to_game"], smiles])
-                else:
-                    best_s = scalar(
-                        "SELECT MIN(e_opt) FROM submissions WHERE smiles=? AND method_id=? AND stable=1", smiles, mid
-                    )
-                    if best_s is not None and res.e_opt < best_s - tol:
-                        lines.append(["SMILES record", POINTS["smiles_record"], "lowest energy yet for this molecule"])
-                best_f = scalar(
-                    "SELECT MIN(e_opt) FROM submissions WHERE formula=? AND method_id=? AND stable=1",
-                    g_opt.formula, mid,
-                )
-                if best_f is None:
-                    lines.append(["New formula", POINTS["new_formula"], g_opt.formula])
-                elif res.e_opt < best_f - tol:
-                    lines.append(["Formula record", POINTS["formula_record"], f"lowest energy yet for {g_opt.formula}"])
-                lines.append(pubchem_line(POINTS["not_in_pubchem"]))
-            elif stable and not smiles:
-                lines.append(["New SMILES", 0, "couldn't read the bonding"])
-            elif smiles:
-                lines.append(pubchem_line(0))
+            if stable and smiles and known is False:
+                lines.append(["Not in PubChem", POINTS["not_in_pubchem"], "possibly new to science"])
+            if stable:
+                n_atoms = len(mol.symbols)
+                lines.append(["Size bonus", size_bonus(n_atoms), f"{n_atoms} atoms: smaller scores more"])
 
-        mult = size_multiplier(n_heavy)
-        raw = sum(line[1] for line in lines)
-        score = 0 if already else max(1, round(raw * mult))
+        score = 0 if already else sum(line[1] for line in lines)
         discovery = (known is False) and not already and stable
 
         cur = con.execute(
@@ -176,7 +170,7 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
             (player_id, mid, input_method, mode, raw_xyz, json.dumps(mol.bonds), g_in.id, g_opt.id,
              smiles, inchikey, g_opt.formula, n_heavy, res.e_input, res.e_opt, int(stable),
              int(res.saddle), None if known is None else int(known), score,
-             json.dumps({"lines": lines, "multiplier": mult})),
+             json.dumps({"lines": lines})),
         )
         sub_id = cur.lastrowid
         total = scalar("SELECT COALESCE(SUM(score),0) FROM submissions WHERE player_id=?", player_id)
@@ -186,7 +180,6 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
         "score": score,
         "total": total,
         "lines": lines,
-        "multiplier": round(mult, 4),
         "n_heavy": n_heavy,
         "stable": stable,
         "opt_status": opt_status,

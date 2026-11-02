@@ -147,21 +147,21 @@ Authenticated calls send `Authorization: Bearer <token>`. Interactive docs are a
 
 ## Scoring
 
-Each score line has the same shape: a label, points, and a short detail.
+The score card shows the compound's name, formula, SMILES and PubChem link at the top, then the score lines in this order. Each line has a label, points, and a short detail. The score is the sum of the lines.
 
 | Label | Points | Detail |
 |---|---|---|
-| Geometry | up to 100 | ΔE per atom between your geometry and the optimum (hand-built and XYZ only) |
+| New QuMol formula | +1,000 | first time anyone builds this molecular formula |
+| Formula record | +300 | lowest energy yet for a formula |
+| New QuMol SMILES | +100 | first time anyone builds this molecule |
+| SMILES record | +100 | lowest energy yet for an existing molecule |
 | Stable | +50 | |
 | Hand-built | +50 | built in the 3D editor |
-| New SMILES | +100 | first time anyone builds this molecule |
-| SMILES record | +100 | lowest energy yet for an existing molecule |
-| New formula | +1,000 | first time anyone builds this molecular formula |
-| Formula record | +300 | lowest energy yet for a formula |
+| Geometry | up to 100 | ΔE per atom between your geometry and the optimum (hand-built and XYZ only) |
 | Formal charges | +50 | e.g. ⁻C≡O⁺, nitro groups |
 | Radical | 0 | number of unpaired electrons |
-| Not in PubChem | +1,000 | otherwise **In PubChem** shows the compound's name with a link |
-| Size | × 1/√(heavy atoms) | smaller molecules score more |
+| Not in PubChem | +1,000 | possibly new to science |
+| Size bonus | 1,000 − 50 × (atoms − 2) | all atoms count, hydrogens included: 1,000 for 2 atoms, 50 for 21, nothing from 22 up; stable molecules only |
 
 Resubmitting a molecule you already have is stored but scores 0. Point values live in `POINTS` in `qumol/scoring.py`.
 

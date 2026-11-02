@@ -24,8 +24,10 @@ def test_submission_scoring_and_storage(client):
     j = r.json()
     assert j["stable"] and j["smiles"] == "CCO" and j["formula"] == "C2H6O"
     labels = [l[0] for l in j["lines"]]
-    assert "Hand-built" in labels and "New SMILES" in labels and "New formula" in labels
-    assert j["score"] == j["total"] > 0
+    assert "Hand-built" in labels and "New QuMol SMILES" in labels and "New QuMol formula" in labels
+    assert labels[:3] == ["New QuMol formula", "New QuMol SMILES", "Stable"]  # card order
+    assert ["Size bonus", 650, "9 atoms: smaller scores more"] in j["lines"]
+    assert j["score"] == j["total"] == sum(l[1] for l in j["lines"])
     assert j["optimized_geometry_id"].startswith("hm3d_") and "_C2H6O_q0m1_" in j["optimized_geometry_id"]
     assert len(j["frames"]) > 1 and len(j["coords_opt"]) == 9
 
@@ -52,7 +54,7 @@ def test_input_methods(client):
     j = client.post("/api/submissions", json={**ethanol(), "input_method": "xyz"}, headers=h2).json()
     labels = [l[0] for l in j["lines"]]
     assert next(l for l in j["lines"] if l[0] == "Geometry")[1] > 0 and "Hand-built" not in labels
-    assert "New SMILES" not in labels  # someone else found it first
+    assert "New QuMol SMILES" not in labels  # someone else found it first
     h3, _ = player(client, "learner")
     j = client.post("/api/submissions", json={**ethanol(), "input_method": "example"}, headers=h3).json()
     assert ["Geometry", 0, "example molecule"] in j["lines"] and "Hand-built" not in [l[0] for l in j["lines"]]
@@ -104,7 +106,8 @@ def test_charges_and_radicals_scoring(client):
     co = {"atoms": [{"el": "C", "x": 0, "y": 0, "z": 0}, {"el": "O", "x": 1.13, "y": 0, "z": 0}], "bonds": [[0, 1, 3]]}
     j = client.post("/api/submissions", json=co, headers=h).json()
     labels = [l[0] for l in j["lines"]]
-    assert j["smiles"] == "[C-]#[O+]" and "Formal charges" in labels and ["New formula", 1000, "CO"] in j["lines"]
+    assert j["smiles"] == "[C-]#[O+]" and "Formal charges" in labels and ["New QuMol formula", 1000, None] in j["lines"]
+    assert ["Size bonus", 1000, "2 atoms: smaller scores more"] in j["lines"]
     assert "_q0m1_" in j["optimized_geometry_id"]
     methyl = {"atoms": [{"el": "C", "x": 0, "y": 0, "z": 0}, {"el": "H", "x": 1.08, "y": 0, "z": 0},
                         {"el": "H", "x": -0.54, "y": 0.94, "z": 0}, {"el": "H", "x": -0.54, "y": -0.94, "z": 0}],
@@ -131,12 +134,12 @@ def test_local_pubchem_table(client, tmp_path, monkeypatch):
     j = client.post("/api/submissions", json=ethanol(), headers=h).json()
     assert j["pubchem"] == {"known": True, "cid": 702, "name": "Ethanol",
                             "url": "https://pubchem.ncbi.nlm.nih.gov/compound/702"}
-    assert ["In PubChem", 0, "Ethanol · CID 702", "https://pubchem.ncbi.nlm.nih.gov/compound/702"] in j["lines"]
+    assert not any(l[0] == "In PubChem" for l in j["lines"])  # shown in the card header instead
     assert not j["discovery"]
     # not in the table (and the web check is off in tests): counts as new
     co = {"atoms": [{"el": "C", "x": 0, "y": 0, "z": 0}, {"el": "O", "x": 1.13, "y": 0, "z": 0}], "bonds": [[0, 1, 3]]}
     j = client.post("/api/submissions", json=co, headers=h).json()
-    assert ["Not in PubChem", 1000, "possibly new to science", None] in j["lines"] and j["discovery"]
+    assert ["Not in PubChem", 1000, "possibly new to science"] in j["lines"] and j["discovery"]
     # stereo variant only in the table: matched on the connectivity block of the InChIKey
     from qumol import pubchem
     assert pubchem.lookup_local("JVTAAEKCZFNVCJ-UHFFFAOYSA-N")[:2] == (True, 107689)
@@ -169,4 +172,10 @@ def test_broken_optimization_is_reported(client, monkeypatch):
     j = client.post("/api/submissions", json=ethanol(), headers=h).json()
     assert j["opt_status"] == "broken" and not j["stable"] and "too far from a stable minimum" in j["warning"]
     labels = [l[0] for l in j["lines"]]
-    assert "Optimization failed" in labels and "New SMILES" not in labels and "New formula" not in labels
+    assert "Optimization failed" in labels and "New QuMol SMILES" not in labels and "New QuMol formula" not in labels
+    assert "Size bonus" not in labels
+
+
+def test_size_bonus():
+    from qumol.scoring import size_bonus
+    assert [size_bonus(n) for n in (1, 2, 3, 9, 21, 22, 60)] == [1000, 1000, 950, 650, 50, 0, 0]
