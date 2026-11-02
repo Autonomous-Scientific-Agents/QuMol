@@ -99,12 +99,11 @@ const mats = {}; for(const e in EL) mats[e] = new THREE.MeshStandardMaterial({co
 const selMat = new THREE.MeshStandardMaterial({color:0xffffff, emissive:0x7c5cff, emissiveIntensity:1.3});
 const bondMat = new THREE.MeshStandardMaterial({color:0xc9d1e8, roughness:0.4});
 const hoverBondMat = new THREE.MeshStandardMaterial({color:0xffffff, emissive:0x20d3a7, emissiveIntensity:0.9, roughness:0.3});
-const badBondMat = new THREE.MeshBasicMaterial({color:0xff5a5a, transparent:true, opacity:0.7});
 let hoverBond = -1;
-// A bond more than 35% longer (or 30% shorter) than its typical length is drawn as broken.
-function stretched(b, L){
-  const r0 = (EL[atoms[b.a].el].r + EL[atoms[b.b].el].r) * ORDER[b.o];
-  return L > 1.35 * r0 || L < 0.7 * r0;
+// During the optimization movie, a bond stretched past 1.5x a normal single bond has
+// been torn apart, so it isn't drawn. While editing, bonds always draw normally.
+function torn(b, L){
+  return L > 1.5 * (EL[atoms[b.a].el].r + EL[atoms[b.b].el].r);
 }
 const Y = new THREE.Vector3(0,1,0);
 
@@ -129,14 +128,7 @@ function rebuild(){
   bonds.forEach((b, bi) => {
     const p1 = atoms[b.a].p, p2 = atoms[b.b].p;
     const dir = p2.clone().sub(p1); const L = dir.length(); if(L < 1e-6) return; dir.normalize();
-    if(stretched(b, L)){
-      // Far from any sensible bond length: don't pretend it's a bond. While editing,
-      // a thin red line shows the bond is still there; during optimization it's hidden.
-      if(busy) return;
-      const m = new THREE.Mesh(cylGeo, badBondMat);
-      m.scale.set(0.025, L, 0.025); m.position.copy(p1).add(p2).multiplyScalar(0.5);
-      m.quaternion.setFromUnitVectors(Y, dir); molGroup.add(m); return;
-    }
+    if(busy && torn(b, L)) return;  // pulled apart during optimization: not a bond any more
     const perp = perpOf(dir).multiplyScalar(0.13);
     const offs = b.o === 1 ? [0] : b.o === 2 ? [-0.5, 0.5] : [-1, 0, 1];
     const rad = b.o === 1 ? 0.09 : 0.055;
