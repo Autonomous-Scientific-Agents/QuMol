@@ -33,7 +33,12 @@ button.on{background:var(--acc);box-shadow:0 0 14px var(--acc)}
 }
 @keyframes tipIn{from{opacity:0}}
 #xyzBtn{font-size:13px;letter-spacing:.5px}
-#xyzBtn.on,#learn.on{background:var(--acc)}
+#xyzBtn.on,#learn.on,#measure.on{background:var(--acc)}
+/* measurement labels (bond lengths, angles) drawn over the 3D view */
+#measures{position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden}
+.ml{position:absolute;transform:translate(-50%,-50%);font:600 11.5px/1 ui-monospace,Menlo,monospace;color:#eef2ff;
+  background:rgba(11,16,32,.72);border:1px solid #2c3a66;border-radius:6px;padding:2px 4px;white-space:nowrap}
+.ml.ang{color:#20d3a7;border-color:#1c6b5a}
 /* formula / XYZ panel */
 #xyzPanel{position:fixed;top:64px;right:8px;width:320px;max-height:calc(100vh - 260px);display:flex;flex-direction:column;gap:6px;
   background:var(--panel);border:1px solid #2c3a66;border-radius:16px;padding:10px;z-index:5;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
@@ -133,12 +138,14 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
 </head>
 <body>
 <canvas id="c"></canvas>
+<div id="measures"></div>
 
 <div id="top" class="bar">
   <div class="left"><span class="brand">QuMol</span><span id="info" class="pill">Loading…</span></div>
   <div class="right">
     <button id="learn" class="tip-below" data-tip="Learn chemistry: how each element bonds, molecular shapes, and a quiz" aria-label="Learn chemistry">🎓</button>
     <button id="xyzBtn" class="tip-below" data-tip="Formula and XYZ coordinates panel. Edit the coordinates to change the molecule directly" aria-label="Formula and XYZ panel">XYZ</button>
+    <button id="measure" class="tip-below" data-tip="Measure: show bond lengths (Å) on the bonds and the bond angles (°) around the atom you tap or drag. Updates live while you move atoms" aria-label="Measure bond lengths and angles">📏</button>
     <button id="mute" class="tip-below" data-tip="Sound on/off" aria-label="Sound on/off">🔊</button>
     <button id="help" class="tip-below" data-tip="How to play" aria-label="How to play">?</button>
     <button id="lb" class="tip-below" data-tip="Leaderboards" aria-label="Leaderboards">🏆</button>

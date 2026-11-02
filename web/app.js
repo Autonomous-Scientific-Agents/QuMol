@@ -58,6 +58,7 @@ function setAccount(t, n){ token = t; nick = n; LS.set('qm.token', t); LS.set('q
 let atoms = [], bonds = [];
 let mode = 'add', element = 'C', bondFirst = null, dragging = null, busy = false;
 let undoStack = [], shake = 0, muted = LS.get('qm.muted', false);
+let measureOn = LS.get('qm.measure', false), focusAtom = null;  // measure tool: angles are shown around focusAtom
 const $ = id => document.getElementById(id);
 
 /* ================= three.js setup ================= */
@@ -387,6 +388,7 @@ function placeNew(el){
   if(atoms.length > 1 && !nb) toast('Placed but not bonded — drag it closer (✋ Move) or connect with 🔗 Bond', 2600);
 }
 function deleteAtom(i){
+  focusAtom = null;
   const rm = new Set([i]);
   if(atoms[i].el !== 'H') neighbors(i).forEach(j => { if(atoms[j].el === 'H') rm.add(j); });
   burst(atoms[i].p, EL[atoms[i].el].c, 22, 3, 0.5, 0.25);
@@ -665,7 +667,19 @@ $('undo').onclick = () => { unlockAudio(); if(!undoStack.length) return fail('No
 $('clear').onclick = () => { unlockAudio(); if(!atoms.length) return; act(() => { atoms.forEach(a => burst(a.p, EL[a.el].c, 8, 3, 0.5)); atoms = []; bonds = []; SFX.del(); }); };
 $('submit').onclick = () => { unlockAudio(); submit(); };
 $('mute').textContent = muted ? '🔇' : '🔊';
-$('mute').onclick = () => { unlockAudio(); muted = !muted; LS.set('qm.muted', muted); $('mute').textContent = muted ? '🔇' : '🔊'; };
+$('measure').classList.toggle('on', measureOn);
+$('measure').onclick = () => {
+  unlockAudio(); measureOn = !measureOn; LS.set('qm.measure', measureOn);
+  $('measure').classList.toggle('on', measureOn); SFX.tick();
+  if(measureOn) toast('Tap or drag an atom to see its bond angles');
+};
+$('mute').onclick = () => { unlockAudio(); muted = !muted; LS.set('qm.muted', muted); $('mute').textContent = muted ? '🔇' : '🔊';
+$('measure').classList.toggle('on', measureOn);
+$('measure').onclick = () => {
+  unlockAudio(); measureOn = !measureOn; LS.set('qm.measure', measureOn);
+  $('measure').classList.toggle('on', measureOn); SFX.tick();
+  if(measureOn) toast('Tap or drag an atom to see its bond angles');
+}; };
 $('help').onclick = () => { unlockAudio(); showHelp(); };
 $('total').onclick = () => { unlockAudio(); showCollection(); };
 $('lb').onclick = () => { unlockAudio(); showLeaderboard(); };
@@ -989,6 +1003,7 @@ canvas.addEventListener('pointerdown', e => {
   const pk = busy ? {atom:-1, bond:-1} : pickAll(e.clientX, e.clientY);
   const hit = mode === 'move' && !busy ? pick(e.clientX, e.clientY) : pk.atom;
   gesture = {x:e.clientX, y:e.clientY, t:performance.now(), hit, bond: pk.bond, moved:false};
+  if(hit >= 0) focusAtom = hit;
   if(mode === 'move' && hit >= 0 && !busy){
     dragging = hit; dragSnap = serialize(); controls.enabled = false;
     camera.getWorldDirection(tmpV);
@@ -1242,6 +1257,7 @@ function showHelp(){
   <p><b>Tap a bond</b> to change it: single → double → triple → single. On a computer, bonds light up when you hover.</p>
   <p><b>🔗 Bond</b> — tap two atoms to bond them. Tap the same pair again to cycle single → double → triple → none (great for rings).</p>
   <p><b>✋ Move</b> — drag atoms to perfect the geometry. The closer you are to the optimum, the more points.</p>
+  <p><b>📏 Measure</b> — shows bond lengths (Å) on the bonds and the angles (°) around the atom you tap or drag, live as you move it. Typical values: C–H 1.09, C–C 1.54, C=C 1.34, C=O 1.21 Å; 109.5° around a carbon with four bonds, 120° with a double bond.</p>
   <p><b>Charges & radicals</b> — O can make a 3rd bond (N a 4th): QuMol gives it a + charge and a neighbor the −, like ⁻C≡O⁺. If bonds are left free when you Build, you can fill them with H or keep a radical (up to 2 unpaired electrons).</p>
   <p><b>Delete</b> — tap an atom to remove it, or a bond to break it. <b>Undo</b> steps back one change, <b>Clear</b> starts over.</p>
   <p><b>H+</b> — saturates your molecule: every atom with free bonds gets hydrogens until it has its full valence (C 4, N 3, O 2, S 2). Build does this for you too.</p>
@@ -1344,6 +1360,55 @@ async function showLeaderboard(cat = lbCurrent){
   }catch(e){ toast(e.message); }
 }
 
+/* ================= measure tool ================= */
+// Bond lengths sit on the bonds; angles fan out around the focus atom (the last atom
+// tapped or dragged, else the newest). Redrawn every frame, so they follow drags,
+// rotation and the optimization movie.
+const mlPool = [];
+function mlLabel(k, text, x, y, cls){
+  let el = mlPool[k];
+  if(!el){ el = document.createElement('div'); $('measures').appendChild(el); mlPool[k] = el; }
+  el.className = 'ml' + (cls ? ' ' + cls : ''); el.textContent = text;
+  el.style.left = x + 'px'; el.style.top = y + 'px'; el.style.display = '';
+}
+function updateMeasures(){
+  let k = 0;
+  const placed = [];
+  const free = (x, y) => placed.every(q => Math.abs(q[0] - x) > 46 || Math.abs(q[1] - y) > 17);
+  if(measureOn && atoms.length > 1){
+    const rect = canvas.getBoundingClientRect();
+    const deg = i => bonds.reduce((n, b) => n + (b.a === i || b.b === i), 0);
+    let f = dragging !== null ? dragging : (focusAtom !== null && focusAtom < atoms.length ? focusAtom : -1);
+    if(f < 0) for(let i = atoms.length - 1; i >= 0; i--) if(deg(i) >= 2){ f = i; break; }  // newest atom with an angle
+    if(f < 0) f = atoms.length - 1;
+    const many = bonds.length > 24;  // big molecules: only the focus atom's bonds, to keep it readable
+    bonds.forEach(b => {
+      if(many && b.a !== f && b.b !== f) return;
+      const A = atoms[b.a].p, B = atoms[b.b].p;
+      const s = toScreen(A.clone().add(B).multiplyScalar(0.5), rect);
+      if(s.z < 1){ mlLabel(k++, A.distanceTo(B).toFixed(2), s.x, s.y); placed.push([s.x, s.y]); }
+    });
+    const nb = [];
+    bonds.forEach(b => { if(b.a === f) nb.push(b.b); else if(b.b === f) nb.push(b.a); });
+    const c = atoms[f].p;
+    for(let i = 0; i < nb.length; i++) for(let j = i + 1; j < nb.length && k < 60; j++){
+      const u = atoms[nb[i]].p.clone().sub(c), v = atoms[nb[j]].p.clone().sub(c);
+      if(u.lengthSq() < 1e-8 || v.lengthSq() < 1e-8) continue;
+      const ang = THREE.MathUtils.radToDeg(u.angleTo(v));
+      const dir = u.normalize().add(v.normalize());
+      if(dir.lengthSq() < 1e-4) dir.copy(perpOf(u));  // linear: put the label beside the atom
+      dir.normalize();
+      let s = null;
+      for(const r of [0.62, 0.9, 1.2, 1.5, 1.8]){  // step outward until the label doesn't cover another
+        s = toScreen(c.clone().addScaledVector(dir, r), rect);
+        if(free(s.x, s.y)) break;
+      }
+      if(s.z < 1){ mlLabel(k++, ang.toFixed(1) + '°', s.x, s.y, 'ang'); placed.push([s.x, s.y]); }
+    }
+  }
+  for(let i = k; i < mlPool.length; i++) mlPool[i].style.display = 'none';
+}
+
 /* ================= main loop ================= */
 let last = performance.now();
 function loop(now){
@@ -1357,6 +1422,7 @@ function loop(now){
   scene.getObjectByName('stars').rotation.y += dt*0.01;
   controls.update();
   renderer.render(scene, camera);
+  updateMeasures();
 }
 
 /* ================= start ================= */
