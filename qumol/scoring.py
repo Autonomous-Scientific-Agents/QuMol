@@ -104,6 +104,11 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
             "SELECT 1 FROM submissions WHERE player_id=? AND smiles=? AND stable=1 LIMIT 1", player_id, smiles
         ) is not None
 
+        # Only real chemical species earn the discovery and size bonuses: stable minima, and
+        # later verified transition states (needs a frequency check: exactly one imaginary mode).
+        transition_state = False
+        bonus_ok = stable or transition_state
+
         # Order on the score card: discoveries first, then quality, then bonuses. Whether the
         # compound is in PubChem is shown in the card header (name and link), not as a line,
         # unless it earns the discovery bonus.
@@ -152,14 +157,14 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
                 lines.append(["Radical", 0, f"{n} unpaired electron{'s' if n > 1 else ''}"])
             if stable and any(mol.charges or []):
                 lines.append(["Formal charges", POINTS["formal_charges"], None])
-            if stable and smiles and known is False:
+            if bonus_ok and smiles and known is False:
                 lines.append(["Not in PubChem", POINTS["not_in_pubchem"], "possibly new to science"])
-            if stable:
+            if bonus_ok:
                 n_atoms = len(mol.symbols)
                 lines.append(["Size bonus", size_bonus(n_atoms), f"{n_atoms} atoms: smaller scores more"])
 
         score = 0 if already else sum(line[1] for line in lines)
-        discovery = (known is False) and not already and stable
+        discovery = (known is False) and not already and bonus_ok
 
         cur = con.execute(
             """INSERT INTO submissions

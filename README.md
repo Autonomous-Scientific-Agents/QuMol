@@ -160,8 +160,8 @@ The score card shows the compound's name, formula, SMILES and PubChem link at th
 | Geometry | up to 100 | ΔE per atom between your geometry and the optimum (hand-built and XYZ only) |
 | Formal charges | +50 | e.g. ⁻C≡O⁺, nitro groups |
 | Radical | 0 | number of unpaired electrons |
-| Not in PubChem | +1,000 | possibly new to science |
-| Size bonus | 1,000 − 50 × (atoms − 2) | all atoms count, hydrogens included: 1,000 for 2 atoms, 50 for 21, nothing from 22 up; stable molecules only |
+| Not in PubChem | +1,000 | possibly new to science; stable molecules only (later also verified transition states) |
+| Size bonus | 1,000 − 50 × (atoms − 2) | all atoms count, hydrogens included: 1,000 for 2 atoms, 50 for 21, nothing from 22 up; stable molecules only (later also verified transition states) |
 
 Resubmitting a molecule you already have is stored but scores 0. Point values live in `POINTS` in `qumol/scoring.py`.
 
