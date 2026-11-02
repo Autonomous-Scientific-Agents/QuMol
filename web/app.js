@@ -429,7 +429,9 @@ function centroid(){
 }
 function formula(){
   const cnt = {}; atoms.forEach(a => cnt[a.el] = (cnt[a.el]||0) + 1);
-  const keys = Object.keys(cnt).sort((a,b) => a==='C' ? -1 : b==='C' ? 1 : a==='H' ? -1 : b==='H' ? 1 : a.localeCompare(b));
+  // Hill order: C, then H, then A-Z; without carbon everything is A-Z (FHO, H2O, H3N)
+  const rank = k => cnt.C ? (k === 'C' ? 0 : k === 'H' ? 1 : 2) : 2;
+  const keys = Object.keys(cnt).sort((a,b) => rank(a) - rank(b) || a.localeCompare(b));
   return keys.map(k => k + (cnt[k] > 1 ? cnt[k] : '')).join('');
 }
 
@@ -454,6 +456,7 @@ function act(fn){
   if(ok !== false){ undoStack.push(snap); if(undoStack.length > 60) undoStack.shift(); changed(); }
 }
 function changed(){
+  if(ghostShown && !busy) clearGhost();
   if(!atoms.length) inputMethod = 'hand';
   hoverBond = -1;
   rebuild(); updateInfo(); refreshXYZ();
@@ -689,6 +692,8 @@ $('measure').onclick = () => {
 $('help').onclick = () => { unlockAudio(); showHelp(); };
 $('total').onclick = () => { unlockAudio(); showCollection(); };
 $('lb').onclick = () => { unlockAudio(); showLeaderboard(); };
+$('puzzleBtn').onclick = () => { unlockAudio(); SFX.tick(); showPuzzles(); };
+$('pzExit').onclick = () => { unlockAudio(); exitPuzzle(); };
 
 /* ================= formula / XYZ panel ================= */
 let xyzOpen = LS.get('qm.xyzOpen', innerWidth > 640);
@@ -815,6 +820,7 @@ const EXAMPLES = {
     bonds:[[0,1,2],[1,2,1],[2,3,2],[3,4,1],[4,5,2],[5,0,1],[0,6,1],[1,7,1],[2,8,1],[3,9,1],[4,10,1],[5,11,1]]},
 };
 function loadExample(key){
+  if(puzzle) return fail('Examples are off during a puzzle');
   const ex = EXAMPLES[key];
   act(() => {
     const now = performance.now();
@@ -1091,6 +1097,7 @@ async function animateFrames(frames, ms, info = null, unitOf = null){
 
 async function submit(){
   if(busy) return;
+  if(puzzle) return submitPuzzle();
   if(!atoms.some(a => a.el !== 'H')) return fail('Build something first!');
   const vs = valenceState();
   if(vs.unbalanced.length){
@@ -1341,6 +1348,7 @@ function showHelp(){
   <p><b>Tap a bond</b> to change it: single → double → triple → single. On a computer, bonds light up when you hover.</p>
   <p><b>🔗 Bond</b> — tap two atoms to bond them. Tap the same pair again to cycle single → double → triple → none (great for rings).</p>
   <p><b>✋ Move</b> — drag atoms to perfect the geometry. The closer you are to the optimum, the more points.</p>
+  <p><b>🧩 Puzzles</b> — you get a molecule's name, formula and SMILES; build it as close to its experimental 3D structure as you can, against the clock. Five daily puzzles from easy to hard, plus random ones. Leaderboards rank by puzzles solved, then total time. After you solve one, the experimental structure appears as a green outline over yours.</p>
   <p><b>📏 Measure</b> — shows bond lengths (Å) on the bonds and the angles (°) around the atom you tap or drag, live as you move it. Typical values: C–H 1.09, C–C 1.54, C=C 1.34, C=O 1.21 Å; 109.5° around a carbon with four bonds, 120° with a double bond.</p>
   <p><b>Charges & radicals</b> — O can make a 3rd bond (N a 4th): QuMol gives it a + charge and a neighbor the −, like ⁻C≡O⁺. If bonds are left free when you Build, you can fill them with H or keep a radical (up to 2 unpaired electrons).</p>
   <p><b>Delete</b> — tap an atom to remove it, or a bond to break it. <b>Undo</b> steps back one change, <b>Reset</b> starts over.</p>
@@ -1355,9 +1363,11 @@ function showHelp(){
 async function showCollection(){
   if(ONLINE && !token) return showWelcome();
   let items = history.map(e => ({formula:e.formula, smiles:e.smiles, score:e.score, discovery:e.pubNew}));
+  let email;
   if(ONLINE){
     try{
       const [me, mine] = await Promise.all([api('/api/me'), api('/api/submissions/mine')]);
+      email = me.email;
       total = me.total; LS.set('qm.total', total); updateInfo();
       items = mine.map(s => ({formula:s.formula, smiles:s.smiles, score:s.score, discovery: s.stable && s.in_pubchem === 0}));
     }catch(e){ if(e.status === 401){ setAccount(null, null); return showWelcome(); } toast(e.message); }
@@ -1366,7 +1376,29 @@ async function showCollection(){
   const h = document.createElement('h2'); h.textContent = `${nick ? nick + ' · ' : 'Your collection · '}${total.toLocaleString()} ⭐`; card.appendChild(h);
   if(!items.length){ const p = document.createElement('p'); p.textContent = 'Nothing yet. Go build something!'; card.appendChild(p); }
   items.slice(0, 50).forEach(e => card.appendChild(lineEl((e.discovery ? '🤯 ' : '') + e.formula, e.score, e.smiles)));
+  if(ONLINE){
+    const em = document.createElement('button'); em.className = 'link';
+    em.textContent = email ? `Contact email: ${email} (change)` : 'Add a contact email (optional)';
+    em.onclick = () => editEmail(email);
+    card.appendChild(em);
+  }
   closeBtn(card, 'Close');
+}
+function editEmail(current){
+  const card = openCard();
+  card.innerHTML = `<h2>Contact email</h2>
+    <input id="emailEdit" type="email" maxlength="254" placeholder="Email (optional)" autocomplete="email">
+    <small>Only used to contact you about QuMol. Never shown publicly. Leave empty to remove it.</small>
+    <div class="err" id="emailErr"></div>`;
+  $('emailEdit').value = current || '';
+  const go = document.createElement('button'); go.id = 'ovBtn'; go.textContent = 'Save';
+  const back = document.createElement('button'); back.className = 'link'; back.textContent = 'Back';
+  card.append(go, back);
+  go.onclick = async () => {
+    try{ await api('/api/me', {method:'PATCH', body:{email: $('emailEdit').value.trim() || null}}); SFX.chime(); showCollection(); }
+    catch(e){ $('emailErr').textContent = e.message; SFX.err(); }
+  };
+  back.onclick = () => showCollection();
 }
 
 function showWelcome(err=''){
@@ -1375,6 +1407,8 @@ function showWelcome(err=''){
     <p>You played with building blocks as a kid. Now play with the universe's: <b>atoms</b>.</p>
     <p>Pick a nickname. It shows on the leaderboards, and it's how we credit you if your molecules end up in a published dataset.</p>
     <input id="nickIn" maxlength="24" placeholder="Nickname" autocomplete="nickname">
+    <input id="emailIn" type="email" maxlength="254" placeholder="Email (optional)" autocomplete="email">
+    <small>Optional. Only used to contact you about QuMol, for example if you discover something new. Never shown publicly.</small>
     <div class="err" id="nickErr"></div>`;
   const go = document.createElement('button'); go.id = 'ovBtn'; go.textContent = "Let's build!";
   const rec = document.createElement('button'); rec.className = 'link'; rec.textContent = 'I already have an account (recovery code)';
@@ -1385,7 +1419,7 @@ function showWelcome(err=''){
     const n = $('nickIn').value.trim(); if(!n) return;
     go.disabled = true;
     try{
-      const r = await api('/api/players', {method:'POST', body:{nickname:n}});
+      const r = await api('/api/players', {method:'POST', body:{nickname:n, email:$('emailIn').value.trim() || null}});
       setAccount(r.token, r.nickname); total = 0; LS.set('qm.total', 0); updateInfo();
       SFX.chime(); showRecoveryCode(r.recovery_code);
     }catch(e){ $('nickErr').textContent = e.message; SFX.err(); go.disabled = false; }
@@ -1443,6 +1477,154 @@ async function showLeaderboard(cat = lbCurrent){
     closeBtn(card, 'Close');
   }catch(e){ toast(e.message); }
 }
+
+/* ================= puzzle mode ================= */
+// Build a named molecule by hand; the server scores it against the experimental structure.
+// While a puzzle runs: no examples, no XYZ editing, no measuring; the player's own work is
+// set aside and comes back on exit.
+let puzzle = null, ghostShown = false, pzTimer = null;
+const ghostGroup = new THREE.Group(); world.add(ghostGroup);
+const ghostMat = new THREE.MeshBasicMaterial({color:0x20d3a7, transparent:true, opacity:0.28, depthWrite:false});
+const ghostBondMat = new THREE.MeshBasicMaterial({color:0x20d3a7, transparent:true, opacity:0.35, depthWrite:false});
+
+function formulaInto(el, form){  // H2O -> H<sub>2</sub>O without innerHTML
+  el.textContent = '';
+  for(const part of String(form).match(/[A-Z][a-z]?|\d+/g) || []){
+    if(/^\d+$/.test(part)){ const sb = document.createElement('sub'); sb.textContent = part; el.appendChild(sb); }
+    else el.appendChild(document.createTextNode(part));
+  }
+}
+function fmtTime(sec){ const m = Math.floor(sec/60), x = Math.floor(sec%60); return `${m}:${String(x).padStart(2,'0')}`; }
+
+async function showPuzzles(){
+  if(!ONLINE) return toast('Puzzles need the QuMol server');
+  if(!token) return showWelcome();
+  let d;
+  try{ d = await api('/api/puzzles/daily'); }catch(e){ return toast(e.message); }
+  const card = openCard();
+  card.innerHTML = `<h2>🧩 Puzzles</h2>
+    <p>You get the name, formula and SMILES. Build it by hand, as close to its <b>experimental 3D structure</b> as you can; the clock starts when you open the puzzle. Leaderboards rank by puzzles solved, then by total time. Your first solve of each puzzle counts.</p>
+    <h3 class="pzday"></h3><div class="pzlist"></div>`;
+  card.querySelector('.pzday').textContent = `Today's puzzles · ${d.day}`;
+  const list = card.querySelector('.pzlist');
+  for(const p of d.puzzles){
+    const done = p.solved_score !== null && p.solved_score !== undefined;
+    const row = lineEl(`${p.slot}. ${p.name}`, done ? '✓ solved' : `${p.heavy} heavy`, null, done ? 'me' : '');
+    const f = document.createElement('small'); formulaInto(f, p.formula);
+    f.appendChild(document.createTextNode(`  ·  ${p.smiles}${p.note ? '  ·  ' + p.note : ''}`));
+    row.firstChild.appendChild(f);
+    row.onclick = () => startPuzzle({puzzle_id: p.id, daily: true});
+    list.appendChild(row);
+  }
+  const rnd = document.createElement('button'); rnd.id = 'ovBtn'; rnd.textContent = `🎲 Random puzzle (${d.total_puzzles} molecules)`;
+  rnd.onclick = () => startPuzzle({});
+  const lb = document.createElement('button'); lb.className = 'link'; lb.textContent = '🏆 Puzzle leaderboards';
+  lb.onclick = () => showLeaderboard('puzzle_daily');
+  card.append(rnd, lb);
+  closeBtn(card, 'Close');
+}
+
+async function startPuzzle(req){
+  let r;
+  try{ r = await api('/api/puzzles/start', {method:'POST', body:req}); }catch(e){ return toast(e.message); }
+  $('ov').classList.add('hidden');
+  if(!puzzle) puzzleSaved = serialize();  // the player's own work, restored on exit
+  clearGhost();
+  puzzle = {attempt: r.attempt_id, info: r.puzzle, daily: r.daily, practice: r.practice, t0: performance.now(), next: null};
+  atoms = []; bonds = []; undoStack = []; inputMethod = 'hand'; bondFirst = null;
+  setPuzzleUI(true); changed();
+  formulaInto($('pzTitle'), ''); $('pzTitle').textContent = `🧩 ${r.puzzle.name} · `;
+  const f = document.createElement('span'); formulaInto(f, r.puzzle.formula); $('pzTitle').appendChild(f);
+  $('pzSub').textContent = [`SMILES ${r.puzzle.smiles}`, r.puzzle.note, r.practice ? 'practice: already solved, not counted' : null].filter(Boolean).join(' · ');
+  clearInterval(pzTimer);
+  pzTimer = setInterval(() => { if(puzzle) $('pzTimer').textContent = fmtTime((performance.now() - puzzle.t0)/1000); }, 500);
+  $('pzTimer').textContent = '0:00';
+  toast(`Clock started: build ${r.puzzle.name}, then Check`, 2600);
+  SFX.chime();
+}
+let puzzleSaved = null, measureBefore = false, xyzBefore = false;
+function setPuzzleUI(on){
+  $('puzzleBar').classList.toggle('hidden', !on);
+  document.body.classList.toggle('puzzling', on);
+  $('submitLabel').textContent = on ? 'Check' : 'Build';
+  if(on){ measureBefore = measureOn; measureOn = false; xyzBefore = xyzOpen; setXYZOpen(false); }
+  else { measureOn = measureBefore; setXYZOpen(xyzBefore); }
+  for(const id of ['measure', 'xyzBtn']){ $(id).classList.toggle('disabled', on); $(id).disabled = on; }
+  $('measure').classList.toggle('on', measureOn);
+}
+function exitPuzzle(){
+  if(!puzzle) return;
+  puzzle = null; clearInterval(pzTimer); clearGhost(); setPuzzleUI(false);
+  if(puzzleSaved){ restore(puzzleSaved); puzzleSaved = null; }
+  undoStack = []; changed(); SFX.tick();
+}
+async function submitPuzzle(){
+  if(!atoms.some(a => a.el !== 'H')) return fail('Build the molecule first!');
+  if(!connected()) return fail('Your molecule is in pieces. Connect everything');
+  busy = true; document.body.classList.add('busy');
+  let r;
+  try{
+    r = await api('/api/puzzles/solve', {method:'POST', body:{
+      attempt_id: puzzle.attempt,
+      atoms: atoms.map(a => ({el:a.el, x:a.p.x, y:a.p.y, z:a.p.z})),
+      bonds: bonds.map(b => [b.a, b.b, b.o])}});
+  }catch(e){ busy = false; document.body.classList.remove('busy'); return fail(e.message || 'Could not reach the server'); }
+  busy = false; document.body.classList.remove('busy');
+  if(!r.correct){ shake = 0.3; buzz([20,40,20]); SFX.err(); return toast(`${r.message} ${r.tip || ''}`, 4500); }
+  clearInterval(pzTimer);
+  showGhost(r.ghost);
+  const p = puzzle; p.solved = true;
+  const card = openCard();
+  const h = document.createElement('h2'); h.className = 'mname'; h.textContent = `🧩 ${r.puzzle.name}`; card.appendChild(h);
+  const f = document.createElement('div'); f.className = 'mformula'; formulaInto(f, r.puzzle.formula); card.appendChild(f);
+  const sm = document.createElement('div'); sm.className = 'msmiles'; sm.textContent = r.smiles; card.appendChild(sm);
+  const st = document.createElement('div'); st.className = 'mpubchem';
+  st.textContent = `Solved in ${fmtTime(r.seconds)}${r.tries > 1 ? ` · ${r.tries} tries` : ''}${r.practice ? ' · practice: solved before, not counted' : ''}`;
+  card.appendChild(st);
+  for(let i=0;i<r.lines.length;i++){ const [l,pts,sub] = r.lines[i]; card.appendChild(lineEl(l, pts < 0 ? String(pts) : pts, sub)); SFX.tick(i); await sleep(300); }
+  if(r.diffs && r.diffs.length){
+    const d = document.createElement('div'); d.className = 'diffs';
+    const t = document.createElement('div'); t.innerHTML = '<b>Biggest differences</b><span>yours · experiment</span>'; d.appendChild(t);
+    for(const x of r.diffs){
+      const row = document.createElement('div');
+      const a = document.createElement('span'); a.textContent = x.bond;
+      const b = document.createElement('span'); b.textContent = `${x.yours.toFixed(3)} · ${x.experiment.toFixed(3)} Å`;
+      row.append(a, b); d.appendChild(row);
+    }
+    card.appendChild(d);
+  }
+  const tot = document.createElement('div'); tot.id = 'ovTotal'; tot.textContent = `+${r.score}`; card.appendChild(tot);
+  if(r.score > 0){ SFX.chime(); buzz(30); burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 50, 4, 0.9, 0.3); }
+  const src = document.createElement('div'); src.className = 'src';
+  src.textContent = `Experimental structure (semi-experimental equilibrium): ${(r.source && r.source.text) || ''}${r.source && r.source.doi ? ', doi:' + r.source.doi : ''}`;
+  card.appendChild(src);
+  const cmp = document.createElement('button'); cmp.id = 'ovBtn'; cmp.textContent = 'Compare in 3D';
+  cmp.onclick = () => { $('ov').classList.add('hidden'); toast('Green outline: the experimental structure', 3000); };
+  const next = document.createElement('button'); next.className = 'link'; next.textContent = '🧩 Next puzzle';
+  next.onclick = () => showPuzzles();
+  const out = document.createElement('button'); out.className = 'link'; out.textContent = 'Back to free building';
+  out.onclick = () => { $('ov').classList.add('hidden'); exitPuzzle(); };
+  card.append(cmp, next, out);
+}
+function showGhost(pos){
+  clearGhost();
+  if(!pos || pos.length !== atoms.length) return;
+  pos.forEach((p, i) => {
+    if(!p) return;
+    const m = new THREE.Mesh(sphereGeo, ghostMat); m.scale.setScalar(EL[atoms[i].el].vis * 1.15);
+    m.position.set(p[0], p[1], p[2]); ghostGroup.add(m);
+  });
+  bonds.forEach(b => {
+    const A = pos[b.a], B = pos[b.b]; if(!A || !B) return;
+    const p1 = new THREE.Vector3(...A), p2 = new THREE.Vector3(...B);
+    const dir = p2.clone().sub(p1), L = dir.length(); if(L < 1e-6) return;
+    const m = new THREE.Mesh(cylGeo, ghostBondMat);
+    m.scale.set(0.05, L, 0.05); m.position.copy(p1).add(p2).multiplyScalar(0.5);
+    m.quaternion.setFromUnitVectors(Y, dir.normalize()); ghostGroup.add(m);
+  });
+  ghostShown = true;
+}
+function clearGhost(){ ghostGroup.clear(); ghostShown = false; }
 
 /* ================= measure tool ================= */
 // Bond lengths sit on the bonds; angles fan out around the focus atom (the last atom
@@ -1517,6 +1699,7 @@ function loop(now){
   requestAnimationFrame(loop);
   detectServer().then(async () => {
     $('lb').classList.toggle('hidden', !ONLINE);
+    $('puzzleBtn').classList.toggle('hidden', !ONLINE);
     if(!ONLINE) loadRDKit(); else updateInfo();
     if(ONLINE && !token) return showWelcome();
     if(ONLINE){

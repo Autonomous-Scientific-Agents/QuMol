@@ -23,9 +23,11 @@ from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from . import __version__, db, scoring
+import time
+
+from . import __version__, db, puzzles, scoring
 from .calculators import available, get_calculator
-from .chem import ChemError, smiles_from_graph
+from .chem import ChemError, hill_formula, smiles_from_graph, smiles_of, validate
 from .security import (BodyLimit, SecurityHeaders, compute_slot, ensure_disk_space, env_int, limiter,
                        one_at_a_time, read_cache)
 
@@ -42,6 +44,17 @@ if not logging.getLogger().handlers:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 NICK_RE = re.compile(r"^[A-Za-z0-9_\-. ]{2,24}$")
+EMAIL_RE = re.compile(r"^[^@\s<>\"']{1,64}@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)+$")
+
+
+def clean_email(value: str | None) -> str | None:
+    """Optional contact email: empty means none; anything else must look like an address."""
+    v = (value or "").strip()
+    if not v:
+        return None
+    if len(v) > 254 or not EMAIL_RE.match(v):
+        raise HTTPException(400, "That email address doesn't look right (you can leave it empty)")
+    return v
 
 @asynccontextmanager
 async def lifespan(_app):
@@ -118,6 +131,11 @@ def current_player(authorization: str | None = Header(default=None), con=Depends
 
 class NewPlayer(BaseModel):
     nickname: str = Field(max_length=64)
+    email: str | None = Field(default=None, max_length=300)
+
+
+class Profile(BaseModel):
+    email: str | None = Field(default=None, max_length=300)
 
 
 class Recover(BaseModel):
@@ -132,12 +150,13 @@ def create_player(body: NewPlayer, request: Request, con=Depends(get_con)):
     nick = body.nickname.strip()
     if not NICK_RE.match(nick):
         raise HTTPException(400, "Nickname: 2–24 letters, numbers, spaces, _ - or .")
+    email = clean_email(body.email)
     token, code = secrets.token_urlsafe(32), _recovery_code()
     try:
         with con:
             cur = con.execute(
-                "INSERT INTO players(nickname, token_hash, recovery_hash) VALUES (?,?,?)",
-                (nick, _hash(token), _hash(code)),
+                "INSERT INTO players(nickname, token_hash, recovery_hash, email) VALUES (?,?,?,?)",
+                (nick, _hash(token), _hash(code), email),
             )
     except sqlite3.IntegrityError:
         raise HTTPException(409, "That nickname is taken")
@@ -170,7 +189,17 @@ def me(player=Depends(current_player), con=Depends(get_con)):
            FROM submissions WHERE player_id=?""",
         (player["id"],),
     ).fetchone()
-    return {**player, **dict(r)}
+    email = con.execute("SELECT email FROM players WHERE id=?", (player["id"],)).fetchone()["email"]
+    return {**player, **dict(r), "email": email}
+
+
+@app.patch("/api/me")
+def update_me(body: Profile, player=Depends(current_player), con=Depends(get_con)):
+    """Set or clear the optional contact email."""
+    email = clean_email(body.email)
+    with con:
+        con.execute("UPDATE players SET email=? WHERE id=?", (email, player["id"]))
+    return {"email": email}
 
 
 # ------------------------------------------------------------------ submissions
@@ -254,6 +283,133 @@ def geometry_xyz(gid: str = PathParam(max_length=200), con=Depends(get_con)):
     return row["xyz"]
 
 
+# ------------------------------------------------------------------ puzzles
+
+
+def _puzzle_status(con, pid: int, puzzle_id: str, day: str | None):
+    row = con.execute(
+        """SELECT MAX(score) AS score FROM puzzle_attempts
+           WHERE player_id=? AND puzzle_id=? AND counted=1 AND (day IS ? OR ? IS NULL)""",
+        (pid, puzzle_id, day, day),
+    ).fetchone()
+    return row["score"]
+
+
+@app.get("/api/puzzles/daily")
+def puzzles_daily(request: Request, authorization: str | None = Header(default=None), con=Depends(get_con)):
+    limiter.hit("read:" + client_ip(request), READS_PER_IP_MIN, 60)
+    day = puzzles.today()
+    pid = None
+    if authorization:
+        try:
+            pid = current_player(authorization, con)["id"]
+        except HTTPException:
+            pid = None
+    out = []
+    for i, p in enumerate(puzzles.daily(day)):
+        item = {**puzzles.public(p), "slot": i + 1}
+        if pid:
+            item["solved_score"] = _puzzle_status(con, pid, p["id"], day)
+        out.append(item)
+    return {"day": day, "puzzles": out, "total_puzzles": len(puzzles.load())}
+
+
+class PuzzleStart(BaseModel):
+    puzzle_id: str | None = Field(default=None, max_length=80)
+    daily: bool = False
+
+
+@app.post("/api/puzzles/start")
+def puzzle_start(body: PuzzleStart, player=Depends(current_player), con=Depends(get_con)):
+    pid = player["id"]
+    limiter.hit(f"puzzle-start:{pid}", 60, 60)
+    pool = puzzles.load()
+    day = puzzles.today() if body.daily else None
+    if body.daily:
+        ids = [p["id"] for p in puzzles.daily(day)]
+        if body.puzzle_id not in ids:
+            raise HTTPException(404, "That isn't one of today's puzzles")
+        p = pool[body.puzzle_id]
+    elif body.puzzle_id:
+        if body.puzzle_id not in pool:
+            raise HTTPException(404, "No such puzzle")
+        p = pool[body.puzzle_id]
+    else:  # random: prefer puzzles this player hasn't solved yet
+        done = {r["puzzle_id"] for r in con.execute(
+            "SELECT DISTINCT puzzle_id FROM puzzle_attempts WHERE player_id=? AND counted=1", (pid,))}
+        fresh = [q for q in pool.values() if q["id"] not in done] or list(pool.values())
+        p = secrets.choice(fresh)
+    with con:
+        cur = con.execute("INSERT INTO puzzle_attempts(player_id, puzzle_id, day, started_at) VALUES (?,?,?,?)",
+                          (pid, p["id"], day, time.time()))
+    already = _puzzle_status(con, pid, p["id"], day) is not None
+    return {"attempt_id": cur.lastrowid, "puzzle": puzzles.public(p), "daily": body.daily, "day": day,
+            "practice": already}
+
+
+def _attempt(con, attempt_id: int, pid: int):
+    row = con.execute("SELECT * FROM puzzle_attempts WHERE id=? AND player_id=?", (attempt_id, pid)).fetchone()
+    if not row:
+        raise HTTPException(404, "No such puzzle attempt")
+    return row
+
+
+class PuzzleSolve(BaseModel):
+    attempt_id: int = Field(ge=1)
+    atoms: list[Atom] = Field(..., min_length=1, max_length=150)
+    bonds: list[tuple[Index, Index, Annotated[int, Field(ge=1, le=3)]]] = Field(default_factory=list, max_length=300)
+
+
+@app.post("/api/puzzles/solve")
+def puzzle_solve(body: PuzzleSolve, player=Depends(current_player), con=Depends(get_con)):
+    pid = player["id"]
+    limiter.hit(f"puzzle-solve:{pid}", 30, 60)
+    row = _attempt(con, body.attempt_id, pid)
+    if row["solved_at"] is not None:
+        raise HTTPException(409, "Already solved. Start a new puzzle")
+    p = puzzles.load().get(row["puzzle_id"])
+    if p is None:
+        raise HTTPException(404, "That puzzle is no longer available")
+    symbols = [a.el for a in body.atoms]
+    coords = [[a.x, a.y, a.z] for a in body.atoms]
+    try:
+        mol = validate(symbols, coords, body.bonds)
+        smiles = smiles_of(mol)
+    except ChemError as e:
+        raise HTTPException(400, str(e))
+    if smiles != p["smiles"] or mol.multiplicity != p["multiplicity"]:
+        with con:
+            con.execute("UPDATE puzzle_attempts SET tries=tries+1 WHERE id=?", (row["id"],))
+        tip = None
+        if mol.radicals and p["multiplicity"] == 1:
+            tip = "Some atoms have free bonds. Did you forget hydrogens? (H+ fills them.)"
+        elif len(symbols) != p["n_atoms"]:
+            tip = f"The target has {p['n_atoms']} atoms; yours has {len(symbols)}."
+        elif hill_formula(symbols) != p["formula"]:
+            tip = f"Same number of atoms, but the target's formula is {p['formula']}."
+        else:
+            tip = "Right atoms, but they're connected differently. Check the bonds and bond orders."
+        return {"correct": False, "message": f"That isn't {p['name']} yet.", "tip": tip, "tries": row["tries"] + 1}
+    try:
+        cmp = puzzles.compare(p, symbols, coords, body.bonds)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    now = time.time()
+    seconds = max(0.0, now - row["started_at"])
+    lines = puzzles.score(cmp["rmsd"], seconds, p["n_atoms"])
+    total = max(0, sum(l[1] for l in lines))
+    with db.write_lock(), con:
+        first = _puzzle_status(con, pid, p["id"], row["day"]) is None
+        con.execute("UPDATE puzzle_attempts SET solved_at=?, rmsd=?, counted=?, score=? WHERE id=?",
+                    (now, cmp["rmsd"], int(first), total if first else 0, row["id"]))
+    return {
+        "correct": True, "puzzle": puzzles.public(p), "smiles": p["smiles"],
+        "rmsd": round(cmp["rmsd"], 4), "seconds": round(seconds, 1), "tries": row["tries"] + 1,
+        "lines": lines, "score": total if first else 0, "practice": not first,
+        "ghost": cmp["ghost"], "diffs": cmp["diffs"], "source": p["source"],
+    }
+
+
 # ------------------------------------------------------------------ leaderboards
 
 LEADERBOARDS = {
@@ -267,17 +423,31 @@ LEADERBOARDS = {
 }
 
 
+PUZZLE_BOARDS = {  # ranked by puzzles solved, then by lowest total solve time
+    "puzzle_daily": "Today's puzzles",
+    "puzzles": "Puzzle solvers (all time)",
+}
+
+
+def _clock(sec: float) -> str:
+    sec = int(round(sec))
+    h, rem = divmod(sec, 3600)
+    m, s = divmod(rem, 60)
+    return f"{h}:{m:02d}:{s:02d}" if h else f"{m}:{s:02d}"
+
+
 @app.get("/api/leaderboards")
 def leaderboard_list():
     cats = {k: v[0] for k, v in LEADERBOARDS.items()}
     cats["records"] = "Record holders (lowest energy per formula)"
+    cats.update(PUZZLE_BOARDS)
     return cats
 
 
 @app.get("/api/leaderboard/{category}")
 def leaderboard(category: str, request: Request, limit: int = Query(20, ge=1, le=100)):
     limiter.hit("read:" + client_ip(request), READS_PER_IP_MIN, 60)
-    if category != "records" and category not in LEADERBOARDS:
+    if category != "records" and category not in LEADERBOARDS and category not in PUZZLE_BOARDS:
         raise HTTPException(404, f"Unknown leaderboard; try one of {list(leaderboard_list())}")
 
     def compute():
@@ -291,7 +461,20 @@ def leaderboard(category: str, request: Request, limit: int = Query(20, ge=1, le
 
 
 def _leaderboard(con, category: str, limit: int):
-    if category == "records":
+    if category in PUZZLE_BOARDS:
+        day_clause, args = ("AND a.day=?", (puzzles.today(),)) if category == "puzzle_daily" else ("", ())
+        rows = con.execute(
+            f"""SELECT p.nickname, COUNT(*) AS solved, SUM(a.solved_at - a.started_at) AS seconds
+                FROM puzzle_attempts a JOIN players p ON p.id=a.player_id
+                WHERE a.counted=1 {day_clause} GROUP BY p.id
+                ORDER BY solved DESC, seconds ASC LIMIT ?""",
+            (*args, limit),
+        ).fetchall()
+        return {"category": category, "title": PUZZLE_BOARDS[category],
+                "rows": [{"rank": i + 1, "nickname": r["nickname"], "solved": r["solved"],
+                          "seconds": round(r["seconds"], 1),
+                          "value": f"{r['solved']} solved · {_clock(r['seconds'])}"} for i, r in enumerate(rows)]}
+    elif category == "records":
         mid = db.method_id(con, get_calculator())
         con.commit()
         rows = con.execute(

@@ -117,7 +117,7 @@ scripts/export_dataset.py   dump collected molecules as extended XYZ
 
 ### Accounts
 
-Players choose a nickname and get a secret login token, kept in their browser, plus a **recovery code** shown once. The recovery code restores the account on a new device. Only hashes of the token and code are stored. A `google_sub` column is reserved for adding Google sign-in later.
+Players choose a nickname and get a secret login token, kept in their browser, plus a **recovery code** shown once. The recovery code restores the account on a new device. Only hashes of the token and code are stored. Players can also give an **optional email** at signup (or later, from their collection) so we can contact them, for example about a discovery. It is never shown publicly or returned to anyone but its owner. A `google_sub` column is reserved for adding Google sign-in later.
 
 ### Data model
 
@@ -133,8 +133,12 @@ The server is authoritative: it recomputes every energy itself, so scores can't 
 
 | Method | Path | |
 |---|---|---|
-| POST | `/api/players` | `{nickname}` → token and recovery code |
+| POST | `/api/players` | `{nickname, email?}` → token and recovery code |
 | POST | `/api/players/recover` | `{nickname, recovery_code}` → new token |
+| PATCH | `/api/me` | `{email}` sets or clears the contact email |
+| GET | `/api/puzzles/daily` | today's five puzzles (name, formula, SMILES; your status if signed in) |
+| POST | `/api/puzzles/start` | `{puzzle_id?, daily}` → attempt id; starts the clock (no id: random) |
+| POST | `/api/puzzles/solve` | `{attempt_id, atoms, bonds}` → not the target (with a tip), or the score, RMSD, outline and biggest differences |
 | GET | `/api/me` | totals for the signed-in player |
 | POST | `/api/submissions` | `{atoms:[{el,x,y,z}], bonds:[[i,j,order]], input_method (hand\|xyz\|example\|smiles\|2d), mode}` |
 | GET | `/api/submissions/mine` | the player's history |
@@ -164,6 +168,20 @@ The score card shows the compound's name, formula, SMILES and PubChem link at th
 | Size bonus | 1,000 − 50 × (atoms − 2) | all atoms count, hydrogens included: 1,000 for 2 atoms, 50 for 21, nothing from 22 up; stable molecules only (later also verified transition states) |
 
 Resubmitting a molecule you already have is stored but scores 0. Point values live in `POINTS` in `qumol/scoring.py`.
+
+## Puzzle mode
+
+The 🧩 button opens puzzles: the player gets a molecule's name, formula and SMILES and builds it by hand, against a clock that the server keeps. A **Check** compares the build with the molecule's experimental 3D structure:
+
+- The molecule must be the target (same SMILES as QuMol computes for the reference). A wrong build gets a tip and the clock keeps running.
+- **Geometry match:** 1000 × exp(−RMSD / 0.25 Å). The RMSD is over all atoms, after the best symmetry-equivalent atom mapping and the best rotation (mirror images allowed).
+- **Speed:** up to 500, decaying with time, more slowly for bigger molecules.
+- After solving, the experimental structure appears as a green outline over the player's, with the bond lengths that differ most.
+- During a puzzle, examples, XYZ editing and 📏 Measure are off; the player's own work comes back on exit.
+
+Every day (UTC) brings five puzzles from easy to hard, the same for everyone, plus random puzzles from the whole set. Only a player's first solve of each puzzle counts. Puzzle leaderboards (`puzzle_daily`, `puzzles`) rank by puzzles solved, then by lowest total time.
+
+Reference structures: the 80 SE100 molecules in `puzzles/se100_geometries.json` (see `puzzles/README.md`). Extra sets in the same format can be added with `QUMOL_PUZZLE_FILES=/path/a.json:/path/b.json`, for example a private CCCBDB set kept out of the repo.
 
 ### PubChem names and links
 

@@ -8,6 +8,7 @@ geometries     unique 3D structures, keyed by their HashMol3D identifier
 calculations   results of a method on a geometry (single point, optimization, ...)
 submissions    one row per player submission, linking input and optimized geometries
 pubchem_cache  remembered PubChem lookups
+puzzle_attempts one row per puzzle started: timing, hint, tries, result
 """
 
 from __future__ import annotations
@@ -26,6 +27,7 @@ CREATE TABLE IF NOT EXISTS players (
     token_hash    TEXT NOT NULL UNIQUE,
     recovery_hash TEXT NOT NULL,
     google_sub    TEXT UNIQUE,
+    email         TEXT,                      -- optional, only for contacting the player; never shown
     created_at    TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 
@@ -97,6 +99,23 @@ CREATE INDEX IF NOT EXISTS submissions_player ON submissions(player_id);
 CREATE INDEX IF NOT EXISTS submissions_smiles ON submissions(smiles);
 CREATE INDEX IF NOT EXISTS submissions_formula ON submissions(formula, method_id);
 
+CREATE TABLE IF NOT EXISTS puzzle_attempts (
+    id          INTEGER PRIMARY KEY,
+    player_id   INTEGER NOT NULL REFERENCES players(id),
+    puzzle_id   TEXT NOT NULL,
+    day         TEXT,                        -- 'YYYY-MM-DD' for a daily puzzle, NULL for free play
+    started_at  REAL NOT NULL,               -- unix time on the server
+    hint        INTEGER NOT NULL DEFAULT 0,
+    tries       INTEGER NOT NULL DEFAULT 0,
+    solved_at   REAL,
+    rmsd        REAL,
+    counted     INTEGER NOT NULL DEFAULT 0,  -- 1 if this solve earned points (first solve only)
+    score       INTEGER NOT NULL DEFAULT 0,
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
+CREATE INDEX IF NOT EXISTS puzzle_attempts_player ON puzzle_attempts(player_id, puzzle_id);
+CREATE INDEX IF NOT EXISTS puzzle_attempts_day ON puzzle_attempts(day);
+
 CREATE TABLE IF NOT EXISTS pubchem_cache (
     smiles     TEXT PRIMARY KEY,
     in_pubchem INTEGER NOT NULL,
@@ -124,6 +143,10 @@ def init(path: str | Path | None = None) -> None:
     con = connect(path)
     with con:
         con.executescript(SCHEMA)
+        # columns added after the first release
+        cols = {r[1] for r in con.execute("PRAGMA table_info(players)")}
+        if "email" not in cols:
+            con.execute("ALTER TABLE players ADD COLUMN email TEXT")
     con.close()
 
 

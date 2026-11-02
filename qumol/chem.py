@@ -182,7 +182,8 @@ def is_connected(mol: Molecule) -> bool:
 
 def hill_formula(symbols) -> str:
     cnt = Counter(symbols)
-    order = (["C", "H"] if "C" in cnt else []) + sorted(k for k in cnt if not ("C" in cnt and k in ("C", "H")))
+    lead = [k for k in ("C", "H") if k in cnt] if "C" in cnt else []  # Hill order: C, H, then A-Z
+    order = lead + sorted(k for k in cnt if k not in lead)
     return "".join(k + (str(cnt[k]) if cnt[k] > 1 else "") for k in order)
 
 

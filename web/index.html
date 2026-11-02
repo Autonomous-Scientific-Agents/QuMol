@@ -49,6 +49,25 @@ button.on{background:var(--acc);box-shadow:0 0 14px var(--acc)}
 .optlog li.bad{color:#ff9a9a}
 .optlog pre{max-height:180px;overflow:auto;background:#0e1530;border:1px solid #2c3a66;border-radius:8px;padding:8px;
   font-size:11px;line-height:1.35;margin:6px 0 0;user-select:text;-webkit-user-select:text;touch-action:auto}
+#puzzleBar{position:fixed;top:62px;left:50%;transform:translateX(-50%);z-index:4;background:var(--panel);
+  border:1px solid var(--acc);border-radius:14px;padding:6px 8px 6px 12px;box-shadow:0 0 18px rgba(124,92,255,.35);
+  max-width:calc(100vw - 16px);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+#puzzleBar.hidden{display:none}
+body.puzzling #toast{top:128px}
+.pzrow{display:flex;align-items:center;gap:10px;white-space:nowrap}
+#pzTitle{font-weight:800;overflow:hidden;text-overflow:ellipsis}
+#pzTitle sub{font-size:.65em}
+#pzTimer{font-family:ui-monospace,Menlo,monospace;opacity:.85}
+#puzzleBar button{min-width:34px;height:34px;padding:0 8px;font-size:15px}
+#pzSub{font-size:12px;opacity:.8;font-family:ui-monospace,Menlo,monospace;word-break:break-all}
+#pzSub:empty{display:none}
+button.disabled{opacity:.35}
+.pzlist .line{cursor:pointer}
+.pzlist .line:hover{background:rgba(124,92,255,.12)}
+.diffs{font-size:13px;margin:8px 0;opacity:.9}
+.diffs div{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
+.src{font-size:11px;opacity:.55;margin:8px 0;line-height:1.35}
+.card input+small{display:block;font-size:12px;opacity:.6;margin:-4px 0 8px}
 .warnbox{background:rgba(255,170,60,.12);border:1px solid #b9792a;color:#ffd9a8;border-radius:10px;padding:8px 10px;margin:4px 0 10px;font-size:14px;line-height:1.4;text-align:left}
 /* formula / XYZ panel */
 #xyzPanel{position:fixed;top:64px;right:8px;width:320px;max-height:calc(100vh - 260px);display:flex;flex-direction:column;gap:6px;
@@ -68,6 +87,7 @@ button.on{background:var(--acc);box-shadow:0 0 14px var(--acc)}
 .pmsg.ok{opacity:1;color:var(--acc2)}
 .pill b sub{font-size:.7em}
 @media (max-width:640px){
+  #puzzleBar{top:56px}
   .brand{display:none}
   #top .right button{min-width:38px;padding:0 8px}
   #xyzPanel{left:8px;right:8px;width:auto;max-height:34vh}
@@ -160,6 +180,7 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
 <div id="top" class="bar">
   <div class="left"><span class="brand">QuMol</span><span id="info" class="pill">Loading…</span></div>
   <div class="right">
+    <button id="puzzleBtn" class="tip-below hidden" data-tip="Puzzles: build a named molecule as close to its experimental 3D structure as you can. Five new daily puzzles, plus random ones" aria-label="Puzzles">🧩</button>
     <button id="learn" class="tip-below" data-tip="Learn chemistry: how each element bonds, molecular shapes, and a quiz" aria-label="Learn chemistry">🏫</button>
     <button id="xyzBtn" class="tip-below" data-tip="Formula and XYZ coordinates panel. Edit the coordinates to change the molecule directly" aria-label="Formula and XYZ panel">XYZ</button>
     <button id="mute" class="tip-below" data-tip="Sound on/off" aria-label="Sound on/off">🔊</button>
@@ -186,7 +207,7 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 3v6h6"/></svg>Reset</button>
     <button id="measure" class="ico" data-tip="Measure: show bond lengths (Å) on the bonds and the bond angles (°) around the atom you tap or drag. Updates live while you move atoms" aria-label="Measure bond lengths and angles">📏 Measure</button>
     <button id="submit" class="ico tip-right" data-tip="Build: your molecule is optimized, checked for stability and scored" aria-label="Build">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v6.2L4.6 18.6A1.6 1.6 0 0 0 6 21h12a1.6 1.6 0 0 0 1.4-2.4L14 9.2V3"/><path d="M7.2 15h9.6"/><circle cx="10.5" cy="18" r="0.6" fill="currentColor"/><circle cx="13.6" cy="17.2" r="0.5" fill="currentColor"/></svg>Build</button>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6"/><path d="M10 3v6.2L4.6 18.6A1.6 1.6 0 0 0 6 21h12a1.6 1.6 0 0 0 1.4-2.4L14 9.2V3"/><path d="M7.2 15h9.6"/><circle cx="10.5" cy="18" r="0.6" fill="currentColor"/><circle cx="13.6" cy="17.2" r="0.5" fill="currentColor"/></svg><span id="submitLabel">Build</span></button>
   </div>
 </div>
 
@@ -199,6 +220,11 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
   <div id="xyzMsg" class="pmsg">Edit coordinates (Å) to change the molecule. Add or remove lines to add or remove atoms.</div>
 </aside>
 
+<div id="puzzleBar" class="hidden" role="status">
+  <div class="pzrow"><span id="pzTitle"></span><span id="pzTimer">0:00</span>
+    <button id="pzExit" class="tip-right" data-tip="Leave the puzzle and get your own molecule back" aria-label="Exit puzzle">✕</button></div>
+  <div id="pzSub"></div>
+</div>
 <div id="toast"></div>
 <div id="optInfo" class="hidden" aria-live="polite"></div>
 <div id="ov" class="hidden"><div class="card" id="card"></div></div>
