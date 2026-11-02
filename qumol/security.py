@@ -102,10 +102,24 @@ class SecurityHeaders:
         if scope["type"] != "http":
             return await self.app(scope, receive, send)
 
+        path = scope.get("path", "")
+        # Game files must be re-checked on every load, or browsers keep running an old app.js
+        # against a new index.html after a deploy (an unchanged file costs a 304). The vendored
+        # libraries are pinned by checksum, so they may be cached for a day.
+        if path.startswith("/api/"):
+            cache = None
+        elif path.startswith("/vendor/"):
+            cache = b"public, max-age=86400"
+        else:
+            cache = b"no-cache"
+
         async def send_with_headers(msg):
             if msg["type"] == "http.response.start":
                 names = {k.lower() for k, _ in msg.get("headers", [])}
-                msg["headers"] = list(msg.get("headers", [])) + [h for h in HEADERS if h[0] not in names]
+                extra = [h for h in HEADERS if h[0] not in names]
+                if cache and b"cache-control" not in names:
+                    extra.append((b"cache-control", cache))
+                msg["headers"] = list(msg.get("headers", [])) + extra
             await send(msg)
 
         await self.app(scope, receive, send_with_headers)

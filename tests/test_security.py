@@ -103,3 +103,10 @@ def test_disk_guard(client, monkeypatch):
     monkeypatch.setattr(sec, "MIN_FREE_BYTES", 1 << 62)
     assert client.post("/api/submissions", json=ethanol(), headers=h).status_code == 503
     assert client.post("/api/players", json={"nickname": "late"}).status_code == 503
+
+
+def test_game_files_are_revalidated(client):
+    """A deploy must reach players: index.html and app.js may not be served from a stale cache."""
+    for path in ("/", "/app.js"):
+        r = client.get(path)
+        assert r.status_code == 200 and r.headers["cache-control"] == "no-cache", path
