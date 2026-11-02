@@ -1,8 +1,9 @@
 """Puzzle mode: build a named molecule by hand, scored against its experimental structure.
 
 Reference structures come from JSON files shaped like puzzles/se100_geometries.json
-(the SE100 semi-experimental set ships with the repo). Extra, private sets can be
-added with QUMOL_PUZZLE_FILES=/path/a.json:/path/b.json.
+(the SE100 semi-experimental set ships with the repo). Private sets that can't be
+published (CCCBDB) go in a 'puzzles' folder next to the database, or are listed in
+QUMOL_PUZZLE_FILES=/path/a.json:/path/b.json. Restart the server after adding one.
 
 Scoring (server-side; the client never sees the reference before solving):
 - the molecule must be the target (same SMILES as QuMol computes for the reference),
@@ -45,7 +46,14 @@ def _slug(name: str) -> str:
 
 
 def files() -> list[Path]:
+    """The public SE100 set, plus private sets: any *.json in a 'puzzles' folder next to the
+    database (e.g. data/puzzles/cccbdb_geometries.json), plus QUMOL_PUZZLE_FILES."""
+    from . import db
+
     out = [ROOT / "se100_geometries.json"]
+    private = Path(os.path.abspath(db.db_path())).parent / "puzzles"
+    if private.is_dir():
+        out += sorted(private.glob("*.json"))
     for p in filter(None, os.environ.get("QUMOL_PUZZLE_FILES", "").split(":")):
         out.append(Path(p))
     return [p for p in out if p.exists()]

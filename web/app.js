@@ -1596,7 +1596,7 @@ async function submitPuzzle(){
   const tot = document.createElement('div'); tot.id = 'ovTotal'; tot.textContent = `+${r.score}`; card.appendChild(tot);
   if(r.score > 0){ SFX.chime(); buzz(30); burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 50, 4, 0.9, 0.3); }
   const src = document.createElement('div'); src.className = 'src';
-  src.textContent = `Experimental structure (semi-experimental equilibrium): ${(r.source && r.source.text) || ''}${r.source && r.source.doi ? ', doi:' + r.source.doi : ''}`;
+  src.textContent = `Reference structure: ${(r.source && r.source.text) || ''}${r.source && r.source.doi ? ', doi:' + r.source.doi : ''}`;
   card.appendChild(src);
   const cmp = document.createElement('button'); cmp.id = 'ovBtn'; cmp.textContent = 'Compare in 3D';
   cmp.onclick = () => { $('ov').classList.add('hidden'); toast('Green outline: the experimental structure', 3000); };

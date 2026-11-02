@@ -110,3 +110,23 @@ def test_symmetry_aware_rmsd():
     res = puzzles.compare(p, [p["symbols"][i] for i in perm], x, bonds)
     assert res["rmsd"] < 1e-6
     assert np.allclose(np.array(res["ghost"]), x, atol=1e-3)  # reference lands on the player's atoms
+
+
+def test_private_puzzle_folder(client, tmp_path, monkeypatch):
+    """Puzzle files dropped in data/puzzles/ (next to the database) are loaded too."""
+    import json
+
+    from qumol import db, puzzles
+
+    folder = db.db_path().parent / "puzzles"
+    folder.mkdir()
+    (folder / "extra_geometries.json").write_text(json.dumps({"molecules": [{
+        "name": "Methane", "formula": "CH4", "reference": {"text": "test"},
+        "atoms": [["C", 0, 0, 0], ["H", 0.629, 0.629, 0.629], ["H", -0.629, -0.629, 0.629],
+                  ["H", -0.629, 0.629, -0.629], ["H", 0.629, -0.629, -0.629]],
+        "bonds": [[0, 1, 1], [0, 2, 1], [0, 3, 1], [0, 4, 1]]}]}))
+    puzzles.reset_cache()
+    try:
+        assert "extra-methane" in puzzles.load()
+    finally:
+        puzzles.reset_cache()
