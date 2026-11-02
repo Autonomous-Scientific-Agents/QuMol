@@ -1,0 +1,9398 @@
+{
+ "source": {
+  "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+  "doi": "10.1021/acs.jctc.1c00788",
+  "license": "CC BY 4.0"
+ },
+ "molecules": [
+  {
+   "key": "HCN",
+   "name": "Hydrogen cyanide",
+   "formula": "CHN",
+   "smiles": "C#N",
+   "heavy": 2,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.09076,
+     -0.0904,
+     0.0
+    ],
+    [
+     "C",
+     -0.0293,
+     -0.00243,
+     0.0
+    ],
+    [
+     "N",
+     1.12006,
+     0.09283,
+     -0.0
+    ]
+   ],
+   "labels": [
+    "H3",
+    "C2",
+    "N1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     3
+    ]
+   ],
+   "n_params": 2,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0093,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C#N",
+   "geometry_id": "hm3d_v12_p4_CHN_q1m2_b668e82e8237c59b2d4bc5c03b1d2e57"
+  },
+  {
+   "key": "HNC",
+   "name": "Hydrogen isocyanide",
+   "formula": "CHN",
+   "smiles": "[C-]#[NH+]",
+   "heavy": 2,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.05296,
+     0.01743,
+     0.0
+    ],
+    [
+     "N",
+     -0.05769,
+     0.00095,
+     0.0
+    ],
+    [
+     "C",
+     1.11065,
+     -0.01838,
+     -0.0
+    ]
+   ],
+   "labels": [
+    "H3",
+    "N2",
+    "C1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     3
+    ]
+   ],
+   "n_params": 2,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0043,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "[C-]#[NH+]",
+   "geometry_id": "hm3d_v12_p4_CHN_q1m2_cfcaf36fa6b8bed0c640739f21ef5e7b"
+  },
+  {
+   "key": "CO2",
+   "name": "Carbon dioxide",
+   "formula": "CO2",
+   "smiles": "O=C=O",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     -1.16,
+     -0.00095,
+     0.0
+    ],
+    [
+     "C",
+     -0.0,
+     0.0,
+     0.0
+    ],
+    [
+     "O",
+     1.16,
+     0.00095,
+     -0.0
+    ]
+   ],
+   "labels": [
+    "O1",
+    "C2",
+    "O1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     2
+    ]
+   ],
+   "n_params": 1,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0133,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O=C=O",
+   "geometry_id": "hm3d_v12_p4_CO2_q1m2_36f9a96309b698f76dc835d8c4e6470d"
+  },
+  {
+   "key": "H2O",
+   "name": "Water",
+   "formula": "H2O",
+   "smiles": "O",
+   "heavy": 1,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.75968,
+     -0.18491,
+     -0.0
+    ],
+    [
+     "O",
+     0.00535,
+     0.39055,
+     0.0
+    ],
+    [
+     "H",
+     0.75433,
+     -0.20564,
+     -0.0
+    ]
+   ],
+   "labels": [
+    "H2",
+    "O1",
+    "H2"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ]
+   ],
+   "n_params": 2,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0147,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O",
+   "geometry_id": "hm3d_v12_p4_H2O_q1m2_eb317699b483b607e2cce3d9491615de"
+  },
+  {
+   "key": "HNO",
+   "name": "Nitroxyl",
+   "formula": "HNO",
+   "smiles": "N=O",
+   "heavy": 2,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.88595,
+     -0.21639,
+     -0.0
+    ],
+    [
+     "N",
+     -0.06199,
+     0.44024,
+     0.0
+    ],
+    [
+     "O",
+     0.94793,
+     -0.22386,
+     -0.0
+    ]
+   ],
+   "labels": [
+    "H3",
+    "N2",
+    "O1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     2
+    ]
+   ],
+   "n_params": 3,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0259,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "N=O",
+   "geometry_id": "hm3d_v12_p4_HNO_q1m2_d3f00682516c56a22ab8aa17aad43063"
+  },
+  {
+   "key": "HOF",
+   "name": "Hypofluorous acid",
+   "formula": "HFO",
+   "smiles": "OF",
+   "heavy": 2,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.7825,
+     -0.34317,
+     0.0
+    ],
+    [
+     "O",
+     -0.25989,
+     0.47235,
+     -0.0
+    ],
+    [
+     "F",
+     1.04239,
+     -0.12919,
+     0.0
+    ]
+   ],
+   "labels": [
+    "H3",
+    "O2",
+    "F1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ]
+   ],
+   "n_params": 3,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0275,
+   "notes": [
+    "corrected SI label misprints: F1-O1->F1-O2"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "OF",
+   "geometry_id": "hm3d_v12_p4_FHO_q1m2_f489bf818f97d7f2e66612bcb2778d12"
+  },
+  {
+   "key": "SO2",
+   "name": "Sulfur dioxide",
+   "formula": "O2S",
+   "smiles": "O=S=O",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     -1.22732,
+     -0.27645,
+     0.0
+    ],
+    [
+     "S",
+     -0.01389,
+     0.4817,
+     0.0
+    ],
+    [
+     "O",
+     1.24121,
+     -0.20525,
+     -0.0
+    ]
+   ],
+   "labels": [
+    "O1",
+    "S2",
+    "O1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     2
+    ]
+   ],
+   "n_params": 2,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0205,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O=S=O",
+   "geometry_id": "hm3d_v12_p4_O2S_q1m2_8f1680d8be82e9726a0484cfaf90af10"
+  },
+  {
+   "key": "C2H2",
+   "name": "Acetylene",
+   "formula": "C2H2",
+   "smiles": "C#C",
+   "heavy": 2,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.65913,
+     0.11591,
+     0.00922
+    ],
+    [
+     "C",
+     -0.60003,
+     0.04192,
+     0.00333
+    ],
+    [
+     "C",
+     0.60003,
+     -0.04192,
+     -0.00333
+    ],
+    [
+     "H",
+     1.65913,
+     -0.11591,
+     -0.00922
+    ]
+   ],
+   "labels": [
+    "H2",
+    "C1",
+    "C1",
+    "H2"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     3
+    ],
+    [
+     2,
+     3,
+     1
+    ]
+   ],
+   "n_params": 2,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0122,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C#C",
+   "geometry_id": "hm3d_v12_p4_C2H2_q1m2_917775604a782cc5b752d8b3bdad9c96"
+  },
+  {
+   "key": "H2CO",
+   "name": "Formaldehyde",
+   "formula": "CH2O",
+   "smiles": "C=O",
+   "heavy": 2,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.76455,
+     -0.80011,
+     -0.02318
+    ],
+    [
+     "C",
+     -0.01225,
+     0.00249,
+     7e-05
+    ],
+    [
+     "H",
+     -0.39154,
+     1.03491,
+     0.03023
+    ],
+    [
+     "O",
+     1.16833,
+     -0.23729,
+     -0.00712
+    ]
+   ],
+   "labels": [
+    "H3",
+    "C2",
+    "H3",
+    "O1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ]
+   ],
+   "n_params": 3,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0107,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=O",
+   "geometry_id": "hm3d_v12_p4_CH2O_q1m2_b07e9edb2c152efde08aa8d196d0e5c5"
+  },
+  {
+   "key": "NH3",
+   "name": "Ammonia",
+   "formula": "H3N",
+   "smiles": "N",
+   "heavy": 1,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.70583,
+     -0.61817,
+     -0.09225
+    ],
+    [
+     "N",
+     0.00164,
+     -0.00095,
+     0.28278
+    ],
+    [
+     "H",
+     -0.18351,
+     0.92035,
+     -0.0901
+    ],
+    [
+     "H",
+     0.8877,
+     -0.30123,
+     -0.10042
+    ]
+   ],
+   "labels": [
+    "H2",
+    "N1",
+    "H2",
+    "H2"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ]
+   ],
+   "n_params": 2,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0067,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "N",
+   "geometry_id": "hm3d_v12_p4_H3N_q1m2_2c631a29bbd5f7844175ba8c352255c6"
+  },
+  {
+   "key": "HNCO",
+   "name": "Isocyanic acid",
+   "formula": "CHNO",
+   "smiles": "N=C=O",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.43471,
+     -0.31323,
+     -0.08044
+    ],
+    [
+     "N",
+     -0.69092,
+     0.33355,
+     0.12028
+    ],
+    [
+     "C",
+     0.48406,
+     0.04671,
+     0.00778
+    ],
+    [
+     "O",
+     1.64156,
+     -0.06703,
+     -0.04762
+    ]
+   ],
+   "labels": [
+    "H4",
+    "N3",
+    "C2",
+    "O1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     2
+    ],
+    [
+     2,
+     3,
+     2
+    ]
+   ],
+   "n_params": 5,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0789,
+   "notes": [
+    "conformer: H4N3C2O1=180"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "N=C=O",
+   "geometry_id": "hm3d_v12_p4_CHNO_q1m2_2e6c2d49df037517ed3f6a4751d9f75c"
+  },
+  {
+   "key": "HNCS",
+   "name": "Isothiocyanic acid",
+   "formula": "CHNS",
+   "smiles": "N=C=S",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.5789,
+     -0.28281,
+     -0.01516
+    ],
+    [
+     "N",
+     -0.7637,
+     0.24132,
+     0.25832
+    ],
+    [
+     "C",
+     0.39655,
+     0.05531,
+     -0.00724
+    ],
+    [
+     "S",
+     1.94604,
+     -0.01382,
+     -0.23592
+    ]
+   ],
+   "labels": [
+    "H4",
+    "N3",
+    "C2",
+    "S1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     2
+    ],
+    [
+     2,
+     3,
+     2
+    ]
+   ],
+   "n_params": 5,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0541,
+   "notes": [
+    "conformer: H4N3C2S1=180"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "N=C=S",
+   "geometry_id": "hm3d_v12_p4_CHNS_q1m2_96e3cba1f5be579cce8df32815c62e89"
+  },
+  {
+   "key": "CH2S",
+   "name": "Thioformaldehyde",
+   "formula": "CH2S",
+   "smiles": "C=S",
+   "heavy": 2,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.77358,
+     -0.85245,
+     0.01171
+    ],
+    [
+     "C",
+     -0.11632,
+     0.01128,
+     0.00313
+    ],
+    [
+     "H",
+     -0.59498,
+     0.98519,
+     0.02512
+    ],
+    [
+     "S",
+     1.48489,
+     -0.14402,
+     -0.03996
+    ]
+   ],
+   "labels": [
+    "H3",
+    "C2",
+    "H3",
+    "S1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ]
+   ],
+   "n_params": 3,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0035,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=S",
+   "geometry_id": "hm3d_v12_p4_CH2S_q1m2_13beaa53b343170a894143aae7c0df9a"
+  },
+  {
+   "key": "H2S2",
+   "name": "Disulfane",
+   "formula": "H2S2",
+   "smiles": "SS",
+   "heavy": 2,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.47948,
+     -0.61093,
+     0.14055
+    ],
+    [
+     "S",
+     -0.93762,
+     0.50354,
+     -0.36955
+    ],
+    [
+     "S",
+     0.87733,
+     0.40245,
+     0.58101
+    ],
+    [
+     "H",
+     1.53976,
+     -0.29506,
+     -0.35201
+    ]
+   ],
+   "labels": [
+    "H2",
+    "S1",
+    "S1",
+    "H2"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ]
+   ],
+   "n_params": 4,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0309,
+   "notes": [
+    "corrected SI label misprints: S1-H1->S1-H2"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "SS",
+   "geometry_id": "hm3d_v12_p4_H2S2_q1m2_28ec6a53cb6d2959f8c997ba05e8da5f"
+  },
+  {
+   "key": "H2C=NH",
+   "name": "Methanimine",
+   "formula": "CH3N",
+   "smiles": "C=N",
+   "heavy": 2,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     1.47234,
+     0.21413,
+     -0.08037
+    ],
+    [
+     "N",
+     0.77875,
+     -0.50866,
+     0.10742
+    ],
+    [
+     "C",
+     -0.39465,
+     -0.02935,
+     0.01478
+    ],
+    [
+     "H",
+     -0.61402,
+     1.00928,
+     -0.23132
+    ],
+    [
+     "H",
+     -1.24241,
+     -0.6854,
+     0.18949
+    ]
+   ],
+   "labels": [
+    "H3",
+    "N2",
+    "C1",
+    "H4",
+    "H5"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     2
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     1
+    ]
+   ],
+   "n_params": 7,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0388,
+   "notes": [
+    "conformer: H3N2C1H4=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=N",
+   "geometry_id": "hm3d_v12_p4_CH3N_q1m2_07e722bed39a7e5655599116a9512ee2"
+  },
+  {
+   "key": "H2CCO",
+   "name": "Ketene",
+   "formula": "C2H2O",
+   "smiles": "C=C=O",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.05947,
+     -0.94687,
+     0.11305
+    ],
+    [
+     "C",
+     -0.54423,
+     -0.00306,
+     0.0642
+    ],
+    [
+     "H",
+     -1.06712,
+     0.93492,
+     0.13781
+    ],
+    [
+     "C",
+     0.75911,
+     0.00427,
+     -0.08955
+    ],
+    [
+     "O",
+     1.9117,
+     0.01074,
+     -0.22551
+    ]
+   ],
+   "labels": [
+    "H4",
+    "C3",
+    "H4",
+    "C2",
+    "O1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     2
+    ]
+   ],
+   "n_params": 4,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.019,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=C=O",
+   "geometry_id": "hm3d_v12_p4_C2H2O_q1m2_2586bfc35f6ca57984e988bf8cb80f40"
+  },
+  {
+   "key": "CH2O2(Dioxirane)",
+   "name": "Dioxirane",
+   "formula": "CH2O2",
+   "smiles": "C1OO1",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.83392,
+     -0.89778,
+     -0.03791
+    ],
+    [
+     "C",
+     -0.23696,
+     0.00788,
+     -0.00202
+    ],
+    [
+     "H",
+     -0.77298,
+     0.95121,
+     0.0242
+    ],
+    [
+     "O",
+     0.92922,
+     -0.00549,
+     -0.74833
+    ],
+    [
+     "O",
+     0.91464,
+     -0.05582,
+     0.76407
+    ]
+   ],
+   "labels": [
+    "H3",
+    "C2",
+    "H3",
+    "O1",
+    "O1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     4,
+     1,
+     1
+    ]
+   ],
+   "n_params": 4,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0357,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C1OO1",
+   "geometry_id": "hm3d_v12_p4_CH2O2_q1m2_b34f94337a8cf8441dfb3b2501553a93"
+  },
+  {
+   "key": "CH2O2(cis Formic Acid)",
+   "name": "Formic acid (cis)",
+   "formula": "CH2O2",
+   "smiles": "O=CO",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.40639,
+     1.09569,
+     -0.04153
+    ],
+    [
+     "C",
+     -0.42669,
+     -0.00125,
+     0.0046
+    ],
+    [
+     "O",
+     -1.42771,
+     -0.64565,
+     0.04226
+    ],
+    [
+     "O",
+     0.79602,
+     -0.56914,
+     0.01533
+    ],
+    [
+     "H",
+     1.46477,
+     0.12034,
+     -0.02066
+    ]
+   ],
+   "labels": [
+    "H4",
+    "C3",
+    "O1",
+    "O2",
+    "H5"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     2
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ]
+   ],
+   "n_params": 7,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0246,
+   "notes": [
+    "conformer: H5O2C3O1=180"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O=CO",
+   "geometry_id": "hm3d_v12_p4_CH2O2_q1m2_cddfab956d1b69b6633efe615b8b279e"
+  },
+  {
+   "key": "CH2O2(trans Formic Acid)",
+   "name": "Formic acid",
+   "formula": "CH2O2",
+   "smiles": "O=CO",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.20676,
+     -0.74627,
+     0.04411
+    ],
+    [
+     "C",
+     -0.41951,
+     0.00916,
+     0.00409
+    ],
+    [
+     "O",
+     -0.60096,
+     1.19197,
+     -0.04349
+    ],
+    [
+     "O",
+     0.78482,
+     -0.58076,
+     0.01594
+    ],
+    [
+     "H",
+     1.44242,
+     0.1259,
+     -0.02066
+    ]
+   ],
+   "labels": [
+    "H4",
+    "C3",
+    "O1",
+    "O2",
+    "H5"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     2
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ]
+   ],
+   "n_params": 7,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.024,
+   "notes": [
+    "corrected SI label misprints: H4C5O1->H4C3O1",
+    "conformer: H5O2C3O1=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O=CO",
+   "geometry_id": "hm3d_v12_p4_CH2O2_q1m2_f66d2317eaa572c193b68fc41dc9cba7"
+  },
+  {
+   "key": "C2H2S",
+   "name": "Thioketene",
+   "formula": "C2H2S",
+   "smiles": "C=C=S",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.17637,
+     -0.91504,
+     -0.00325
+    ],
+    [
+     "C",
+     -0.61821,
+     0.01024,
+     -0.0018
+    ],
+    [
+     "H",
+     -1.1454,
+     0.95352,
+     -0.00351
+    ],
+    [
+     "C",
+     0.6923,
+     -0.01147,
+     0.00202
+    ],
+    [
+     "S",
+     2.24768,
+     -0.03725,
+     0.00654
+    ]
+   ],
+   "labels": [
+    "H4",
+    "C3",
+    "H4",
+    "C2",
+    "S1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     2
+    ]
+   ],
+   "n_params": 4,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0138,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=C=S",
+   "geometry_id": "hm3d_v12_p4_C2H2S_q1m2_37781dd551012b2e52801c2158dbeb84"
+  },
+  {
+   "key": "CH2F2",
+   "name": "Difluoromethane",
+   "formula": "CH2F2",
+   "smiles": "FCF",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.05349,
+     0.77397,
+     -0.82412
+    ],
+    [
+     "C",
+     -0.00239,
+     0.07807,
+     0.0091
+    ],
+    [
+     "H",
+     0.01249,
+     0.56571,
+     0.98024
+    ],
+    [
+     "F",
+     1.11723,
+     -0.67118,
+     -0.11832
+    ],
+    [
+     "F",
+     -1.07384,
+     -0.74656,
+     -0.0469
+    ]
+   ],
+   "labels": [
+    "H3",
+    "C1",
+    "H3",
+    "F2",
+    "F2"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     1,
+     4,
+     1
+    ]
+   ],
+   "n_params": 5,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.001,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0082,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "FCF",
+   "geometry_id": "hm3d_v12_p4_CH2F2_q1m2_6c15da8e77309b15a04b589a8a6604b9"
+  },
+  {
+   "key": "H2NOH",
+   "name": "Hydroxylamine",
+   "formula": "H3NO",
+   "smiles": "NO",
+   "heavy": 2,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.80916,
+     -0.4013,
+     0.83126
+    ],
+    [
+     "N",
+     -0.35622,
+     0.29199,
+     0.24647
+    ],
+    [
+     "H",
+     -1.00716,
+     0.48604,
+     -0.50614
+    ],
+    [
+     "O",
+     0.69913,
+     -0.44627,
+     -0.39959
+    ],
+    [
+     "H",
+     1.47341,
+     0.06954,
+     -0.17199
+    ]
+   ],
+   "labels": [
+    "H3",
+    "N1",
+    "H3",
+    "O2",
+    "H4"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ]
+   ],
+   "n_params": 6,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0219,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "NO",
+   "geometry_id": "hm3d_v12_p4_H3NO_q1m2_ea70bf0a78cd505c627d90f31b4b1c63"
+  },
+  {
+   "key": "H2C=S=O (Sulfine)",
+   "name": "Sulfine",
+   "formula": "CH2OS",
+   "smiles": "C=S=O",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.39492,
+     -0.88854,
+     -0.89083
+    ],
+    [
+     "C",
+     -0.50264,
+     0.03652,
+     -0.34456
+    ],
+    [
+     "H",
+     -1.33974,
+     0.70132,
+     -0.51006
+    ],
+    [
+     "S",
+     0.55361,
+     0.52865,
+     0.76409
+    ],
+    [
+     "O",
+     1.68369,
+     -0.37795,
+     0.98136
+    ]
+   ],
+   "labels": [
+    "H4",
+    "C3",
+    "H5",
+    "S2",
+    "O1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     2
+    ]
+   ],
+   "n_params": 7,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0349,
+   "notes": [
+    "conformer: O1S2C3H4=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=S=O",
+   "geometry_id": "hm3d_v12_p4_CH2OS_q1m2_da26a31ba100b9611f79ae01180f5168"
+  },
+  {
+   "key": "C4H2",
+   "name": "Diacetylene",
+   "formula": "C4H2",
+   "smiles": "C#CC#C",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     2.62931,
+     -0.99572,
+     -0.91361
+    ],
+    [
+     "C",
+     1.6852,
+     -0.63819,
+     -0.58556
+    ],
+    [
+     "C",
+     0.61044,
+     -0.23118,
+     -0.21211
+    ],
+    [
+     "C",
+     -0.61045,
+     0.23117,
+     0.21211
+    ],
+    [
+     "C",
+     -1.6852,
+     0.63819,
+     0.58556
+    ],
+    [
+     "H",
+     -2.62931,
+     0.99573,
+     0.9136
+    ]
+   ],
+   "labels": [
+    "H3",
+    "C2",
+    "C1",
+    "C1",
+    "C2",
+    "H3"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     3
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     3
+    ],
+    [
+     4,
+     5,
+     1
+    ]
+   ],
+   "n_params": 3,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0156,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C#CC#C",
+   "geometry_id": "hm3d_v12_p4_C4H2_q1m2_36b094e1299d82f04eb916ab543a7f4a"
+  },
+  {
+   "key": "C2H4",
+   "name": "Ethylene",
+   "formula": "C2H4",
+   "smiles": "C=C",
+   "heavy": 2,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     1.14157,
+     0.894,
+     0.50829
+    ],
+    [
+     "C",
+     0.60233,
+     -0.01498,
+     0.28273
+    ],
+    [
+     "H",
+     1.0828,
+     -0.94933,
+     0.53581
+    ],
+    [
+     "C",
+     -0.60233,
+     0.01498,
+     -0.28273
+    ],
+    [
+     "H",
+     -1.14157,
+     -0.894,
+     -0.50829
+    ],
+    [
+     "H",
+     -1.0828,
+     0.94933,
+     -0.53581
+    ]
+   ],
+   "labels": [
+    "H2",
+    "C1",
+    "H2",
+    "C1",
+    "H2",
+    "H2"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     1
+    ]
+   ],
+   "n_params": 4,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.008,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=C",
+   "geometry_id": "hm3d_v12_p4_C2H4_q1m2_d01edb5dbe43679e441c3bed5b49aff9"
+  },
+  {
+   "key": "cyc-H2C3O (Cyclopropenone)",
+   "name": "Cyclopropenone",
+   "formula": "C3H2O",
+   "smiles": "O=c1cc1",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     1.98283,
+     -0.52118,
+     0.02353
+    ],
+    [
+     "C",
+     0.82191,
+     -0.21604,
+     0.00976
+    ],
+    [
+     "C",
+     -0.56065,
+     -0.5246,
+     -0.17729
+    ],
+    [
+     "H",
+     -1.38109,
+     -1.18451,
+     -0.40937
+    ],
+    [
+     "C",
+     -0.23406,
+     0.73349,
+     0.16786
+    ],
+    [
+     "H",
+     -0.62896,
+     1.71285,
+     0.38551
+    ]
+   ],
+   "labels": [
+    "O1",
+    "C2",
+    "C3",
+    "H4",
+    "C3",
+    "H4"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     2
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     1,
+     1
+    ]
+   ],
+   "n_params": 5,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0081,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O=c1cc1",
+   "geometry_id": "hm3d_v12_p4_C3H2O_q1m2_ff677597930881a8c2f6827ccfb4bbbf"
+  },
+  {
+   "key": "CH2O3(Peroxy Formic Acid)",
+   "name": "Peroxyformic acid",
+   "formula": "CH2O3",
+   "smiles": "O=COO",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.57794,
+     -0.84038,
+     -0.03977
+    ],
+    [
+     "C",
+     -0.70376,
+     -0.20829,
+     0.1198
+    ],
+    [
+     "O",
+     -0.61848,
+     0.73274,
+     0.86196
+    ],
+    [
+     "O",
+     0.29143,
+     -0.64843,
+     -0.65667
+    ],
+    [
+     "O",
+     1.4651,
+     0.16356,
+     -0.47258
+    ],
+    [
+     "H",
+     1.14365,
+     0.80079,
+     0.18727
+    ]
+   ],
+   "labels": [
+    "H5",
+    "C4",
+    "O1",
+    "O2",
+    "O3",
+    "H6"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     2
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ]
+   ],
+   "n_params": 10,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.039,
+   "notes": [
+    "conformer: O1C4O2O3=0, C4O2O3H6=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O=COO",
+   "geometry_id": "hm3d_v12_p4_CH2O3_q1m2_a6a7d3ebd756af3c54e386648d1c8dca"
+  },
+  {
+   "key": "C2H2O2(Trans Glyoxal)",
+   "name": "Glyoxal",
+   "formula": "C2H2O2",
+   "smiles": "O=CC=O",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     -1.3951,
+     1.01185,
+     0.01629
+    ],
+    [
+     "C",
+     -0.75678,
+     -0.00947,
+     0.03916
+    ],
+    [
+     "H",
+     -1.21006,
+     -1.00939,
+     0.11663
+    ],
+    [
+     "C",
+     0.75678,
+     0.00947,
+     -0.03916
+    ],
+    [
+     "O",
+     1.3951,
+     -1.01185,
+     -0.01629
+    ],
+    [
+     "H",
+     1.21006,
+     1.00939,
+     -0.11663
+    ]
+   ],
+   "labels": [
+    "O1",
+    "C2",
+    "H3",
+    "C2",
+    "O1",
+    "H3"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     2
+    ],
+    [
+     3,
+     5,
+     1
+    ]
+   ],
+   "n_params": 6,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0122,
+   "notes": [
+    "conformer: O1C2C2O1=180"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O=CC=O",
+   "geometry_id": "hm3d_v12_p4_C2H2O2_q1m2_f3e0d170ccc738880a6dbf76061c54a7"
+  },
+  {
+   "key": "H2CCCO",
+   "name": "Propadienone",
+   "formula": "C3H2O",
+   "smiles": "C=C=C=O",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.41619,
+     0.45661,
+     -0.77775
+    ],
+    [
+     "C",
+     -1.04587,
+     -0.01921,
+     0.12827
+    ],
+    [
+     "H",
+     -1.78872,
+     -0.35231,
+     0.84914
+    ],
+    [
+     "C",
+     0.25146,
+     -0.19477,
+     0.36224
+    ],
+    [
+     "C",
+     1.43273,
+     0.01375,
+     -0.15094
+    ],
+    [
+     "O",
+     2.5666,
+     0.09594,
+     -0.41095
+    ]
+   ],
+   "labels": [
+    "H5",
+    "C4",
+    "H6",
+    "C3",
+    "C2",
+    "O1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     2
+    ],
+    [
+     4,
+     5,
+     2
+    ]
+   ],
+   "n_params": 9,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.146,
+   "notes": [
+    "conformer: C2C3C4H5=0, C4C3C2O1=180"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=C=C=O",
+   "geometry_id": "hm3d_v12_p4_C3H2O_q1m2_f0e8ba86c665b21f40c51456254de981"
+  },
+  {
+   "key": "H2C=NOH",
+   "name": "Formaldoxime",
+   "formula": "CH3NO",
+   "smiles": "C=NO",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.55756,
+     1.05419,
+     -0.67888
+    ],
+    [
+     "C",
+     -0.78016,
+     0.02856,
+     -0.42609
+    ],
+    [
+     "H",
+     -1.701,
+     -0.44704,
+     -0.7446
+    ],
+    [
+     "N",
+     0.09602,
+     -0.5831,
+     0.26233
+    ],
+    [
+     "O",
+     1.18036,
+     0.2575,
+     0.53578
+    ],
+    [
+     "H",
+     1.76233,
+     -0.3101,
+     1.05146
+    ]
+   ],
+   "labels": [
+    "H4",
+    "C3",
+    "H5",
+    "N2",
+    "O1",
+    "H6"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ]
+   ],
+   "n_params": 9,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0954,
+   "notes": [
+    "conformer: C3N2O1H6=180, O1N2C3H4=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=NO",
+   "geometry_id": "hm3d_v12_p4_CH3NO_q1m2_4bbce184198c42727d558e71b75348b6"
+  },
+  {
+   "key": "C3H2S (Propadienthione)",
+   "name": "Propadienethione",
+   "formula": "C3H2S",
+   "smiles": "C=C=C=S",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.28151,
+     1.45244,
+     -0.26562
+    ],
+    [
+     "C",
+     -0.93603,
+     0.4546,
+     -0.5115
+    ],
+    [
+     "H",
+     -1.49734,
+     -0.10283,
+     -1.25291
+    ],
+    [
+     "C",
+     0.13183,
+     -0.06402,
+     0.07204
+    ],
+    [
+     "C",
+     1.15722,
+     -0.56203,
+     0.63237
+    ],
+    [
+     "S",
+     2.42584,
+     -1.17816,
+     1.32562
+    ]
+   ],
+   "labels": [
+    "H5",
+    "C4",
+    "H5",
+    "C3",
+    "C2",
+    "S1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     2
+    ],
+    [
+     4,
+     5,
+     2
+    ]
+   ],
+   "n_params": 5,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.008,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=C=C=S",
+   "geometry_id": "hm3d_v12_p4_C3H2S_q1m2_2128c60684a720e06edd4dde11ba6727"
+  },
+  {
+   "key": "CH2CHF",
+   "name": "Vinyl fluoride",
+   "formula": "C2H3F",
+   "smiles": "C=CF",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "F",
+     1.41856,
+     -0.97341,
+     0.03264
+    ],
+    [
+     "C",
+     0.60975,
+     0.09539,
+     -0.04172
+    ],
+    [
+     "H",
+     1.16153,
+     1.01399,
+     -0.16978
+    ],
+    [
+     "C",
+     -0.704,
+     -0.02066,
+     0.03846
+    ],
+    [
+     "H",
+     -1.17504,
+     -0.9823,
+     0.16703
+    ],
+    [
+     "H",
+     -1.3108,
+     0.86699,
+     -0.02663
+    ]
+   ],
+   "labels": [
+    "F3",
+    "C1",
+    "H4",
+    "C2",
+    "H5",
+    "H6"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     1
+    ]
+   ],
+   "n_params": 9,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0102,
+   "notes": [
+    "conformer: F3C1C2H5=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=CF",
+   "geometry_id": "hm3d_v12_p4_C2H3F_q1m2_033446541dedacbcdeaeb488c6b9c7ab"
+  },
+  {
+   "key": "H2C=C=CH2(Allene)",
+   "name": "Allene",
+   "formula": "C3H4",
+   "smiles": "C=C=C",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.88725,
+     -0.31211,
+     0.81549
+    ],
+    [
+     "C",
+     -1.30352,
+     -0.06648,
+     -0.0602
+    ],
+    [
+     "H",
+     -1.82617,
+     0.12275,
+     -0.98699
+    ],
+    [
+     "C",
+     0.0,
+     -1e-05,
+     0.0
+    ],
+    [
+     "C",
+     1.30352,
+     0.06647,
+     0.0602
+    ],
+    [
+     "H",
+     1.80083,
+     0.99519,
+     0.30121
+    ],
+    [
+     "H",
+     1.91259,
+     -0.8058,
+     -0.12973
+    ]
+   ],
+   "labels": [
+    "H2",
+    "C1",
+    "H2",
+    "C1",
+    "C1",
+    "H2",
+    "H2"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     2
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     1
+    ]
+   ],
+   "n_params": 3,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0108,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=C=C",
+   "geometry_id": "hm3d_v12_p4_C3H4_q1m2_01b33aa28aea2e192b5757bd0debc0cd"
+  },
+  {
+   "key": "C2H4O (Oxirane)",
+   "name": "Oxirane",
+   "formula": "C2H4O",
+   "smiles": "C1CO1",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     1.07477,
+     0.3466,
+     -1.10779
+    ],
+    [
+     "C",
+     0.7185,
+     0.06468,
+     -0.12624
+    ],
+    [
+     "H",
+     1.40239,
+     0.22716,
+     0.69581
+    ],
+    [
+     "O",
+     0.00524,
+     -1.17082,
+     -0.0785
+    ],
+    [
+     "C",
+     -0.71897,
+     0.04084,
+     0.1333
+    ],
+    [
+     "H",
+     -1.0771,
+     0.18608,
+     1.1435
+    ],
+    [
+     "H",
+     -1.40482,
+     0.30546,
+     -0.66008
+    ]
+   ],
+   "labels": [
+    "H3",
+    "C2",
+    "H3",
+    "O1",
+    "C2",
+    "H3",
+    "H3"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     1
+    ],
+    [
+     4,
+     1,
+     1
+    ]
+   ],
+   "n_params": 7,
+   "fit_max_error": {
+    "bond_A": 1e-05,
+    "angle_deg": 0.001,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0123,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C1CO1",
+   "geometry_id": "hm3d_v12_p4_C2H4O_q1m2_22809d1c2dea0d1648c7132591bdc4ae"
+  },
+  {
+   "key": "C2H4O (Ethenol)",
+   "name": "Ethenol (vinyl alcohol)",
+   "formula": "C2H4O",
+   "smiles": "C=CO",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     1.04258,
+     -0.38355,
+     1.36154
+    ],
+    [
+     "O",
+     0.08914,
+     -0.3801,
+     1.47608
+    ],
+    [
+     "C",
+     -0.49232,
+     -0.05725,
+     0.29025
+    ],
+    [
+     "H",
+     -1.56794,
+     -0.04182,
+     0.3743
+    ],
+    [
+     "C",
+     0.14022,
+     0.21224,
+     -0.84975
+    ],
+    [
+     "H",
+     -0.43069,
+     0.45665,
+     -1.72992
+    ],
+    [
+     "H",
+     1.21901,
+     0.19381,
+     -0.9225
+    ]
+   ],
+   "labels": [
+    "H4",
+    "O1",
+    "C2",
+    "H5",
+    "C3",
+    "H6",
+    "H7"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     2
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     1
+    ]
+   ],
+   "n_params": 11,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0121,
+   "notes": [
+    "conformer: H4O1C2C3=0, O1C2C3H7=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=CO",
+   "geometry_id": "hm3d_v12_p4_C2H4O_q1m2_59ceb4057abcd5272ddefa1ee95933d5"
+  },
+  {
+   "key": "C2H2O3(Glyoxilic Acid)",
+   "name": "Glyoxylic acid",
+   "formula": "C2H2O3",
+   "smiles": "O=CC(=O)O",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     0.44181,
+     0.38516,
+     -1.75793
+    ],
+    [
+     "C",
+     0.42194,
+     0.1199,
+     -0.59116
+    ],
+    [
+     "O",
+     1.50387,
+     -0.08863,
+     0.15657
+    ],
+    [
+     "H",
+     1.19616,
+     -0.28269,
+     1.05545
+    ],
+    [
+     "C",
+     -0.88522,
+     -0.01038,
+     0.18225
+    ],
+    [
+     "O",
+     -0.88063,
+     -0.27843,
+     1.35746
+    ],
+    [
+     "H",
+     -1.79793,
+     0.15507,
+     -0.40265
+    ]
+   ],
+   "labels": [
+    "O1",
+    "C4",
+    "O2",
+    "H6",
+    "C5",
+    "O3",
+    "H7"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     1,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     2
+    ],
+    [
+     4,
+     6,
+     1
+    ]
+   ],
+   "n_params": 11,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0201,
+   "notes": [
+    "conformer: O2C4C5O3=0, C5C4O2H6=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O=CC(=O)O",
+   "geometry_id": "hm3d_v12_p4_C2H2O3_q1m2_b0508e581dd91dc041234d58ce674c39"
+  },
+  {
+   "key": "C2H4S (Thiirane)",
+   "name": "Thiirane",
+   "formula": "C2H4S",
+   "smiles": "C1CS1",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     1.19943,
+     -0.82099,
+     0.63283
+    ],
+    [
+     "C",
+     0.73575,
+     -0.10918,
+     -0.03373
+    ],
+    [
+     "H",
+     1.2591,
+     0.07328,
+     -0.96043
+    ],
+    [
+     "S",
+     0.0673,
+     1.36921,
+     0.77103
+    ],
+    [
+     "C",
+     -0.7426,
+     -0.03027,
+     -0.0448
+    ],
+    [
+     "H",
+     -1.28933,
+     -0.68815,
+     0.61418
+    ],
+    [
+     "H",
+     -1.22965,
+     0.20611,
+     -0.97908
+    ]
+   ],
+   "labels": [
+    "H3",
+    "C2",
+    "H3",
+    "S1",
+    "C2",
+    "H3",
+    "H3"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     1
+    ],
+    [
+     4,
+     1,
+     1
+    ]
+   ],
+   "n_params": 5,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0126,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C1CS1",
+   "geometry_id": "hm3d_v12_p4_C2H4S_q1m2_561d66d83d544c3bc8237c9266d80704"
+  },
+  {
+   "key": "CH3C # CH (Propyne)",
+   "name": "Propyne",
+   "formula": "C3H4",
+   "smiles": "C#CC",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.28128,
+     0.88071,
+     -0.64469
+    ],
+    [
+     "C",
+     -0.95474,
+     0.06508,
+     -0.00225
+    ],
+    [
+     "H",
+     -1.40047,
+     -0.8581,
+     -0.36786
+    ],
+    [
+     "H",
+     -1.32811,
+     0.25073,
+     1.00311
+    ],
+    [
+     "C",
+     0.50068,
+     -0.03413,
+     0.00118
+    ],
+    [
+     "C",
+     1.70249,
+     -0.11606,
+     0.00401
+    ],
+    [
+     "H",
+     2.76143,
+     -0.18824,
+     0.0065
+    ]
+   ],
+   "labels": [
+    "H1",
+    "C2",
+    "H1",
+    "H1",
+    "C3",
+    "C4",
+    "H5"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     1,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     3
+    ],
+    [
+     5,
+     6,
+     1
+    ]
+   ],
+   "n_params": 5,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0172,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C#CC",
+   "geometry_id": "hm3d_v12_p4_C3H4_q1m2_28edde01b5bae8757b8dee8d92cd1964"
+  },
+  {
+   "key": "C2H4NH (Aziridine)",
+   "name": "Aziridine",
+   "formula": "C2H5N",
+   "smiles": "C1CN1",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.10872,
+     1.62667,
+     0.17072
+    ],
+    [
+     "N",
+     -0.07631,
+     0.89213,
+     -0.52523
+    ],
+    [
+     "C",
+     0.75485,
+     -0.21365,
+     -0.02553
+    ],
+    [
+     "H",
+     1.30156,
+     -0.73883,
+     -0.79433
+    ],
+    [
+     "H",
+     1.27928,
+     -0.081,
+     0.90969
+    ],
+    [
+     "C",
+     -0.71824,
+     -0.31627,
+     0.01418
+    ],
+    [
+     "H",
+     -1.22733,
+     -0.915,
+     -0.72616
+    ],
+    [
+     "H",
+     -1.20509,
+     -0.25406,
+     0.97666
+    ]
+   ],
+   "labels": [
+    "H3",
+    "N1",
+    "C2",
+    "H4",
+    "H5",
+    "C2",
+    "H4",
+    "H5"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     1
+    ],
+    [
+     2,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     1
+    ],
+    [
+     5,
+     1,
+     1
+    ]
+   ],
+   "n_params": 12,
+   "fit_max_error": {
+    "bond_A": 1e-05,
+    "angle_deg": 0.004,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.029,
+   "notes": [
+    "cis/trans H labels chosen by GFN2-xTB: swapped H4/H5",
+    "label check scores (lower is better): swapped=55.8, as drawn=143.7"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C1CN1",
+   "geometry_id": "hm3d_v12_p4_C2H5N_q1m2_6d0d645b503a6640e0fc9c462b8fcd56"
+  },
+  {
+   "key": "C2H2N2S (1,2,3-thiadiazole)",
+   "name": "1,2,3-Thiadiazole",
+   "formula": "C2H2N2S",
+   "smiles": "c1csnn1",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "S",
+     0.58996,
+     -1.56818,
+     0.17945
+    ],
+    [
+     "N",
+     1.68183,
+     -0.38329,
+     -0.31186
+    ],
+    [
+     "N",
+     1.11161,
+     0.76453,
+     -0.41119
+    ],
+    [
+     "C",
+     -0.21708,
+     0.75043,
+     -0.10097
+    ],
+    [
+     "H",
+     -0.77808,
+     1.66743,
+     -0.15593
+    ],
+    [
+     "C",
+     -0.69374,
+     -0.4804,
+     0.25728
+    ],
+    [
+     "H",
+     -1.6945,
+     -0.75053,
+     0.54322
+    ]
+   ],
+   "labels": [
+    "S1",
+    "N2",
+    "N3",
+    "C4",
+    "H6",
+    "C5",
+    "H7"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     2
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     2
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     0,
+     1
+    ]
+   ],
+   "n_params": 11,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0228,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1csnn1",
+   "geometry_id": "hm3d_v12_p4_C2H2N2S_q1m2_18532b4074d93a14cd8862eb2e48e5bd"
+  },
+  {
+   "key": "C2H2N2S (1,3,4-thiadiazole)",
+   "name": "1,3,4-Thiadiazole",
+   "formula": "C2H2N2S",
+   "smiles": "c1nncs1",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "S",
+     -0.0457,
+     1.30589,
+     0.37183
+    ],
+    [
+     "C",
+     -1.17517,
+     0.08097,
+     -0.03911
+    ],
+    [
+     "H",
+     -2.23879,
+     0.2576,
+     -0.04489
+    ],
+    [
+     "N",
+     -0.6469,
+     -1.06664,
+     -0.33999
+    ],
+    [
+     "N",
+     0.72067,
+     -1.04148,
+     -0.26026
+    ],
+    [
+     "C",
+     1.16799,
+     0.12408,
+     0.09749
+    ],
+    [
+     "H",
+     2.21789,
+     0.33958,
+     0.21493
+    ]
+   ],
+   "labels": [
+    "S1",
+    "C2",
+    "H4",
+    "N3",
+    "N3",
+    "C2",
+    "H4"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     2
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     0,
+     1
+    ]
+   ],
+   "n_params": 6,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0217,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1nncs1",
+   "geometry_id": "hm3d_v12_p4_C2H2N2S_q1m2_e58756e30b597e66004ddf0022e4cfb2"
+  },
+  {
+   "key": "C2H2N2S (1,2,4-thiadiazole)",
+   "name": "1,2,4-Thiadiazole",
+   "formula": "C2H2N2S",
+   "smiles": "c1ncsn1",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "S",
+     0.57464,
+     1.49652,
+     0.08523
+    ],
+    [
+     "N",
+     -0.95556,
+     1.04209,
+     -0.31188
+    ],
+    [
+     "C",
+     -0.99524,
+     -0.27086,
+     -0.25947
+    ],
+    [
+     "H",
+     -1.91582,
+     -0.78447,
+     -0.4868
+    ],
+    [
+     "N",
+     0.12324,
+     -0.97459,
+     0.08072
+    ],
+    [
+     "C",
+     1.0841,
+     -0.11402,
+     0.30235
+    ],
+    [
+     "H",
+     2.08464,
+     -0.39468,
+     0.58986
+    ]
+   ],
+   "labels": [
+    "S1",
+    "N2",
+    "C3",
+    "H6",
+    "N4",
+    "C5",
+    "H7"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     2
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     2
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     0,
+     1
+    ]
+   ],
+   "n_params": 11,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.018,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1ncsn1",
+   "geometry_id": "hm3d_v12_p4_C2H2N2S_q1m2_5efd7635d0ddb8a7c9f190f585b10f0e"
+  },
+  {
+   "key": "C2H2N2S (1,2,5-thiadiazole)",
+   "name": "1,2,5-Thiadiazole",
+   "formula": "C2H2N2S",
+   "smiles": "c1cnsn1",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "S",
+     1.67752,
+     0.5952,
+     0.47329
+    ],
+    [
+     "N",
+     0.39759,
+     1.41201,
+     -0.10681
+    ],
+    [
+     "C",
+     -0.56755,
+     0.52381,
+     -0.28508
+    ],
+    [
+     "H",
+     -1.52592,
+     0.83694,
+     -0.66801
+    ],
+    [
+     "C",
+     -0.19916,
+     -0.79584,
+     0.06876
+    ],
+    [
+     "H",
+     -0.82572,
+     -1.67132,
+     0.00453
+    ],
+    [
+     "N",
+     1.04323,
+     -0.90079,
+     0.51332
+    ]
+   ],
+   "labels": [
+    "S1",
+    "N2",
+    "C3",
+    "H4",
+    "C3",
+    "H4",
+    "N2"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     2
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     2
+    ],
+    [
+     6,
+     0,
+     1
+    ]
+   ],
+   "n_params": 6,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0182,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1cnsn1",
+   "geometry_id": "hm3d_v12_p4_C2H2N2S_q1m2_15ce021186a119e774bfa0caecb5e01b"
+  },
+  {
+   "key": "C3H4O (cis-Acrolein)",
+   "name": "Acrolein (s-cis)",
+   "formula": "C3H4O",
+   "smiles": "C=CC=O",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     -1.14307,
+     -1.52931,
+     0.31836
+    ],
+    [
+     "C",
+     -1.17801,
+     -0.32058,
+     0.25686
+    ],
+    [
+     "H",
+     -2.12738,
+     0.21586,
+     0.41876
+    ],
+    [
+     "C",
+     0.00127,
+     0.52741,
+     -0.03018
+    ],
+    [
+     "H",
+     -0.15421,
+     1.59818,
+     -0.05944
+    ],
+    [
+     "C",
+     1.20447,
+     -0.01022,
+     -0.24345
+    ],
+    [
+     "H",
+     1.3282,
+     -1.08332,
+     -0.20763
+    ],
+    [
+     "H",
+     2.06873,
+     0.60198,
+     -0.45328
+    ]
+   ],
+   "labels": [
+    "O1",
+    "C2",
+    "H5",
+    "C3",
+    "H6",
+    "C4",
+    "H7",
+    "H8"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     2
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     1
+    ]
+   ],
+   "n_params": 13,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0156,
+   "notes": [
+    "conformer: O1C2C3C4=0, C2C3C4H7=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=CC=O",
+   "geometry_id": "hm3d_v12_p4_C3H4O_q1m2_f7a76c13ce90f99cbb72bbb9b77f220b"
+  },
+  {
+   "key": "C3H4O (trans-Acrolein)",
+   "name": "Acrolein",
+   "formula": "C3H4O",
+   "smiles": "C=CC=O",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     -0.65281,
+     -2.22259,
+     0.25836
+    ],
+    [
+     "C",
+     -0.67951,
+     -1.01423,
+     0.19521
+    ],
+    [
+     "H",
+     -1.62097,
+     -0.45844,
+     0.35442
+    ],
+    [
+     "C",
+     0.49641,
+     -0.1793,
+     -0.0904
+    ],
+    [
+     "H",
+     1.4353,
+     -0.6911,
+     -0.25158
+    ],
+    [
+     "C",
+     0.37938,
+     1.14996,
+     -0.14211
+    ],
+    [
+     "H",
+     -0.57962,
+     1.62333,
+     0.02533
+    ],
+    [
+     "H",
+     1.22183,
+     1.79237,
+     -0.34924
+    ]
+   ],
+   "labels": [
+    "O1",
+    "C2",
+    "H5",
+    "C3",
+    "H6",
+    "C4",
+    "H7",
+    "H8"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     2
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     1
+    ]
+   ],
+   "n_params": 13,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0169,
+   "notes": [
+    "conformer: O1C2C3C4=180, C2C3C4H7=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=CC=O",
+   "geometry_id": "hm3d_v12_p4_C3H4O_q1m2_5d97bf26f3b114879d34ab0ae77db97b"
+  },
+  {
+   "key": "C2H4O2(cis-Methyl Formate)",
+   "name": "Methyl formate",
+   "formula": "C2H4O2",
+   "smiles": "COC=O",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     1.23876,
+     1.13378,
+     0.53871
+    ],
+    [
+     "C",
+     1.29987,
+     0.03635,
+     0.05638
+    ],
+    [
+     "H",
+     2.22607,
+     -0.49118,
+     -0.18234
+    ],
+    [
+     "O",
+     0.25414,
+     -0.71116,
+     -0.30256
+    ],
+    [
+     "C",
+     -1.02022,
+     -0.09572,
+     -0.06676
+    ],
+    [
+     "H",
+     -1.14411,
+     0.11483,
+     0.99244
+    ],
+    [
+     "H",
+     -1.09872,
+     0.83052,
+     -0.63022
+    ],
+    [
+     "H",
+     -1.75579,
+     -0.81743,
+     -0.40565
+    ]
+   ],
+   "labels": [
+    "O1",
+    "C3",
+    "H5",
+    "O2",
+    "C4",
+    "H6",
+    "H6",
+    "H7"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     1
+    ],
+    [
+     4,
+     7,
+     1
+    ]
+   ],
+   "n_params": 12,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0213,
+   "notes": [
+    "corrected SI label misprints: C4-H5->C3-H5",
+    "conformer: O1C3O2C4=0, C3O2C4H7=180"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "COC=O",
+   "geometry_id": "hm3d_v12_p4_C2H4O2_q1m2_c6174ee68ca73f4c985dd186124c5960"
+  },
+  {
+   "key": "C2H4O2(Glycolaldehyde)",
+   "name": "Glycolaldehyde",
+   "formula": "C2H4O2",
+   "smiles": "O=CCO",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.92348,
+     0.88705,
+     1.05618
+    ],
+    [
+     "O",
+     -1.15252,
+     -0.04292,
+     0.97616
+    ],
+    [
+     "C",
+     -0.25881,
+     -0.58554,
+     0.05038
+    ],
+    [
+     "H",
+     0.32615,
+     -1.39764,
+     0.49803
+    ],
+    [
+     "H",
+     -0.79191,
+     -1.00984,
+     -0.80861
+    ],
+    [
+     "C",
+     0.70204,
+     0.44497,
+     -0.46595
+    ],
+    [
+     "O",
+     0.66231,
+     1.59349,
+     -0.09107
+    ],
+    [
+     "H",
+     1.43622,
+     0.11042,
+     -1.21512
+    ]
+   ],
+   "labels": [
+    "H5",
+    "O1",
+    "C3",
+    "H6",
+    "H6",
+    "C4",
+    "O2",
+    "H7"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     1
+    ],
+    [
+     2,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     2
+    ],
+    [
+     5,
+     7,
+     1
+    ]
+   ],
+   "n_params": 12,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0131,
+   "notes": [
+    "conformer: O1C3C4O2=0, H5O1C3C4=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O=CCO",
+   "geometry_id": "hm3d_v12_p4_C2H4O2_q1m2_abe65861fbdbd0c3bdbcf8035a825d03"
+  },
+  {
+   "key": "C3H3NS (Thiazole)",
+   "name": "Thiazole",
+   "formula": "C3H3NS",
+   "smiles": "c1cscn1",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "S",
+     0.38164,
+     1.44842,
+     -0.52233
+    ],
+    [
+     "C",
+     1.36988,
+     0.11217,
+     -0.07434
+    ],
+    [
+     "H",
+     2.44592,
+     0.18845,
+     -0.12856
+    ],
+    [
+     "N",
+     0.72823,
+     -0.94693,
+     0.31676
+    ],
+    [
+     "C",
+     -0.6244,
+     -0.72168,
+     0.27123
+    ],
+    [
+     "H",
+     -1.29946,
+     -1.50773,
+     0.56653
+    ],
+    [
+     "C",
+     -1.00382,
+     0.51688,
+     -0.15757
+    ],
+    [
+     "H",
+     -1.99799,
+     0.91042,
+     -0.27173
+    ]
+   ],
+   "labels": [
+    "S1",
+    "C2",
+    "H6",
+    "N3",
+    "C4",
+    "H7",
+    "C5",
+    "H8"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     2
+    ],
+    [
+     6,
+     7,
+     1
+    ],
+    [
+     6,
+     0,
+     1
+    ]
+   ],
+   "n_params": 13,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0167,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1cscn1",
+   "geometry_id": "hm3d_v12_p4_C3H3NS_q1m2_147d7adb71ac7655bc88816bf57f1083"
+  },
+  {
+   "key": "C3H3NO (Oxazole)",
+   "name": "Oxazole",
+   "formula": "C3H3NO",
+   "smiles": "c1cocn1",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     0.50933,
+     1.06691,
+     -0.28008
+    ],
+    [
+     "C",
+     1.25094,
+     -0.02856,
+     -0.0061
+    ],
+    [
+     "H",
+     2.31884,
+     0.08549,
+     -0.04846
+    ],
+    [
+     "N",
+     0.57544,
+     -1.08944,
+     0.27262
+    ],
+    [
+     "C",
+     -0.75082,
+     -0.67311,
+     0.1875
+    ],
+    [
+     "H",
+     -1.56908,
+     -1.34581,
+     0.36671
+    ],
+    [
+     "C",
+     -0.78069,
+     0.63065,
+     -0.15896
+    ],
+    [
+     "H",
+     -1.55395,
+     1.35386,
+     -0.33323
+    ]
+   ],
+   "labels": [
+    "O1",
+    "C2",
+    "H6",
+    "N3",
+    "C4",
+    "H7",
+    "C5",
+    "H8"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     2
+    ],
+    [
+     6,
+     7,
+     1
+    ],
+    [
+     6,
+     0,
+     1
+    ]
+   ],
+   "n_params": 14,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0172,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1cocn1",
+   "geometry_id": "hm3d_v12_p4_C3H3NO_q1m2_53b32b45bb1e4de9908cd502d8655669"
+  },
+  {
+   "key": "C3H3NO (Isoxazole)",
+   "name": "Isoxazole",
+   "formula": "C3H3NO",
+   "smiles": "c1cnoc1",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     -0.53927,
+     -1.19158,
+     -0.72582
+    ],
+    [
+     "N",
+     0.64697,
+     -1.39241,
+     -0.02422
+    ],
+    [
+     "C",
+     0.92887,
+     -0.23954,
+     0.52333
+    ],
+    [
+     "H",
+     1.81884,
+     -0.15975,
+     1.12262
+    ],
+    [
+     "C",
+     -0.04005,
+     0.75248,
+     0.2129
+    ],
+    [
+     "H",
+     -0.06569,
+     1.7798,
+     0.52196
+    ],
+    [
+     "C",
+     -0.9195,
+     0.08468,
+     -0.5663
+    ],
+    [
+     "H",
+     -1.83017,
+     0.36633,
+     -1.06447
+    ]
+   ],
+   "labels": [
+    "O1",
+    "N2",
+    "C3",
+    "H6",
+    "C4",
+    "H7",
+    "C5",
+    "H8"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     2
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     2
+    ],
+    [
+     6,
+     7,
+     1
+    ],
+    [
+     6,
+     0,
+     1
+    ]
+   ],
+   "n_params": 14,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.001,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0144,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1cnoc1",
+   "geometry_id": "hm3d_v12_p4_C3H3NO_q1m2_3535c46947969bbf2d1a3a2eaf16111b"
+  },
+  {
+   "key": "cyc-C3H6(Cyclopropane)",
+   "name": "Cyclopropane",
+   "formula": "C3H6",
+   "smiles": "C1CC1",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.13269,
+     -1.00731,
+     0.79153
+    ],
+    [
+     "C",
+     -0.69152,
+     -0.51972,
+     -0.06396
+    ],
+    [
+     "H",
+     -1.17639,
+     -0.72807,
+     -1.00509
+    ],
+    [
+     "C",
+     -0.10736,
+     0.85013,
+     0.13474
+    ],
+    [
+     "H",
+     -0.20109,
+     1.55896,
+     -0.67335
+    ],
+    [
+     "H",
+     -0.1574,
+     1.27972,
+     1.12327
+    ],
+    [
+     "C",
+     0.79889,
+     -0.33041,
+     -0.07078
+    ],
+    [
+     "H",
+     1.35563,
+     -0.69126,
+     0.78014
+    ],
+    [
+     "H",
+     1.31193,
+     -0.41202,
+     -1.01649
+    ]
+   ],
+   "labels": [
+    "H2",
+    "C1",
+    "H2",
+    "C1",
+    "H2",
+    "H2",
+    "C1",
+    "H2",
+    "H2"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     1
+    ],
+    [
+     3,
+     6,
+     1
+    ],
+    [
+     6,
+     7,
+     1
+    ],
+    [
+     6,
+     8,
+     1
+    ],
+    [
+     6,
+     1,
+     1
+    ]
+   ],
+   "n_params": 3,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0081,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C1CC1",
+   "geometry_id": "hm3d_v12_p4_C3H6_q1m2_5163f9c97070cd0f8d87f02f293e8c05"
+  },
+  {
+   "key": "CH3CH=CH2(Propene)",
+   "name": "Propene",
+   "formula": "C3H6",
+   "smiles": "C=CC",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     1.31091,
+     -1.14142,
+     0.69474
+    ],
+    [
+     "C",
+     1.3611,
+     -0.1871,
+     0.18646
+    ],
+    [
+     "H",
+     2.34123,
+     0.23055,
+     0.00949
+    ],
+    [
+     "C",
+     0.2567,
+     0.43781,
+     -0.21689
+    ],
+    [
+     "H",
+     0.34669,
+     1.39173,
+     -0.7247
+    ],
+    [
+     "C",
+     -1.13075,
+     -0.0861,
+     -0.02219
+    ],
+    [
+     "H",
+     -1.11847,
+     -1.0441,
+     0.49193
+    ],
+    [
+     "H",
+     -1.73158,
+     0.61303,
+     0.56264
+    ],
+    [
+     "H",
+     -1.63582,
+     -0.2144,
+     -0.98148
+    ]
+   ],
+   "labels": [
+    "H4",
+    "C1",
+    "H5",
+    "C2",
+    "H6",
+    "C3",
+    "H7",
+    "H8",
+    "H8"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     1
+    ],
+    [
+     5,
+     8,
+     1
+    ]
+   ],
+   "n_params": 14,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0124,
+   "notes": [
+    "conformer: C1C2C3H7=0, C3C2C1H4=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=CC",
+   "geometry_id": "hm3d_v12_p4_C3H6_q1m2_23ce2351360b9e357c3d6aca2163f2d4"
+  },
+  {
+   "key": "C3H3N2H (Pyrazole)",
+   "name": "Pyrazole",
+   "formula": "C3H4N2",
+   "smiles": "c1cn[nH]c1",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.95812,
+     -0.98722,
+     -0.03761
+    ],
+    [
+     "N",
+     -1.0383,
+     -0.59122,
+     -0.01969
+    ],
+    [
+     "N",
+     0.01948,
+     -1.41226,
+     0.09335
+    ],
+    [
+     "C",
+     1.0662,
+     -0.59353,
+     0.09581
+    ],
+    [
+     "H",
+     2.05801,
+     -1.0038,
+     0.17307
+    ],
+    [
+     "C",
+     0.6783,
+     0.75617,
+     -0.01499
+    ],
+    [
+     "H",
+     1.30555,
+     1.62777,
+     -0.0385
+    ],
+    [
+     "C",
+     -0.69569,
+     0.7149,
+     -0.07916
+    ],
+    [
+     "H",
+     -1.43541,
+     1.4892,
+     -0.17229
+    ]
+   ],
+   "labels": [
+    "H6",
+    "N1",
+    "N2",
+    "C3",
+    "H7",
+    "C4",
+    "H8",
+    "C5",
+    "H9"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     2
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     1,
+     1
+    ]
+   ],
+   "n_params": 18,
+   "fit_max_error": {
+    "bond_A": 1e-05,
+    "angle_deg": 0.003,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0102,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1cn[nH]c1",
+   "geometry_id": "hm3d_v12_p4_C3H4N2_q1m2_2bc8f4216040a5833faffe9ffdf9c039"
+  },
+  {
+   "key": "C3H4N2(Imidazole)",
+   "name": "Imidazole",
+   "formula": "C3H4N2",
+   "smiles": "c1c[nH]cn1",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.26623,
+     1.50261,
+     0.05229
+    ],
+    [
+     "N",
+     -0.66477,
+     0.70213,
+     0.02596
+    ],
+    [
+     "C",
+     -1.05804,
+     -0.60058,
+     0.0632
+    ],
+    [
+     "H",
+     -2.09426,
+     -0.88812,
+     0.12582
+    ],
+    [
+     "N",
+     -0.03781,
+     -1.42099,
+     0.01387
+    ],
+    [
+     "C",
+     1.07366,
+     -0.60649,
+     -0.04498
+    ],
+    [
+     "H",
+     2.06702,
+     -1.01501,
+     -0.10029
+    ],
+    [
+     "C",
+     0.70733,
+     0.70574,
+     -0.04777
+    ],
+    [
+     "H",
+     1.27308,
+     1.6207,
+     -0.08812
+    ]
+   ],
+   "labels": [
+    "H6",
+    "N1",
+    "C2",
+    "H7",
+    "N3",
+    "C4",
+    "H8",
+    "C5",
+    "H9"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     2
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     2
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     1,
+     1
+    ]
+   ],
+   "n_params": 18,
+   "fit_max_error": {
+    "bond_A": 2e-05,
+    "angle_deg": 0.005,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0149,
+   "notes": [
+    "corrected SI label misprints: N1-N2->N1-C2"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1c[nH]cn1",
+   "geometry_id": "hm3d_v12_p4_C3H4N2_q1m2_029e13eecbef34590526760695fe0ea6"
+  },
+  {
+   "key": "C4H4O (Furan)",
+   "name": "Furan",
+   "formula": "C4H4O",
+   "smiles": "c1ccoc1",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     0.03636,
+     -1.37881,
+     -0.0549
+    ],
+    [
+     "C",
+     1.10485,
+     -0.53826,
+     -0.0263
+    ],
+    [
+     "H",
+     2.07001,
+     -1.00641,
+     -0.05543
+    ],
+    [
+     "C",
+     0.69626,
+     0.75262,
+     0.02837
+    ],
+    [
+     "H",
+     1.33076,
+     1.62002,
+     0.05802
+    ],
+    [
+     "C",
+     -0.73494,
+     0.71464,
+     0.03433
+    ],
+    [
+     "H",
+     -1.41427,
+     1.54713,
+     0.07054
+    ],
+    [
+     "C",
+     -1.07493,
+     -0.5961,
+     -0.01722
+    ],
+    [
+     "H",
+     -2.01411,
+     -1.11484,
+     -0.03741
+    ]
+   ],
+   "labels": [
+    "O1",
+    "C2",
+    "H4",
+    "C3",
+    "H5",
+    "C3",
+    "H5",
+    "C2",
+    "H4"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     2
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     0,
+     1
+    ]
+   ],
+   "n_params": 10,
+   "fit_max_error": {
+    "bond_A": 1e-05,
+    "angle_deg": 0.005,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0134,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1ccoc1",
+   "geometry_id": "hm3d_v12_p4_C4H4O_q1m2_050df1f9fad686e7bd9cc113947891f2"
+  },
+  {
+   "key": "(CH3)2O (Dimethyl Ether)",
+   "name": "Dimethyl ether",
+   "formula": "C2H6O",
+   "smiles": "COC",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     2.03795,
+     0.46156,
+     -0.45545
+    ],
+    [
+     "C",
+     1.16049,
+     -0.02132,
+     -0.0361
+    ],
+    [
+     "H",
+     1.2112,
+     0.02478,
+     1.05675
+    ],
+    [
+     "H",
+     1.14756,
+     -1.07306,
+     -0.34059
+    ],
+    [
+     "O",
+     0.02957,
+     0.66128,
+     -0.52089
+    ],
+    [
+     "C",
+     -1.15724,
+     0.09407,
+     -0.0212
+    ],
+    [
+     "H",
+     -1.98771,
+     0.66198,
+     -0.42956
+    ],
+    [
+     "H",
+     -1.25273,
+     -0.95356,
+     -0.32515
+    ],
+    [
+     "H",
+     -1.18909,
+     0.14427,
+     1.07219
+    ]
+   ],
+   "labels": [
+    "H3",
+    "C2",
+    "H4",
+    "H4",
+    "O1",
+    "C2",
+    "H3",
+    "H4",
+    "H4"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     1,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     1
+    ],
+    [
+     5,
+     8,
+     1
+    ]
+   ],
+   "n_params": 7,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0211,
+   "notes": [
+    "conformer: C2O1C2H3=180"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "COC",
+   "geometry_id": "hm3d_v12_p4_C2H6O_q1m2_23904217c1b684851f6b99c1818a4c1f"
+  },
+  {
+   "key": "C4H2O3(Maleic Anhydride)",
+   "name": "Maleic anhydride",
+   "formula": "C4H2O3",
+   "smiles": "O=C1C=CC(=O)O1",
+   "heavy": 7,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     2.24242,
+     -1.03339,
+     -0.05666
+    ],
+    [
+     "C",
+     1.13165,
+     -0.60799,
+     -0.03743
+    ],
+    [
+     "O",
+     0.01921,
+     -1.42478,
+     -0.14774
+    ],
+    [
+     "C",
+     -1.11492,
+     -0.63275,
+     -0.09082
+    ],
+    [
+     "O",
+     -2.21389,
+     -1.0825,
+     -0.16256
+    ],
+    [
+     "C",
+     -0.67667,
+     0.7772,
+     0.06607
+    ],
+    [
+     "H",
+     -1.37709,
+     1.59127,
+     0.13299
+    ],
+    [
+     "C",
+     0.65548,
+     0.79189,
+     0.09772
+    ],
+    [
+     "H",
+     1.33381,
+     1.62104,
+     0.19843
+    ]
+   ],
+   "labels": [
+    "O2",
+    "C3",
+    "O1",
+    "C3",
+    "O2",
+    "C4",
+    "H5",
+    "C4",
+    "H5"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     2
+    ],
+    [
+     3,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     2
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     1,
+     1
+    ]
+   ],
+   "n_params": 11,
+   "fit_max_error": {
+    "bond_A": 1e-05,
+    "angle_deg": 0.004,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0066,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O=C1C=CC(=O)O1",
+   "geometry_id": "hm3d_v12_p4_C4H2O3_q1m2_e4aba6f6cdeff7e3e3260f4fa81b266f"
+  },
+  {
+   "key": "S(CH3)2c",
+   "name": "Dimethyl sulfide",
+   "formula": "C2H6S",
+   "smiles": "CSC",
+   "heavy": 3,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     2.17346,
+     0.90214,
+     -0.22512
+    ],
+    [
+     "C",
+     1.30781,
+     0.3568,
+     0.14677
+    ],
+    [
+     "H",
+     1.54946,
+     -0.70454,
+     0.19827
+    ],
+    [
+     "H",
+     1.05373,
+     0.7249,
+     1.14048
+    ],
+    [
+     "S",
+     -0.045,
+     0.6454,
+     -1.00283
+    ],
+    [
+     "C",
+     -1.30934,
+     -0.33483,
+     -0.18091
+    ],
+    [
+     "H",
+     -2.21834,
+     -0.25849,
+     -0.77499
+    ],
+    [
+     "H",
+     -1.00803,
+     -1.38041,
+     -0.12194
+    ],
+    [
+     "H",
+     -1.50375,
+     0.04902,
+     0.82026
+    ]
+   ],
+   "labels": [
+    "H3",
+    "C2",
+    "H4",
+    "H4",
+    "S1",
+    "C2",
+    "H3",
+    "H4",
+    "H4"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     1,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     1
+    ],
+    [
+     5,
+     8,
+     1
+    ]
+   ],
+   "n_params": 7,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0087,
+   "notes": [
+    "printed dihedral taken as its supplement (180-x), matching the figure: H4C2S1C2",
+    "conformer: C2S1C2H3=180"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "CSC",
+   "geometry_id": "hm3d_v12_p4_C2H6S_q1m2_1303a7b804c7e0b607d6504a631e372d"
+  },
+  {
+   "key": "C4H4S (Thiophene)",
+   "name": "Thiophene",
+   "formula": "C4H4S",
+   "smiles": "c1ccsc1",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "S",
+     0.07884,
+     1.7424,
+     -0.17741
+    ],
+    [
+     "C",
+     1.25424,
+     0.50732,
+     -0.01608
+    ],
+    [
+     "H",
+     2.30211,
+     0.75641,
+     -0.00766
+    ],
+    [
+     "C",
+     0.67918,
+     -0.72232,
+     0.09736
+    ],
+    [
+     "H",
+     1.23296,
+     -1.64205,
+     0.20932
+    ],
+    [
+     "C",
+     -0.74198,
+     -0.66316,
+     0.04686
+    ],
+    [
+     "H",
+     -1.37677,
+     -1.53327,
+     0.11793
+    ],
+    [
+     "C",
+     -1.2035,
+     0.60963,
+     -0.10342
+    ],
+    [
+     "H",
+     -2.22508,
+     0.94503,
+     -0.1669
+    ]
+   ],
+   "labels": [
+    "S1",
+    "C2",
+    "H4",
+    "C3",
+    "H5",
+    "C3",
+    "H5",
+    "C2",
+    "H4"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     2
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     0,
+     1
+    ]
+   ],
+   "n_params": 10,
+   "fit_max_error": {
+    "bond_A": 1e-05,
+    "angle_deg": 0.001,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0084,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1ccsc1",
+   "geometry_id": "hm3d_v12_p4_C4H4S_q1m2_556503840dab4c5554a7009048ced6d7"
+  },
+  {
+   "key": "CH2=CH-CH=CH2",
+   "name": "1,3-Butadiene",
+   "formula": "C4H6",
+   "smiles": "C=CC=C",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -0.74922,
+     0.06186,
+     2.19347
+    ],
+    [
+     "C",
+     -1.23617,
+     0.42501,
+     1.29844
+    ],
+    [
+     "H",
+     -2.20656,
+     0.88513,
+     1.40879
+    ],
+    [
+     "C",
+     -0.65232,
+     0.30564,
+     0.10048
+    ],
+    [
+     "H",
+     -1.15725,
+     0.67621,
+     -0.78452
+    ],
+    [
+     "C",
+     0.65232,
+     -0.30564,
+     -0.10048
+    ],
+    [
+     "H",
+     1.15725,
+     -0.67621,
+     0.78452
+    ],
+    [
+     "C",
+     1.23617,
+     -0.42501,
+     -1.29844
+    ],
+    [
+     "H",
+     0.74922,
+     -0.06186,
+     -2.19347
+    ],
+    [
+     "H",
+     2.20656,
+     -0.88513,
+     -1.40879
+    ]
+   ],
+   "labels": [
+    "H3",
+    "C1",
+    "H4",
+    "C2",
+    "H5",
+    "C2",
+    "H5",
+    "C1",
+    "H3",
+    "H4"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     2
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     9,
+     1
+    ]
+   ],
+   "n_params": 9,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0101,
+   "notes": [
+    "conformer: C1C2C2C1=180, C2C2C1H3=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=CC=C",
+   "geometry_id": "hm3d_v12_p4_C4H6_q1m2_e82d413d621682372460a06ca74c5400"
+  },
+  {
+   "key": "cyc-C4H6(Butene)",
+   "name": "Cyclobutene",
+   "formula": "C4H6",
+   "smiles": "C1=CCC1",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     1.69598,
+     -1.13484,
+     -0.86887
+    ],
+    [
+     "C",
+     0.91825,
+     -0.54162,
+     -0.40983
+    ],
+    [
+     "C",
+     0.93011,
+     0.488,
+     0.44862
+    ],
+    [
+     "H",
+     1.72098,
+     1.0357,
+     0.94057
+    ],
+    [
+     "C",
+     -0.57792,
+     0.61753,
+     0.48845
+    ],
+    [
+     "H",
+     -0.9822,
+     1.54682,
+     0.08873
+    ],
+    [
+     "H",
+     -1.04375,
+     0.41139,
+     1.45141
+    ],
+    [
+     "C",
+     -0.59175,
+     -0.5836,
+     -0.51299
+    ],
+    [
+     "H",
+     -1.00409,
+     -0.35198,
+     -1.49438
+    ],
+    [
+     "H",
+     -1.06561,
+     -1.48741,
+     -0.1317
+    ]
+   ],
+   "labels": [
+    "H3",
+    "C1",
+    "C1",
+    "H3",
+    "C2",
+    "H4",
+    "H4",
+    "C2",
+    "H4",
+    "H4"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     2
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     1
+    ],
+    [
+     4,
+     7,
+     1
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     9,
+     1
+    ],
+    [
+     7,
+     1,
+     1
+    ]
+   ],
+   "n_params": 9,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.001,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0142,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C1=CCC1",
+   "geometry_id": "hm3d_v12_p4_C4H6_q1m2_bfade3383326aa36ff869894fee259ba"
+  },
+  {
+   "key": "C3H4O3(Pyruvic Acid)",
+   "name": "Pyruvic acid",
+   "formula": "C3H4O3",
+   "smiles": "CC(=O)C(=O)O",
+   "heavy": 6,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     1.49773,
+     -0.17203,
+     -1.27118
+    ],
+    [
+     "C",
+     1.23074,
+     -0.10911,
+     -0.10501
+    ],
+    [
+     "O",
+     2.13115,
+     -0.15189,
+     0.87441
+    ],
+    [
+     "H",
+     1.63708,
+     -0.07572,
+     1.7031
+    ],
+    [
+     "C",
+     -0.20926,
+     0.03979,
+     0.41489
+    ],
+    [
+     "O",
+     -0.37268,
+     0.10066,
+     1.61377
+    ],
+    [
+     "C",
+     -1.29371,
+     0.08557,
+     -0.60559
+    ],
+    [
+     "H",
+     -1.10749,
+     0.91235,
+     -1.29138
+    ],
+    [
+     "H",
+     -1.25732,
+     -0.82106,
+     -1.20993
+    ],
+    [
+     "H",
+     -2.25625,
+     0.19145,
+     -0.12309
+    ]
+   ],
+   "labels": [
+    "O1",
+    "C4",
+    "O2",
+    "H9",
+    "C5",
+    "O3",
+    "C6",
+    "H7",
+    "H7",
+    "H8"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     1,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     2
+    ],
+    [
+     4,
+     6,
+     1
+    ],
+    [
+     6,
+     7,
+     1
+    ],
+    [
+     6,
+     8,
+     1
+    ],
+    [
+     6,
+     9,
+     1
+    ]
+   ],
+   "n_params": 16,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.018,
+   "notes": [
+    "conformer: O2C4C5O3=0, C5C4O2H9=0, C4C5C6H8=180"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "CC(=O)C(=O)O",
+   "geometry_id": "hm3d_v12_p4_C3H4O3_q1m2_d70b8ad462095d9d0aae7cf4aeb22f2f"
+  },
+  {
+   "key": "C3H6O (Propanal)",
+   "name": "Propanal",
+   "formula": "C3H6O",
+   "smiles": "CCC=O",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     1.7052,
+     1.02605,
+     -0.34685
+    ],
+    [
+     "C",
+     0.85941,
+     0.46429,
+     -1.00039
+    ],
+    [
+     "H",
+     0.96389,
+     0.39247,
+     -2.0988
+    ],
+    [
+     "C",
+     -0.33933,
+     -0.22986,
+     -0.41921
+    ],
+    [
+     "H",
+     -1.22407,
+     0.21969,
+     -0.88199
+    ],
+    [
+     "H",
+     -0.3169,
+     -1.2629,
+     -0.78165
+    ],
+    [
+     "C",
+     -0.4032,
+     -0.16651,
+     1.09432
+    ],
+    [
+     "H",
+     -0.4353,
+     0.86655,
+     1.43548
+    ],
+    [
+     "H",
+     0.47842,
+     -0.62673,
+     1.53654
+    ],
+    [
+     "H",
+     -1.28811,
+     -0.68305,
+     1.46254
+    ]
+   ],
+   "labels": [
+    "O1",
+    "C2",
+    "H5",
+    "C3",
+    "H6",
+    "H6",
+    "C4",
+    "H7",
+    "H7",
+    "H8"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     1
+    ],
+    [
+     3,
+     6,
+     1
+    ],
+    [
+     6,
+     7,
+     1
+    ],
+    [
+     6,
+     8,
+     1
+    ],
+    [
+     6,
+     9,
+     1
+    ]
+   ],
+   "n_params": 15,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0173,
+   "notes": [
+    "conformer: O1C2C3C4=0, C2C3C4H8=180"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "CCC=O",
+   "geometry_id": "hm3d_v12_p4_C3H6O_q1m2_6c4e422034a25431221fc83a64dac560"
+  },
+  {
+   "key": "CH2NH2COOH (Glycine)",
+   "name": "Glycine",
+   "formula": "C2H5NO2",
+   "smiles": "NCC(=O)O",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.25898,
+     0.78361,
+     -1.39904
+    ],
+    [
+     "N",
+     -1.49312,
+     0.64467,
+     -0.42539
+    ],
+    [
+     "H",
+     -1.33243,
+     1.54326,
+     0.00917
+    ],
+    [
+     "C",
+     -0.61717,
+     -0.34475,
+     0.15404
+    ],
+    [
+     "H",
+     -0.77581,
+     -1.31287,
+     -0.32261
+    ],
+    [
+     "H",
+     -0.85569,
+     -0.48674,
+     1.20882
+    ],
+    [
+     "C",
+     0.86071,
+     -0.03235,
+     0.0626
+    ],
+    [
+     "O",
+     1.3377,
+     0.94984,
+     -0.44236
+    ],
+    [
+     "O",
+     1.60617,
+     -1.00559,
+     0.62552
+    ],
+    [
+     "H",
+     2.52863,
+     -0.73908,
+     0.52924
+    ]
+   ],
+   "labels": [
+    "H8",
+    "N1",
+    "H8",
+    "C2",
+    "H7",
+    "H7",
+    "C3",
+    "O4",
+    "O5",
+    "H6"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     1
+    ],
+    [
+     3,
+     6,
+     1
+    ],
+    [
+     6,
+     7,
+     2
+    ],
+    [
+     6,
+     8,
+     1
+    ],
+    [
+     8,
+     9,
+     1
+    ]
+   ],
+   "n_params": 16,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0221,
+   "notes": [
+    "conformer: N1C2C3O4=0, O4C3O5H6=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "NCC(=O)O",
+   "geometry_id": "hm3d_v12_p4_C2H5NO2_q1m2_710bfeb5457300fedc52ffafa0e48af1"
+  },
+  {
+   "key": "C4H4NH (Pyrrole)",
+   "name": "Pyrrole",
+   "formula": "C4H5N",
+   "smiles": "c1cc[nH]c1",
+   "heavy": 5,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.43188,
+     -1.59112,
+     0.00236
+    ],
+    [
+     "N",
+     -0.76211,
+     -0.84694,
+     0.00408
+    ],
+    [
+     "C",
+     0.59671,
+     -1.01141,
+     -0.01764
+    ],
+    [
+     "H",
+     1.03908,
+     -1.99037,
+     -0.04451
+    ],
+    [
+     "C",
+     1.16943,
+     0.23654,
+     -0.02083
+    ],
+    [
+     "H",
+     2.22354,
+     0.44584,
+     -0.03577
+    ],
+    [
+     "C",
+     0.11223,
+     1.18798,
+     0.00848
+    ],
+    [
+     "H",
+     0.20975,
+     2.25821,
+     0.02519
+    ],
+    [
+     "C",
+     -1.06832,
+     0.48705,
+     0.02852
+    ],
+    [
+     "H",
+     -2.08843,
+     0.82423,
+     0.05014
+    ]
+   ],
+   "labels": [
+    "H4",
+    "N1",
+    "C2",
+    "H5",
+    "C3",
+    "H6",
+    "C3",
+    "H6",
+    "C2",
+    "H5"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     2
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     1
+    ],
+    [
+     6,
+     7,
+     1
+    ],
+    [
+     6,
+     8,
+     2
+    ],
+    [
+     8,
+     9,
+     1
+    ],
+    [
+     8,
+     1,
+     1
+    ]
+   ],
+   "n_params": 12,
+   "fit_max_error": {
+    "bond_A": 1e-05,
+    "angle_deg": 0.002,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0113,
+   "notes": [
+    "corrected SI label misprints: C2C3C4->C2C3C3"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1cc[nH]c1",
+   "geometry_id": "hm3d_v12_p4_C4H5N_q1m2_499d8112ddc68c02190604871d53e386"
+  },
+  {
+   "key": "C4H4N2(Pyridazine)",
+   "name": "Pyridazine",
+   "formula": "C4H4N2",
+   "smiles": "c1ccnnc1",
+   "heavy": 6,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "N",
+     -0.54466,
+     -1.6228,
+     -0.21415
+    ],
+    [
+     "N",
+     0.78472,
+     -1.51861,
+     -0.23248
+    ],
+    [
+     "C",
+     1.34592,
+     -0.32245,
+     -0.07858
+    ],
+    [
+     "H",
+     2.42659,
+     -0.32198,
+     -0.10529
+    ],
+    [
+     "C",
+     0.62457,
+     0.85602,
+     0.1046
+    ],
+    [
+     "H",
+     1.13225,
+     1.80189,
+     0.22472
+    ],
+    [
+     "C",
+     -0.74719,
+     0.7485,
+     0.12352
+    ],
+    [
+     "H",
+     -1.39252,
+     1.60401,
+     0.25952
+    ],
+    [
+     "C",
+     -1.28091,
+     -0.52833,
+     -0.04238
+    ],
+    [
+     "H",
+     -2.34878,
+     -0.69626,
+     -0.03948
+    ]
+   ],
+   "labels": [
+    "N1",
+    "N1",
+    "C2",
+    "H4",
+    "C3",
+    "H5",
+    "C3",
+    "H5",
+    "C2",
+    "H4"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     2
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     1
+    ],
+    [
+     6,
+     7,
+     1
+    ],
+    [
+     6,
+     8,
+     2
+    ],
+    [
+     8,
+     9,
+     1
+    ],
+    [
+     8,
+     0,
+     1
+    ]
+   ],
+   "n_params": 9,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0134,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1ccnnc1",
+   "geometry_id": "hm3d_v12_p4_C4H4N2_q1m2_22874bf1f7e7b3281509fde1c9a05483"
+  },
+  {
+   "key": "C4H4N2(Pyrimidine)",
+   "name": "Pyrimidine",
+   "formula": "C4H4N2",
+   "smiles": "c1cncnc1",
+   "heavy": 6,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     2.58964,
+     -0.16947,
+     -0.15751
+    ],
+    [
+     "C",
+     1.51235,
+     -0.09866,
+     -0.08578
+    ],
+    [
+     "N",
+     0.99719,
+     1.13064,
+     -0.11905
+    ],
+    [
+     "C",
+     -0.33296,
+     1.2035,
+     -0.03175
+    ],
+    [
+     "H",
+     -0.76508,
+     2.1958,
+     -0.05238
+    ],
+    [
+     "C",
+     -1.13134,
+     0.07404,
+     0.06895
+    ],
+    [
+     "H",
+     -2.20665,
+     0.14426,
+     0.1313
+    ],
+    [
+     "C",
+     -0.47985,
+     -1.15008,
+     0.08564
+    ],
+    [
+     "H",
+     -1.03181,
+     -2.07825,
+     0.16079
+    ],
+    [
+     "N",
+     0.8485,
+     -1.25178,
+     -0.00022
+    ]
+   ],
+   "labels": [
+    "H5",
+    "C2",
+    "N1",
+    "C3",
+    "H6",
+    "C4",
+    "H7",
+    "C3",
+    "H6",
+    "N1"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     2
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     2
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     1
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     9,
+     2
+    ],
+    [
+     9,
+     1,
+     1
+    ]
+   ],
+   "n_params": 12,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0131,
+   "notes": [
+    "corrected SI label misprints: C4H6->C3H6, C5H7->C4H7"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1cncnc1",
+   "geometry_id": "hm3d_v12_p4_C4H4N2_q1m2_d0e86e4c0ffef828ffc9196c18c228ed"
+  },
+  {
+   "key": "(CH3)2S=O",
+   "name": "Dimethyl sulfoxide",
+   "formula": "C2H6OS",
+   "smiles": "CS(C)=O",
+   "heavy": 4,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     0.23713,
+     -1.18116,
+     1.65914
+    ],
+    [
+     "S",
+     0.03166,
+     -1.01928,
+     0.20204
+    ],
+    [
+     "C",
+     -1.34823,
+     0.11349,
+     0.00259
+    ],
+    [
+     "H",
+     -2.23568,
+     -0.40182,
+     0.36039
+    ],
+    [
+     "H",
+     -1.46037,
+     0.37118,
+     -1.04849
+    ],
+    [
+     "H",
+     -1.15895,
+     0.99806,
+     0.60854
+    ],
+    [
+     "C",
+     1.2959,
+     0.1219,
+     -0.36933
+    ],
+    [
+     "H",
+     2.25082,
+     -0.38754,
+     -0.27067
+    ],
+    [
+     "H",
+     1.11213,
+     0.37937,
+     -1.41033
+    ],
+    [
+     "H",
+     1.2756,
+     1.00581,
+     0.26611
+    ]
+   ],
+   "labels": [
+    "O1",
+    "S2",
+    "C3",
+    "H4",
+    "H5",
+    "H6",
+    "C3",
+    "H4",
+    "H5",
+    "H6"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     1
+    ],
+    [
+     2,
+     5,
+     1
+    ],
+    [
+     1,
+     6,
+     1
+    ],
+    [
+     6,
+     7,
+     1
+    ],
+    [
+     6,
+     8,
+     1
+    ],
+    [
+     6,
+     9,
+     1
+    ]
+   ],
+   "n_params": 20,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.003
+   },
+   "xtb_rmsd_A": 0.0321,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "CS(C)=O",
+   "geometry_id": "hm3d_v12_p4_C2H6OS_q1m2_8186728998796d00ee68f674f4a85ff7"
+  },
+  {
+   "key": "C6H5(Phenyl-rad)",
+   "name": "Phenyl radical",
+   "formula": "C6H5",
+   "smiles": "[c]1ccccc1",
+   "heavy": 6,
+   "multiplicity": 2,
+   "atoms": [
+    [
+     "C",
+     0.19081,
+     -1.54444,
+     -0.04259
+    ],
+    [
+     "C",
+     1.32556,
+     -0.77688,
+     0.03569
+    ],
+    [
+     "H",
+     2.31947,
+     -1.20014,
+     0.06909
+    ],
+    [
+     "C",
+     1.14261,
+     0.60894,
+     0.0752
+    ],
+    [
+     "H",
+     1.99473,
+     1.27167,
+     0.14719
+    ],
+    [
+     "C",
+     -0.14161,
+     1.14695,
+     0.02998
+    ],
+    [
+     "H",
+     -0.27514,
+     2.21836,
+     0.08082
+    ],
+    [
+     "C",
+     -1.25662,
+     0.31611,
+     -0.05485
+    ],
+    [
+     "H",
+     -2.2455,
+     0.75413,
+     -0.08237
+    ],
+    [
+     "C",
+     -1.09659,
+     -1.07251,
+     -0.0956
+    ],
+    [
+     "H",
+     -1.95773,
+     -1.72219,
+     -0.16256
+    ]
+   ],
+   "labels": [
+    "C1",
+    "C2",
+    "H5",
+    "C3",
+    "H6",
+    "C4",
+    "H7",
+    "C3",
+    "H6",
+    "C2",
+    "H5"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     2
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     1
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     9,
+     2
+    ],
+    [
+     9,
+     10,
+     1
+    ],
+    [
+     9,
+     0,
+     1
+    ]
+   ],
+   "n_params": 13,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.001,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0125,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "[c]1ccccc1",
+   "geometry_id": "hm3d_v12_p4_C6H5_q2m2_7f16049bf8c44920764e4661e06c79a2"
+  },
+  {
+   "key": "C4H4O3(Succinic Anhydride)",
+   "name": "Succinic anhydride",
+   "formula": "C4H4O3",
+   "smiles": "O=C1CCC(=O)O1",
+   "heavy": 7,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "O",
+     -2.05581,
+     -1.5484,
+     -0.07697
+    ],
+    [
+     "C",
+     -1.0417,
+     -0.93008,
+     -0.08875
+    ],
+    [
+     "O",
+     0.1433,
+     -1.49357,
+     -0.52382
+    ],
+    [
+     "C",
+     1.18767,
+     -0.5913,
+     -0.44483
+    ],
+    [
+     "O",
+     2.28938,
+     -0.88603,
+     -0.77685
+    ],
+    [
+     "C",
+     0.68441,
+     0.72719,
+     0.0967
+    ],
+    [
+     "H",
+     1.24555,
+     0.96323,
+     1.00085
+    ],
+    [
+     "H",
+     0.90188,
+     1.50434,
+     -0.636
+    ],
+    [
+     "C",
+     -0.80227,
+     0.50127,
+     0.33415
+    ],
+    [
+     "H",
+     -1.10438,
+     0.60613,
+     1.37618
+    ],
+    [
+     "H",
+     -1.44804,
+     1.14723,
+     -0.26067
+    ]
+   ],
+   "labels": [
+    "O5",
+    "C2",
+    "O1",
+    "C2",
+    "O5",
+    "C3",
+    "H4",
+    "H4",
+    "C3",
+    "H4",
+    "H4"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     2
+    ],
+    [
+     3,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     1
+    ],
+    [
+     5,
+     8,
+     1
+    ],
+    [
+     8,
+     9,
+     1
+    ],
+    [
+     8,
+     10,
+     1
+    ],
+    [
+     8,
+     1,
+     1
+    ]
+   ],
+   "n_params": 10,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0076,
+   "notes": [
+    "conformer: C2C3C3C2=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O=C1CCC(=O)O1",
+   "geometry_id": "hm3d_v12_p4_C4H4O3_q1m2_09aec1257416b506e44a0e6e58d9db56"
+  },
+  {
+   "key": "C5H5N (Pyridine)",
+   "name": "Pyridine",
+   "formula": "C5H5N",
+   "smiles": "c1ccncc1",
+   "heavy": 6,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "N",
+     0.20621,
+     -1.59305,
+     -0.00678
+    ],
+    [
+     "C",
+     1.24469,
+     -0.75464,
+     0.04239
+    ],
+    [
+     "H",
+     2.22411,
+     -1.21396,
+     0.06907
+    ],
+    [
+     "C",
+     1.12023,
+     0.63046,
+     0.05015
+    ],
+    [
+     "H",
+     2.00151,
+     1.25301,
+     0.09445
+    ],
+    [
+     "C",
+     -0.15338,
+     1.18229,
+     0.0133
+    ],
+    [
+     "H",
+     -0.29192,
+     2.25397,
+     0.01354
+    ],
+    [
+     "C",
+     -1.24385,
+     0.32486,
+     -0.04706
+    ],
+    [
+     "H",
+     -2.2549,
+     0.7028,
+     -0.08061
+    ],
+    [
+     "C",
+     -1.01156,
+     -1.0463,
+     -0.05038
+    ],
+    [
+     "H",
+     -1.84114,
+     -1.73945,
+     -0.09808
+    ]
+   ],
+   "labels": [
+    "N1",
+    "C2",
+    "H5",
+    "C3",
+    "H6",
+    "C4",
+    "H7",
+    "C3",
+    "H6",
+    "C2",
+    "H5"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     2
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     1
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     9,
+     2
+    ],
+    [
+     9,
+     10,
+     1
+    ],
+    [
+     9,
+     0,
+     1
+    ]
+   ],
+   "n_params": 14,
+   "fit_max_error": {
+    "bond_A": 1e-05,
+    "angle_deg": 0.003,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0122,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1ccncc1",
+   "geometry_id": "hm3d_v12_p4_C5H5N_q1m2_9de47f8fa0c37e026b5368916e704aeb"
+  },
+  {
+   "key": "C5H4NF (2-Fluoropyridine)",
+   "name": "2-Fluoropyridine",
+   "formula": "C5H4FN",
+   "smiles": "Fc1ccccn1",
+   "heavy": 7,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "N",
+     0.32489,
+     -1.55637,
+     -0.01034
+    ],
+    [
+     "C",
+     1.25378,
+     -0.6362,
+     0.04084
+    ],
+    [
+     "F",
+     2.51035,
+     -1.08228,
+     0.08977
+    ],
+    [
+     "C",
+     1.04679,
+     0.73696,
+     0.06045
+    ],
+    [
+     "H",
+     1.88516,
+     1.41429,
+     0.10447
+    ],
+    [
+     "C",
+     -0.26612,
+     1.16805,
+     0.00695
+    ],
+    [
+     "H",
+     -0.49502,
+     2.22419,
+     0.01549
+    ],
+    [
+     "C",
+     -1.28821,
+     0.22128,
+     -0.05286
+    ],
+    [
+     "H",
+     -2.3256,
+     0.51696,
+     -0.09162
+    ],
+    [
+     "C",
+     -0.94321,
+     -1.11922,
+     -0.05852
+    ],
+    [
+     "H",
+     -1.7028,
+     -1.88768,
+     -0.10462
+    ]
+   ],
+   "labels": [
+    "N1",
+    "C2",
+    "F7",
+    "C3",
+    "H8",
+    "C4",
+    "H9",
+    "C5",
+    "H10",
+    "C6",
+    "H11"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     2
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     1
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     9,
+     2
+    ],
+    [
+     9,
+     10,
+     1
+    ],
+    [
+     9,
+     0,
+     1
+    ]
+   ],
+   "n_params": 22,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.001,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.01,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "Fc1ccccn1",
+   "geometry_id": "hm3d_v12_p4_C5H4FN_q1m2_666aef557f59e0372291f3ac5a733f5c"
+  },
+  {
+   "key": "C5H4NF(3-Fluoropyridine)",
+   "name": "3-Fluoropyridine",
+   "formula": "C5H4FN",
+   "smiles": "Fc1cccnc1",
+   "heavy": 7,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "N",
+     0.03855,
+     -1.61345,
+     -0.01209
+    ],
+    [
+     "C",
+     1.15798,
+     -0.88509,
+     0.00198
+    ],
+    [
+     "H",
+     2.09459,
+     -1.42619,
+     -0.00527
+    ],
+    [
+     "C",
+     1.12976,
+     0.50032,
+     -0.00023
+    ],
+    [
+     "F",
+     2.28727,
+     1.17393,
+     0.01208
+    ],
+    [
+     "C",
+     -0.0669,
+     1.18775,
+     0.01081
+    ],
+    [
+     "H",
+     -0.07527,
+     2.26741,
+     0.01475
+    ],
+    [
+     "C",
+     -1.22842,
+     0.42738,
+     0.00154
+    ],
+    [
+     "H",
+     -2.19805,
+     0.903,
+     0.00158
+    ],
+    [
+     "C",
+     -1.12502,
+     -0.96002,
+     -0.01052
+    ],
+    [
+     "H",
+     -2.01449,
+     -1.57504,
+     -0.01462
+    ]
+   ],
+   "labels": [
+    "N1",
+    "C2",
+    "H7",
+    "C3",
+    "F8",
+    "C4",
+    "H9",
+    "C5",
+    "H10",
+    "C6",
+    "H11"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     2
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     2
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     1
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     9,
+     2
+    ],
+    [
+     9,
+     10,
+     1
+    ],
+    [
+     9,
+     0,
+     1
+    ]
+   ],
+   "n_params": 21,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.001,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0115,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "Fc1cccnc1",
+   "geometry_id": "hm3d_v12_p4_C5H4FN_q1m2_b38bd4698890ec68f27fd64a74e8617b"
+  },
+  {
+   "key": "C6H6(Benzene)",
+   "name": "Benzene",
+   "formula": "C6H6",
+   "smiles": "c1ccccc1",
+   "heavy": 6,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     1.9827,
+     1.47526,
+     0.02878
+    ],
+    [
+     "C",
+     1.11638,
+     0.83066,
+     0.0162
+    ],
+    [
+     "C",
+     -0.16125,
+     1.38219,
+     0.01033
+    ],
+    [
+     "H",
+     -0.28639,
+     2.45478,
+     0.01836
+    ],
+    [
+     "C",
+     -1.27763,
+     0.55153,
+     -0.00587
+    ],
+    [
+     "H",
+     -2.26908,
+     0.97952,
+     -0.01041
+    ],
+    [
+     "C",
+     -1.11637,
+     -0.83066,
+     -0.0162
+    ],
+    [
+     "H",
+     -1.9827,
+     -1.47526,
+     -0.02877
+    ],
+    [
+     "C",
+     0.16125,
+     -1.38219,
+     -0.01033
+    ],
+    [
+     "H",
+     0.28639,
+     -2.45478,
+     -0.01836
+    ],
+    [
+     "C",
+     1.27763,
+     -0.55153,
+     0.00586
+    ],
+    [
+     "H",
+     2.26909,
+     -0.97952,
+     0.01041
+    ]
+   ],
+   "labels": [
+    "H2",
+    "C1",
+    "C1",
+    "H2",
+    "C1",
+    "H2",
+    "C1",
+    "H2",
+    "C1",
+    "H2",
+    "C1",
+    "H2"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     2,
+     4,
+     2
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     1
+    ],
+    [
+     6,
+     7,
+     1
+    ],
+    [
+     6,
+     8,
+     2
+    ],
+    [
+     8,
+     9,
+     1
+    ],
+    [
+     8,
+     10,
+     1
+    ],
+    [
+     10,
+     11,
+     1
+    ],
+    [
+     10,
+     1,
+     2
+    ]
+   ],
+   "n_params": 2,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0067,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "c1ccccc1",
+   "geometry_id": "hm3d_v12_p4_C6H6_q1m2_2e52a1aa3cd310606e9fbf3bf8a291df"
+  },
+  {
+   "key": "C4H4N2O2(Uracil)",
+   "name": "Uracil",
+   "formula": "C4H4N2O2",
+   "smiles": "O=c1cc[nH]c(=O)[nH]1",
+   "heavy": 8,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -2.19441,
+     0.86276,
+     0.00196
+    ],
+    [
+     "N",
+     -1.2673,
+     0.47586,
+     0.00183
+    ],
+    [
+     "C",
+     -0.24362,
+     1.40298,
+     0.04215
+    ],
+    [
+     "O",
+     -0.41892,
+     2.59909,
+     0.08648
+    ],
+    [
+     "N",
+     1.00837,
+     0.83139,
+     0.04719
+    ],
+    [
+     "H",
+     1.78239,
+     1.47803,
+     0.07608
+    ],
+    [
+     "C",
+     1.33426,
+     -0.52811,
+     -0.00263
+    ],
+    [
+     "O",
+     2.494,
+     -0.88154,
+     0.00103
+    ],
+    [
+     "C",
+     0.17591,
+     -1.40821,
+     -0.04862
+    ],
+    [
+     "H",
+     0.34218,
+     -2.47132,
+     -0.08357
+    ],
+    [
+     "C",
+     -1.05937,
+     -0.87871,
+     -0.04392
+    ],
+    [
+     "H",
+     -1.95351,
+     -1.48224,
+     -0.07799
+    ]
+   ],
+   "labels": [
+    "H11",
+    "N1",
+    "C2",
+    "O7",
+    "N3",
+    "H12",
+    "C4",
+    "O8",
+    "C5",
+    "H9",
+    "C6",
+    "H10"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     2
+    ],
+    [
+     2,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     1
+    ],
+    [
+     6,
+     7,
+     2
+    ],
+    [
+     6,
+     8,
+     1
+    ],
+    [
+     8,
+     9,
+     1
+    ],
+    [
+     8,
+     10,
+     2
+    ],
+    [
+     10,
+     11,
+     1
+    ],
+    [
+     10,
+     1,
+     1
+    ]
+   ],
+   "n_params": 24,
+   "fit_max_error": {
+    "bond_A": 1e-05,
+    "angle_deg": 0.003,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0102,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O=c1cc[nH]c(=O)[nH]1",
+   "geometry_id": "hm3d_v12_p4_C4H4N2O2_q1m2_089a10c6bb000fc18651c706ed1f7fab"
+  },
+  {
+   "key": "C4H4N2SO (2-Thiouracil)",
+   "name": "2-Thiouracil",
+   "formula": "C4H4N2OS",
+   "smiles": "O=c1cc[nH]c(=S)[nH]1",
+   "heavy": 8,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     0.30486,
+     -2.27069,
+     0.05969
+    ],
+    [
+     "N",
+     0.1843,
+     -1.26812,
+     0.06228
+    ],
+    [
+     "C",
+     -1.10266,
+     -0.81981,
+     0.0905
+    ],
+    [
+     "S",
+     -2.41713,
+     -1.81337,
+     0.17898
+    ],
+    [
+     "N",
+     -1.2145,
+     0.5384,
+     0.00642
+    ],
+    [
+     "H",
+     -2.15188,
+     0.89586,
+     0.07835
+    ],
+    [
+     "C",
+     -0.14074,
+     1.38511,
+     -0.0978
+    ],
+    [
+     "H",
+     -0.36805,
+     2.43437,
+     0.01582
+    ],
+    [
+     "C",
+     1.12236,
+     0.92408,
+     -0.12053
+    ],
+    [
+     "H",
+     1.99082,
+     1.56005,
+     -0.14934
+    ],
+    [
+     "C",
+     1.35679,
+     -0.5068,
+     -0.0398
+    ],
+    [
+     "O",
+     2.43583,
+     -1.0591,
+     -0.08457
+    ]
+   ],
+   "labels": [
+    "H12",
+    "N1",
+    "C2",
+    "S8",
+    "N3",
+    "H9",
+    "C4",
+    "H10",
+    "C5",
+    "H11",
+    "C6",
+    "O7"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     2
+    ],
+    [
+     2,
+     4,
+     1
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     1
+    ],
+    [
+     6,
+     7,
+     1
+    ],
+    [
+     6,
+     8,
+     2
+    ],
+    [
+     8,
+     9,
+     1
+    ],
+    [
+     8,
+     10,
+     1
+    ],
+    [
+     10,
+     11,
+     2
+    ],
+    [
+     10,
+     1,
+     1
+    ]
+   ],
+   "n_params": 24,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0371,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "O=c1cc[nH]c(=S)[nH]1",
+   "geometry_id": "hm3d_v12_p4_C4H4N2OS_q1m2_2b0a95eedcc13de7787bbee55a7665b8"
+  },
+  {
+   "key": "C6H5OH (Phenol)",
+   "name": "Phenol",
+   "formula": "C6H6O",
+   "smiles": "Oc1ccccc1",
+   "heavy": 7,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     2.91155,
+     0.37537,
+     0.18749
+    ],
+    [
+     "O",
+     2.42721,
+     -0.43707,
+     0.34812
+    ],
+    [
+     "C",
+     1.09939,
+     -0.20936,
+     0.13564
+    ],
+    [
+     "C",
+     0.60759,
+     1.03403,
+     -0.25127
+    ],
+    [
+     "H",
+     1.29271,
+     1.85699,
+     -0.41741
+    ],
+    [
+     "C",
+     -0.76107,
+     1.21045,
+     -0.41868
+    ],
+    [
+     "H",
+     -1.13578,
+     2.17278,
+     -0.73781
+    ],
+    [
+     "C",
+     -1.64081,
+     0.15763,
+     -0.19455
+    ],
+    [
+     "H",
+     -2.70185,
+     0.29392,
+     -0.34001
+    ],
+    [
+     "C",
+     -1.1382,
+     -1.07731,
+     0.20435
+    ],
+    [
+     "H",
+     -1.81324,
+     -1.90323,
+     0.38169
+    ],
+    [
+     "C",
+     0.22452,
+     -1.25943,
+     0.40092
+    ],
+    [
+     "H",
+     0.62798,
+     -2.21476,
+     0.70152
+    ]
+   ],
+   "labels": [
+    "H13",
+    "O12",
+    "C1",
+    "C2",
+    "H7",
+    "C3",
+    "H8",
+    "C4",
+    "H9",
+    "C5",
+    "H10",
+    "C6",
+    "H11"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     2,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     2
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     9,
+     1
+    ],
+    [
+     9,
+     10,
+     1
+    ],
+    [
+     9,
+     11,
+     2
+    ],
+    [
+     11,
+     12,
+     1
+    ],
+    [
+     11,
+     2,
+     1
+    ]
+   ],
+   "n_params": 24,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0135,
+   "notes": [
+    "corrected SI label misprints: O10-H13->O12-H13",
+    "conformer: H13O12C1C2=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "Oc1ccccc1",
+   "geometry_id": "hm3d_v12_p4_C6H6O_q1m2_edc6aa01bec0cde3b9f29ada068a25b3"
+  },
+  {
+   "key": "CH2=CH-CH=CH-CH=CH2",
+   "name": "1,3,5-Hexatriene (E)",
+   "formula": "C6H8",
+   "smiles": "C=CC=CC=C",
+   "heavy": 6,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     3.22278,
+     -0.95761,
+     0.26316
+    ],
+    [
+     "C",
+     3.05998,
+     -0.02016,
+     -0.25097
+    ],
+    [
+     "H",
+     3.92851,
+     0.50444,
+     -0.62091
+    ],
+    [
+     "C",
+     1.82259,
+     0.4701,
+     -0.42106
+    ],
+    [
+     "H",
+     1.68788,
+     1.41444,
+     -0.94144
+    ],
+    [
+     "C",
+     0.63791,
+     -0.21234,
+     0.06493
+    ],
+    [
+     "H",
+     0.80197,
+     -1.1495,
+     0.57877
+    ],
+    [
+     "C",
+     -0.63791,
+     0.21234,
+     -0.06493
+    ],
+    [
+     "H",
+     -0.80197,
+     1.1495,
+     -0.57877
+    ],
+    [
+     "C",
+     -1.82259,
+     -0.4701,
+     0.42106
+    ],
+    [
+     "H",
+     -1.68788,
+     -1.41444,
+     0.94144
+    ],
+    [
+     "C",
+     -3.05998,
+     0.02016,
+     0.25097
+    ],
+    [
+     "H",
+     -3.22278,
+     0.95761,
+     -0.26316
+    ],
+    [
+     "H",
+     -3.92851,
+     -0.50444,
+     0.62091
+    ]
+   ],
+   "labels": [
+    "H4",
+    "C1",
+    "H5",
+    "C2",
+    "H6",
+    "C3",
+    "H7",
+    "C3",
+    "H7",
+    "C2",
+    "H6",
+    "C1",
+    "H4",
+    "H5"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     2
+    ],
+    [
+     7,
+     8,
+     1
+    ],
+    [
+     7,
+     9,
+     1
+    ],
+    [
+     9,
+     10,
+     1
+    ],
+    [
+     9,
+     11,
+     2
+    ],
+    [
+     11,
+     12,
+     1
+    ],
+    [
+     11,
+     13,
+     1
+    ]
+   ],
+   "n_params": 13,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0368,
+   "notes": [
+    "conformer: C1C2C3C3=180, C2C3C3C2=180, C3C2C1H4=0"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=CC=CC=C",
+   "geometry_id": "hm3d_v12_p4_C6H8_q1m2_a80c401fbdf6c0e9b3bed26074e71fa5"
+  },
+  {
+   "key": "C6H5-C # CH (Phenyl-Acetylene)",
+   "name": "Phenylacetylene",
+   "formula": "C8H6",
+   "smiles": "C#Cc1ccccc1",
+   "heavy": 8,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     4.4122,
+     0.14143,
+     0.20137
+    ],
+    [
+     "C",
+     3.35305,
+     0.10748,
+     0.15303
+    ],
+    [
+     "C",
+     2.14742,
+     0.06883,
+     0.098
+    ],
+    [
+     "C",
+     0.71814,
+     0.02385,
+     0.04159
+    ],
+    [
+     "C",
+     -0.01901,
+     1.20273,
+     -0.11176
+    ],
+    [
+     "H",
+     0.49893,
+     2.14648,
+     -0.1816
+    ],
+    [
+     "C",
+     -1.40553,
+     1.15466,
+     -0.17293
+    ],
+    [
+     "H",
+     -1.96676,
+     2.06996,
+     -0.29247
+    ],
+    [
+     "C",
+     -2.06874,
+     -0.06596,
+     -0.09068
+    ],
+    [
+     "H",
+     -3.14698,
+     -0.10088,
+     -0.14363
+    ],
+    [
+     "C",
+     -1.33903,
+     -1.2421,
+     0.05336
+    ],
+    [
+     "H",
+     -1.84848,
+     -2.19304,
+     0.11002
+    ],
+    [
+     "C",
+     0.0477,
+     -1.20161,
+     0.11524
+    ],
+    [
+     "H",
+     0.61708,
+     -2.11185,
+     0.22045
+    ]
+   ],
+   "labels": [
+    "H9",
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "H10",
+    "C5",
+    "H11",
+    "C6",
+    "H12",
+    "C5",
+    "H11",
+    "C4",
+    "H10"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     3
+    ],
+    [
+     2,
+     3,
+     1
+    ],
+    [
+     3,
+     4,
+     2
+    ],
+    [
+     4,
+     5,
+     1
+    ],
+    [
+     4,
+     6,
+     1
+    ],
+    [
+     6,
+     7,
+     1
+    ],
+    [
+     6,
+     8,
+     2
+    ],
+    [
+     8,
+     9,
+     1
+    ],
+    [
+     8,
+     10,
+     1
+    ],
+    [
+     10,
+     11,
+     1
+    ],
+    [
+     10,
+     12,
+     2
+    ],
+    [
+     12,
+     13,
+     1
+    ],
+    [
+     12,
+     3,
+     1
+    ]
+   ],
+   "n_params": 17,
+   "fit_max_error": {
+    "bond_A": 1e-05,
+    "angle_deg": 0.003,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.0148,
+   "notes": [
+    "corrected SI label misprints: C3-H12->C6-H12"
+   ],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C#Cc1ccccc1",
+   "geometry_id": "hm3d_v12_p4_C8H6_q1m2_f8347fb716fa8f9cf70c42394734864e"
+  },
+  {
+   "key": "(H2C=CH - CH2S)2(Diallyldisulfide)",
+   "name": "Diallyl disulfide",
+   "formula": "C6H10S2",
+   "smiles": "C=CCSSCC=C",
+   "heavy": 8,
+   "multiplicity": 1,
+   "atoms": [
+    [
+     "H",
+     -1.60978,
+     -0.27108,
+     2.65184
+    ],
+    [
+     "C",
+     -0.59907,
+     0.08738,
+     2.51252
+    ],
+    [
+     "H",
+     0.1787,
+     -0.34017,
+     3.12892
+    ],
+    [
+     "C",
+     -0.328,
+     1.03341,
+     1.61235
+    ],
+    [
+     "H",
+     0.68197,
+     1.41879,
+     1.52661
+    ],
+    [
+     "C",
+     -1.35614,
+     1.64401,
+     0.72844
+    ],
+    [
+     "H",
+     -1.27969,
+     2.73305,
+     0.76403
+    ],
+    [
+     "H",
+     -2.37051,
+     1.35565,
+     0.99851
+    ],
+    [
+     "S",
+     -1.0937,
+     1.25849,
+     -1.04372
+    ],
+    [
+     "S",
+     -1.5023,
+     -0.72672,
+     -1.11857
+    ],
+    [
+     "C",
+     0.13664,
+     -1.52202,
+     -0.91364
+    ],
+    [
+     "H",
+     0.56351,
+     -1.27286,
+     0.05493
+    ],
+    [
+     "H",
+     -0.15129,
+     -2.57568,
+     -0.91502
+    ],
+    [
+     "C",
+     1.0617,
+     -1.19886,
+     -2.02959
+    ],
+    [
+     "H",
+     0.19267,
+     -0.7392,
+     -2.4853
+    ],
+    [
+     "C",
+     2.18054,
+     -0.49496,
+     -1.87029
+    ],
+    [
+     "H",
+     2.82182,
+     -0.25908,
+     -2.70705
+    ],
+    [
+     "H",
+     2.47294,
+     -0.13016,
+     -0.89496
+    ]
+   ],
+   "labels": [
+    "H5",
+    "C4",
+    "H6",
+    "C3",
+    "H7",
+    "C2",
+    "H8",
+    "H9",
+    "S1",
+    "S10",
+    "C11",
+    "H14",
+    "H15",
+    "C12",
+    "H17",
+    "C13",
+    "H16",
+    "H18"
+   ],
+   "bonds": [
+    [
+     0,
+     1,
+     1
+    ],
+    [
+     1,
+     2,
+     1
+    ],
+    [
+     1,
+     3,
+     2
+    ],
+    [
+     3,
+     4,
+     1
+    ],
+    [
+     3,
+     5,
+     1
+    ],
+    [
+     5,
+     6,
+     1
+    ],
+    [
+     5,
+     7,
+     1
+    ],
+    [
+     5,
+     8,
+     1
+    ],
+    [
+     8,
+     9,
+     1
+    ],
+    [
+     9,
+     10,
+     1
+    ],
+    [
+     10,
+     11,
+     1
+    ],
+    [
+     10,
+     12,
+     1
+    ],
+    [
+     10,
+     13,
+     1
+    ],
+    [
+     13,
+     14,
+     1
+    ],
+    [
+     13,
+     15,
+     2
+    ],
+    [
+     15,
+     16,
+     1
+    ],
+    [
+     15,
+     17,
+     1
+    ]
+   ],
+   "n_params": 48,
+   "fit_max_error": {
+    "bond_A": 0.0,
+    "angle_deg": 0.0,
+    "dihedral_deg": 0.0
+   },
+   "xtb_rmsd_A": 0.2857,
+   "notes": [],
+   "reference": {
+    "text": "G. Ceselin, V. Barone, N. Tasinato, J. Chem. Theory Comput. 17, 7290-7311 (2021), SE100 database, Table S1 (SE column)",
+    "doi": "10.1021/acs.jctc.1c00788",
+    "license": "CC BY 4.0"
+   },
+   "qumol_smiles": "C=CCSSCC=C",
+   "geometry_id": "hm3d_v12_p4_C6H10S2_q1m2_636ef039c8fcc151bef45cbbfde38c60"
+  }
+ ]
+}
