@@ -98,7 +98,13 @@ const mats = {}; for(const e in EL) mats[e] = new THREE.MeshStandardMaterial({co
 const selMat = new THREE.MeshStandardMaterial({color:0xffffff, emissive:0x7c5cff, emissiveIntensity:1.3});
 const bondMat = new THREE.MeshStandardMaterial({color:0xc9d1e8, roughness:0.4});
 const hoverBondMat = new THREE.MeshStandardMaterial({color:0xffffff, emissive:0x20d3a7, emissiveIntensity:0.9, roughness:0.3});
+const badBondMat = new THREE.MeshBasicMaterial({color:0xff5a5a, transparent:true, opacity:0.7});
 let hoverBond = -1;
+// A bond more than 35% longer (or 30% shorter) than its typical length is drawn as broken.
+function stretched(b, L){
+  const r0 = (EL[atoms[b.a].el].r + EL[atoms[b.b].el].r) * ORDER[b.o];
+  return L > 1.35 * r0 || L < 0.7 * r0;
+}
 const Y = new THREE.Vector3(0,1,0);
 
 function randUnit(){
@@ -122,6 +128,14 @@ function rebuild(){
   bonds.forEach((b, bi) => {
     const p1 = atoms[b.a].p, p2 = atoms[b.b].p;
     const dir = p2.clone().sub(p1); const L = dir.length(); if(L < 1e-6) return; dir.normalize();
+    if(stretched(b, L)){
+      // Far from any sensible bond length: don't pretend it's a bond. While editing,
+      // a thin red line shows the bond is still there; during optimization it's hidden.
+      if(busy) return;
+      const m = new THREE.Mesh(cylGeo, badBondMat);
+      m.scale.set(0.025, L, 0.025); m.position.copy(p1).add(p2).multiplyScalar(0.5);
+      m.quaternion.setFromUnitVectors(Y, dir); molGroup.add(m); return;
+    }
     const perp = perpOf(dir).multiplyScalar(0.13);
     const offs = b.o === 1 ? [0] : b.o === 2 ? [-0.5, 0.5] : [-1, 0, 1];
     const rad = b.o === 1 ? 0.09 : 0.055;
@@ -1077,6 +1091,7 @@ async function submit(){
   undoStack.push(snap);
   try{
     if(ONLINE){ await submitOnline(); return; }
+    const built = serialize();
     const ff = buildFF();
     const x = new Float64Array(atoms.length*3);
     atoms.forEach((a,i) => x.set([a.p.x, a.p.y, a.p.z], 3*i));
@@ -1096,8 +1111,18 @@ async function submit(){
 
     toast('Optimizing…', 1300); SFX.whoosh();
     await animateFrames(frames, 1300);
-    setCoords(x); changed();
-    burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 40, 4, 0.8, 0.28);
+    const broken = !sane(ff, x);
+    let warning = null;
+    if(broken){
+      restore(built); rebuild(); changed();
+      warning = 'The optimizer pulled the structure apart: bonds stretched or atoms collided. Your structure may be too far from a stable minimum. Try more reasonable bond lengths and angles (📏 Measure helps).';
+    } else if(!res.converged){
+      setCoords(x); changed();
+      warning = "The optimization didn't converge, so the structure may still be far from a minimum.";
+    } else {
+      setCoords(x); changed();
+      burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 40, 4, 0.8, 0.28);
+    }
 
     const smiles = getSmiles(), form = formula(), heavy = heavyCount();
     const lines = [];
@@ -1109,7 +1134,8 @@ async function submit(){
       if(inputMethod === 'example') lines.push(['Geometry', 0, 'example molecule']);
       else lines.push(['Geometry', Math.round(100*Math.exp(-dEpa/2)), `ΔE ${dEpa.toFixed(2)} kcal/mol per atom`]);
       if(saddle) lines.push(['Saddle point', 0, 'rolled off to a minimum']);
-      lines.push(stable ? ['Stable', 50] : ['Unstable', 0, 'no bonuses']);
+      lines.push(stable ? ['Stable', 50] : broken ? ['Optimization failed', 0, 'structure fell apart; no bonuses']
+        : !res.converged ? ['Not converged', 0, 'no bonuses'] : ['Unstable', 0, 'no bonuses']);
       const nRad = freeHeavy();
       if(nRad) lines.push(['Radical', 0, `${nRad} unpaired electron${nRad > 1 ? 's' : ''}`]);
       if(stable && valenceState().charge.some(q => q)) lines.push(['Formal charges', 50]);
@@ -1137,7 +1163,7 @@ async function submit(){
       if(history.length > 200) history.length = 200;
       LS.set('qm.total', total); LS.set('qm.records', records); LS.set('qm.history', history);
     }
-    await showScore(lines, mult, heavy, score, pubNew === true && !already);
+    await showScore(lines, mult, heavy, score, pubNew === true && !already, null, warning);
     updateInfo();
   } finally {
     busy = false; document.body.classList.remove('busy');
@@ -1173,6 +1199,7 @@ async function submitOnline(){
     input_method: inputMethod, mode: 'stable',
   };
   toast('Optimizing…', 4000); SFX.whoosh();
+  const before = serialize();
   let r;
   for(let attempt = 0; ; attempt++){
     try{ r = await api('/api/submissions', {method:'POST', body}); break; }
@@ -1183,10 +1210,15 @@ async function submitOnline(){
     }
   }
   await animateFrames(r.frames.map(f => f.flat()), 1300);
-  setCoords(r.coords_opt.flat()); changed();
-  burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 40, 4, 0.8, 0.28);
+  if(r.opt_status === 'broken'){
+    restore(before); rebuild(); changed();  // give the player their structure back to fix
+    shake = 0.25; buzz([20,40,20]);
+  } else {
+    setCoords(r.coords_opt.flat()); changed();
+    burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 40, 4, 0.8, 0.28);
+  }
   total = r.total; LS.set('qm.total', total);
-  await showScore(r.lines, r.multiplier, r.n_heavy, r.score, r.discovery, r.pubchem && r.pubchem.name);
+  await showScore(r.lines, r.multiplier, r.n_heavy, r.score, r.discovery, r.pubchem && r.pubchem.name, r.warning);
   updateInfo();
 }
 
@@ -1211,9 +1243,10 @@ function closeBtn(card, text='Keep building'){
   b.onclick = () => { $('ov').classList.add('hidden'); SFX.tick(); };
   card.appendChild(b);
 }
-async function showScore(lines, mult, heavy, score, discovery, name=null){
+async function showScore(lines, mult, heavy, score, discovery, name=null, warning=null){
   const card = openCard();
   const h = document.createElement('h2'); h.textContent = discovery ? '🚀 Discovery!' : name ? name : score > 0 ? 'Molecule scored!' : 'Hmm…'; card.appendChild(h);
+  if(warning){ const w = document.createElement('div'); w.className = 'warnbox'; w.textContent = '⚠️ ' + warning; card.appendChild(w); }
   if(discovery){ const w = document.createElement('div'); w.className = 'wow'; w.textContent = 'Possibly new to science'; card.appendChild(w); }
   for(let i=0;i<lines.length;i++){ const [l,p,s,link] = lines[i]; card.appendChild(lineEl(l, p, s, '', link)); SFX.tick(i); await sleep(330); }
   if(score > 0){ card.appendChild(lineEl('Size', `×${mult.toFixed(2)}`, `${heavy} heavy atom${heavy>1?'s':''} — smaller scores more`, 'mult')); SFX.tick(lines.length); await sleep(330); }

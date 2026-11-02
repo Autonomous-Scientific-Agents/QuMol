@@ -140,3 +140,33 @@ def test_local_pubchem_table(client, tmp_path, monkeypatch):
     # stereo variant only in the table: matched on the connectivity block of the InChIKey
     from qumol import pubchem
     assert pubchem.lookup_local("JVTAAEKCZFNVCJ-UHFFFAOYSA-N")[:2] == (True, 107689)
+
+
+def test_broken_optimization_is_reported(client, monkeypatch):
+    """If the optimizer tears the molecule apart, say so instead of scoring it as a molecule."""
+    import numpy as np
+
+    from qumol import scoring
+    from qumol.calculators import OptResult, get_calculator
+
+    real = get_calculator("toyff")
+
+    class Exploding:
+        name, version, kind, energy_unit, skill_scale = real.name, real.version, real.kind, real.energy_unit, 2.0
+
+        def params(self):
+            return real.params()
+
+        def optimize(self, mol, seed=0):
+            x = np.array(mol.coords, dtype=float)
+            y = x.copy()
+            y[0] += 6.0  # fling the first atom away
+            return OptResult(e_input=10.0, e_opt=-5.0, coords_input=x, coords_opt=y, fmax=0.01,
+                             converged=True, saddle=False, n_steps=12, frames=[x, y])
+
+    monkeypatch.setattr(scoring, "get_calculator", lambda method=None: Exploding())
+    h, _ = player(client)
+    j = client.post("/api/submissions", json=ethanol(), headers=h).json()
+    assert j["opt_status"] == "broken" and not j["stable"] and "too far from a stable minimum" in j["warning"]
+    labels = [l[0] for l in j["lines"]]
+    assert "Optimization failed" in labels and "New SMILES" not in labels and "New formula" not in labels

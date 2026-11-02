@@ -30,6 +30,7 @@ class OptResult:
     saddle: bool  # a small kick lowered the energy: it had stopped on a saddle point
     n_steps: int
     frames: list[np.ndarray] = field(default_factory=list)  # optimization trajectory
+    prerelax_steps: int = 0  # force-field steps taken before the main optimizer
 
 
 class Calculator:

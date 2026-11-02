@@ -100,6 +100,7 @@ After deploying, check that `journalctl -u qumol` shows players' real IP address
 | `QUMOL_METHOD` | `toyff` | Energy method: `toyff`, `uma`, or `emt` (EMT is for testing only) |
 | `QUMOL_UMA_MODEL` | `uma-s-1p2p1` | UMA checkpoint, the newest and fastest small model (needs `fairchem-core` and accepted access to the gated weights) |
 | `QUMOL_DEVICE` | `cpu` | Device for ML potentials |
+| `QUMOL_PRERELAX` | `toyff` | Relax with the toy force field before the ML potential (faster, fewer blow-ups); `none` turns it off |
 | `QUMOL_PUBCHEM` | `1` | Set to `0` to skip live PubChem lookups |
 
 ## How it fits together
