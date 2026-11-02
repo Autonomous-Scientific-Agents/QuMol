@@ -91,3 +91,13 @@ def test_formal_charges():
         smi(["C"], [])
     with pytest.raises(ChemError):  # O with 3 bonds but nothing to balance the charge
         smi(["O", "H", "H", "H"], [(0, 1, 1), (0, 2, 1), (0, 3, 1)])
+
+
+def test_ase_path_prerelaxes_with_the_force_field(monkeypatch):
+    pytest.importorskip("ase")
+    calc = get_calculator("emt")
+    stretched = validate(["O", "H", "H"], [[0, 0, 0], [1.3, 0, 0], [-0.3, 1.25, 0]], [(0, 1, 1), (0, 2, 1)])
+    res = calc.optimize(stretched)
+    assert res.prerelax_steps > 0 and len(res.frames) > 3
+    monkeypatch.setenv("QUMOL_PRERELAX", "none")
+    assert calc.optimize(stretched).prerelax_steps == 0

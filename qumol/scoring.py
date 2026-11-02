@@ -54,9 +54,21 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
 
     with compute():
         res = calc.optimize(mol, seed=seed)
-        stable = bool(res.converged and structure_intact(mol, res.coords_opt))
+        intact = structure_intact(mol, res.coords_opt)
+        stable = bool(res.converged and intact)
         g_in = hash_geometry(mol.symbols, res.coords_input, multiplicity=mol.multiplicity)
         g_opt = hash_geometry(mol.symbols, res.coords_opt, multiplicity=mol.multiplicity)
+    # Tell the player what went wrong instead of silently showing a broken structure.
+    if not intact:
+        opt_status, warning = "broken", (
+            "The optimizer pulled the structure apart: bonds stretched or atoms collided. "
+            "Your structure may be too far from a stable minimum. Try more reasonable bond "
+            "lengths and angles (📏 Measure helps).")
+    elif not res.converged:
+        opt_status, warning = "not_converged", (
+            "The optimization didn't converge, so the structure may still be far from a minimum.")
+    else:
+        opt_status, warning = "ok", None
     smiles = smiles_of(mol)
     inchikey = inchikey_of(smiles)
     n_heavy = mol.n_heavy
@@ -78,7 +90,8 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
         db.add_calculation(
             con, g_in.id, mid, "optimization", energy=res.e_opt, fmax=res.fmax, converged=res.converged,
             result_geometry_id=g_opt.id,
-            extra={"stable": stable, "saddle": res.saddle, "n_steps": res.n_steps},
+            extra={"stable": stable, "saddle": res.saddle, "n_steps": res.n_steps,
+                   "prerelax_steps": res.prerelax_steps, "intact": intact},
         )
 
         def scalar(sql, *args):
@@ -110,7 +123,14 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
                 lines.append(["Geometry", 0, NO_GEOMETRY_NOTE[input_method]])
             if res.saddle:
                 lines.append(["Saddle point", 0, "rolled off to a minimum"])
-            lines.append(["Stable", POINTS["stable"], None] if stable else ["Unstable", 0, "no bonuses"])
+            if stable:
+                lines.append(["Stable", POINTS["stable"], None])
+            elif opt_status == "broken":
+                lines.append(["Optimization failed", 0, "structure fell apart; no bonuses"])
+            elif opt_status == "not_converged":
+                lines.append(["Not converged", 0, "no bonuses"])
+            else:
+                lines.append(["Unstable", 0, "no bonuses"])
             if mol.radicals:
                 n = mol.radicals
                 lines.append(["Radical", 0, f"{n} unpaired electron{'s' if n > 1 else ''}"])
@@ -169,6 +189,8 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
         "multiplier": round(mult, 4),
         "n_heavy": n_heavy,
         "stable": stable,
+        "opt_status": opt_status,
+        "warning": warning,
         "saddle": res.saddle,
         "already": already,
         "discovery": discovery,

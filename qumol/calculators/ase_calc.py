@@ -72,6 +72,24 @@ class ASECalculator(Calculator):
         coords_input = at.get_positions().copy()
         e_input = float(at.get_potential_energy())
         frames = [coords_input.copy()]
+        # Cheap head start: relax with the toy force field first, then let the ML potential
+        # finish. Saves model calls and keeps a rough hand-built structure from flying apart
+        # in the first large ML steps. Skipped if the force field itself breaks the structure.
+        ff_steps = 0
+        if os.environ.get("QUMOL_PRERELAX", "toyff") == "toyff":
+            from ..chem import structure_intact
+            from .toyff import ToyFF
+
+            ff = ToyFF()
+            ff.build(mol)
+            y = coords_input.copy()
+            ff_frames = []
+            _, _, _, ff_steps = ff.fire(y, max_steps=1500, record=ff_frames)
+            if structure_intact(mol, y):
+                frames.extend(ff_frames)
+                at.set_positions(y)
+            else:
+                ff_steps = 0
         E, fmax, conv, n = self._relax(at, self.max_steps, record=frames)
         x = at.get_positions().copy()
         frames.append(x.copy())
@@ -85,6 +103,7 @@ class ASECalculator(Calculator):
         return OptResult(
             e_input=e_input, e_opt=E, coords_input=coords_input, coords_opt=x,
             fmax=fmax, converged=conv, saddle=bool(saddle), n_steps=int(n), frames=frames,
+            prerelax_steps=int(ff_steps),
         )
 
 
