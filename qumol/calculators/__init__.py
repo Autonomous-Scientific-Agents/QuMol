@@ -31,6 +31,9 @@ class OptResult:
     n_steps: int
     frames: list[np.ndarray] = field(default_factory=list)  # optimization trajectory
     prerelax_steps: int = 0  # force-field steps taken before the main optimizer
+    # One entry per frame: (stage, step, energy, max force), for the progress readout and log.
+    frame_info: list[tuple] = field(default_factory=list)
+    stages: list[dict] = field(default_factory=list)  # name, steps, energies, unit, converged
 
 
 class Calculator:
@@ -74,11 +77,14 @@ def get_calculator(key: str | None = None) -> Calculator:
     return _CACHE[key]
 
 
-def subsample(frames: list[np.ndarray], n: int = 60) -> list[np.ndarray]:
-    if len(frames) <= n:
-        return frames
-    idx = np.linspace(0, len(frames) - 1, n).round().astype(int)
-    return [frames[i] for i in idx]
+def subsample_idx(count: int, n: int = 60) -> list[int]:
+    if count <= n:
+        return list(range(count))
+    return sorted(set(np.linspace(0, count - 1, n).round().astype(int).tolist()))
+
+
+def subsample(frames: list, n: int = 60) -> list:
+    return [frames[i] for i in subsample_idx(len(frames), n)]
 
 
 # Register built-in calculators.

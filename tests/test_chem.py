@@ -101,3 +101,12 @@ def test_ase_path_prerelaxes_with_the_force_field(monkeypatch):
     assert res.prerelax_steps > 0 and len(res.frames) > 3
     monkeypatch.setenv("QUMOL_PRERELAX", "none")
     assert calc.optimize(stretched).prerelax_steps == 0
+
+
+def test_structure_problem_names_the_broken_bond():
+    from qumol.chem import structure_problem
+    mol = water()
+    x = mol.coords.copy()
+    assert structure_problem(mol, x) is None
+    x[1] = x[0] + (x[1] - x[0]) * 3
+    assert "bond O1–H2 stretched" in structure_problem(mol, x)

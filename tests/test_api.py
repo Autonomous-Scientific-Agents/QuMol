@@ -30,6 +30,11 @@ def test_submission_scoring_and_storage(client):
     assert j["score"] == j["total"] == sum(l[1] for l in j["lines"])
     assert j["optimized_geometry_id"].startswith("hm3d_") and "_C2H6O_q0m1_" in j["optimized_geometry_id"]
     assert len(j["frames"]) > 1 and len(j["coords_opt"]) == 9
+    # progress readout and log
+    assert len(j["frame_info"]) == len(j["frames"]) and j["frame_info"][0][0] == "input"
+    log = j["log"]
+    assert log["elapsed_s"] >= 0 and log["steps"] and "toy force field" in log["events"][0]
+    assert any(e.startswith("saddle check") for e in log["events"])
 
     # The same molecule again: stored, but no points.
     again = client.post("/api/submissions", json=ethanol(), headers=h).json()
@@ -174,6 +179,7 @@ def test_broken_optimization_is_reported(client, monkeypatch):
     labels = [l[0] for l in j["lines"]]
     assert "Optimization failed" in labels and "New QuMol SMILES" not in labels and "New QuMol formula" not in labels
     assert "Size bonus" not in labels
+    assert any("stretched" in e for e in j["log"]["events"])  # says which bond broke
 
 
 def test_size_bonus():

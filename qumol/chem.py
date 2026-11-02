@@ -304,27 +304,36 @@ def inchikey_of(smiles: str | None) -> str | None:
 # ---------------------------------------------------------------- sanity
 
 
-def structure_intact(mol: Molecule, coords: np.ndarray) -> bool:
-    """Did the optimized structure keep its bonds without collapsing?"""
+def structure_problem(mol: Molecule, coords: np.ndarray) -> str | None:
+    """What broke, in words (None if the structure kept its bonds without collapsing)."""
     x = np.asarray(coords)
     r = {s: ELEMENTS[s]["r"] for s in ELEMENTS}
     factor = {1: 1.0, 2: 0.87, 3: 0.78}
+
+    def name(i):
+        return f"{mol.symbols[i]}{i + 1}"
+
     for a, b, o in mol.bonds:
         r0 = (r[mol.symbols[a]] + r[mol.symbols[b]]) * factor[o]
-        d = np.linalg.norm(x[a] - x[b])
-        if d > 1.25 * r0 or d < 0.75 * r0:
-            return False
+        d = float(np.linalg.norm(x[a] - x[b]))
+        if d > 1.25 * r0:
+            return f"bond {name(a)}–{name(b)} stretched to {d:.2f} Å (normal ≈ {r0:.2f} Å)"
+        if d < 0.75 * r0:
+            return f"bond {name(a)}–{name(b)} squeezed to {d:.2f} Å (normal ≈ {r0:.2f} Å)"
     bonded = {(min(a, b), max(a, b)) for a, b, _ in mol.bonds}
     n = len(mol.symbols)
     for i in range(n):
         for j in range(i + 1, n):
-            if (i, j) in bonded:
+            if (i, j) in bonded or mol.symbols[i] == "H" or mol.symbols[j] == "H":
                 continue
-            if mol.symbols[i] == "H" or mol.symbols[j] == "H":
-                continue
-            if np.linalg.norm(x[i] - x[j]) < 1.6:
-                # an unbonded heavy-atom pair this close: collapsed structure,
-                # unless they are 1-3 neighbors sharing an atom
-                if not set(mol.neighbors(i)) & set(mol.neighbors(j)):
-                    return False
-    return True
+            d = float(np.linalg.norm(x[i] - x[j]))
+            # an unbonded heavy-atom pair this close: collapsed structure,
+            # unless they are 1-3 neighbors sharing an atom
+            if d < 1.6 and not set(mol.neighbors(i)) & set(mol.neighbors(j)):
+                return f"unbonded atoms {name(i)} and {name(j)} collided ({d:.2f} Å apart)"
+    return None
+
+
+def structure_intact(mol: Molecule, coords: np.ndarray) -> bool:
+    """Did the optimized structure keep its bonds without collapsing?"""
+    return structure_problem(mol, coords) is None

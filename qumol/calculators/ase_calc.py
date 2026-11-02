@@ -46,7 +46,7 @@ class ASECalculator(Calculator):
         at.calc = self.calc
         return at
 
-    def _relax(self, atoms, max_steps, record=None):
+    def _relax(self, atoms, max_steps, record=None, info=None, stage=None):
         # Each optimizer step is one model call, so the optimizer choice dominates the cost
         # with an ML potential. BFGS needs far fewer steps than FIRE for small molecules.
         from ase import optimize
@@ -55,7 +55,13 @@ class ASECalculator(Calculator):
         opt_cls = {"BFGS": optimize.BFGS, "LBFGS": optimize.LBFGS, "FIRE": optimize.FIRE}.get(name, optimize.BFGS)
         opt = opt_cls(atoms, logfile=None, maxstep=0.2)
         if record is not None:
-            opt.attach(lambda: record.append(atoms.get_positions().copy()), interval=1)
+            def observe():  # runs after forces are computed, so energy and forces are cached
+                record.append(atoms.get_positions().copy())
+                if info is not None:
+                    f = atoms.get_forces()
+                    info.append((stage or self.name, opt.nsteps, float(atoms.get_potential_energy()),
+                                 float(np.linalg.norm(f, axis=1).max())))
+            opt.attach(observe, interval=1)
         conv = opt.run(fmax=self.fmax_target, steps=max_steps)
         f = atoms.get_forces()
         return float(atoms.get_potential_energy()), float(np.linalg.norm(f, axis=1).max()), bool(conv), opt.nsteps
@@ -72,6 +78,8 @@ class ASECalculator(Calculator):
         coords_input = at.get_positions().copy()
         e_input = float(at.get_potential_energy())
         frames = [coords_input.copy()]
+        info = [("input", 0, e_input, float(np.linalg.norm(at.get_forces(), axis=1).max()))]
+        stages = []
         # Cheap head start: relax with the toy force field first, then let the ML potential
         # finish. Saves model calls and keeps a rough hand-built structure from flying apart
         # in the first large ML steps. Skipped if the force field itself breaks the structure.
@@ -83,27 +91,41 @@ class ASECalculator(Calculator):
             ff = ToyFF()
             ff.build(mol)
             y = coords_input.copy()
-            ff_frames = []
-            _, _, _, ff_steps = ff.fire(y, max_steps=1500, record=ff_frames)
-            if structure_intact(mol, y):
+            ff_frames, ff_info = [], []
+            e0_ff, _ = ff.energy_grad(y)
+            e1_ff, _, ff_conv, ff_steps = ff.fire(y, max_steps=1500, record=ff_frames, info=ff_info,
+                                                  stage="toy force field")
+            used = structure_intact(mol, y)
+            stages.append({"name": "toy force field", "steps": int(ff_steps), "e_start": float(e0_ff),
+                           "e_end": float(e1_ff), "unit": ff.energy_unit, "converged": bool(ff_conv),
+                           "used": bool(used)})
+            if used:
                 frames.extend(ff_frames)
+                info.extend(ff_info)
                 at.set_positions(y)
             else:
                 ff_steps = 0
-        E, fmax, conv, n = self._relax(at, self.max_steps, record=frames)
+        e_start = float(at.get_potential_energy())
+        E, fmax, conv, n = self._relax(at, self.max_steps, record=frames, info=info, stage=self.name)
+        stages.append({"name": self.name, "steps": int(n), "e_start": e_start, "e_end": float(E),
+                       "unit": self.energy_unit, "converged": bool(conv)})
         x = at.get_positions().copy()
         frames.append(x.copy())
+        info.append((self.name, int(n), float(E), float(fmax)))
         rng = np.random.default_rng(seed)
         at2 = self._atoms(mol, x + rng.uniform(-0.03, 0.03, size=x.shape))
-        E2, fmax2, conv2, _ = self._relax(at2, self.nudge_steps)
+        E2, fmax2, conv2, n2 = self._relax(at2, self.nudge_steps)
         saddle = E2 < E - 0.002
+        stages.append({"name": "saddle check", "steps": int(n2), "e_start": float(E), "e_end": float(E2),
+                       "unit": self.energy_unit, "converged": bool(conv2), "saddle": bool(saddle)})
         if saddle:
             x, E, fmax, conv = at2.get_positions().copy(), E2, fmax2, conv2
             frames.append(x.copy())
+            info.append(("saddle check", int(n2), float(E), float(fmax)))
         return OptResult(
             e_input=e_input, e_opt=E, coords_input=coords_input, coords_opt=x,
             fmax=fmax, converged=conv, saddle=bool(saddle), n_steps=int(n), frames=frames,
-            prerelax_steps=int(ff_steps),
+            prerelax_steps=int(ff_steps), frame_info=info, stages=stages,
         )
 
 

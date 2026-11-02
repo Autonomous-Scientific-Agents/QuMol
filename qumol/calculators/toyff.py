@@ -111,7 +111,7 @@ class ToyFF(Calculator):
         return E, g
 
     # ------------------------------------------------------------- FIRE
-    def fire(self, x, mask=None, max_steps=4000, ftol=0.02, record=None):
+    def fire(self, x, mask=None, max_steps=4000, ftol=0.02, record=None, info=None, stage="force field"):
         v = np.zeros_like(x)
         dt, alpha, npos = 0.02, 0.1, 0
         E, fmax, steps = 0.0, 0.0, 0
@@ -122,6 +122,8 @@ class ToyFF(Calculator):
             fmax = float(np.linalg.norm(g, axis=1).max())
             if record is not None and steps % 4 == 0:
                 record.append(x.copy())
+                if info is not None:
+                    info.append((stage, steps, float(E), fmax))
             if fmax < ftol:
                 break
             P = -np.sum(g * v)
@@ -147,6 +149,8 @@ class ToyFF(Calculator):
                 v[~mask] = 0.0
         if record is not None:
             record.append(x.copy())
+            if info is not None:
+                info.append((stage, steps, float(E), fmax))
         return E, fmax, fmax < ftol, steps
 
     # ------------------------------------------------------------- API
@@ -158,21 +162,27 @@ class ToyFF(Calculator):
         if is_h.any():
             self.fire(x, mask=is_h, max_steps=1500)
         coords_input = x.copy()
-        e_input, _ = self.energy_grad(x)
+        e_input, g0 = self.energy_grad(x)
         frames = [x.copy()]
-        E, fmax, conv, n = self.fire(x, record=frames)
+        info = [("input", 0, float(e_input), float(np.linalg.norm(g0, axis=1).max()))]
+        E, fmax, conv, n = self.fire(x, record=frames, info=info, stage="toy force field")
+        stages = [{"name": "toy force field", "steps": int(n), "e_start": float(e_input), "e_end": float(E),
+                   "unit": self.energy_unit, "converged": bool(conv)}]
         # Nudge test: if a small kick lowers the energy, it was stuck on a saddle.
         rng = np.random.default_rng(seed)
         y = x + rng.uniform(-0.06, 0.06, size=x.shape)
         E2, fmax2, conv2, n2 = self.fire(y)
         saddle = E2 < E - 0.05
+        stages.append({"name": "saddle check", "steps": int(n2), "e_start": float(E), "e_end": float(E2),
+                       "unit": self.energy_unit, "converged": bool(conv2), "saddle": bool(saddle)})
         if saddle:
             x, E, fmax, conv = y, E2, fmax2, conv2
             frames.append(x.copy())
+            info.append(("saddle check", int(n2), float(E), float(fmax)))
         return OptResult(
             e_input=float(e_input), e_opt=float(E), coords_input=coords_input, coords_opt=x,
             fmax=fmax, converged=bool(conv), saddle=bool(saddle),
-            n_steps=int(n), frames=frames,
+            n_steps=int(n), frames=frames, frame_info=info, stages=stages,
         )
 
 

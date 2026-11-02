@@ -8,14 +8,15 @@ from __future__ import annotations
 
 import json
 import math
+import time
 import zlib
 from contextlib import nullcontext
 
 import numpy as np
 
 from . import db, pubchem
-from .calculators import get_calculator, subsample
-from .chem import hash_geometry, inchikey_of, smiles_of, structure_intact, to_xyz, validate
+from .calculators import get_calculator, subsample_idx
+from .chem import hash_geometry, inchikey_of, smiles_of, structure_problem, to_xyz, validate
 
 # Point values, kept in one place so they are easy to tune.
 POINTS = {
@@ -55,12 +56,33 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
     seed = zlib.crc32(raw_xyz.encode())
 
     with compute():
+        t0 = time.perf_counter()
         res = calc.optimize(mol, seed=seed)
-        intact = structure_intact(mol, res.coords_opt)
+        elapsed = time.perf_counter() - t0
+        problem = structure_problem(mol, res.coords_opt)
+        intact = problem is None
         stable = bool(res.converged and intact)
         g_in = hash_geometry(mol.symbols, res.coords_input, multiplicity=mol.multiplicity)
         g_opt = hash_geometry(mol.symbols, res.coords_opt, multiplicity=mol.multiplicity)
-    # Tell the player what went wrong instead of silently showing a broken structure.
+    # Tell the player what went wrong instead of silently showing a broken structure:
+    # which bond broke, and at which step of which stage it first happened.
+    events = []
+    for st in res.stages:
+        if st.get("used") is False:
+            events.append(f"{st['name']}: skipped, it broke the structure")
+        elif st["name"] == "saddle check":
+            events.append("saddle check: a small kick lowered the energy, so it rolled off a saddle point"
+                          if st.get("saddle") else "saddle check: still a minimum after a small kick")
+        else:
+            events.append(f"{st['name']}: {st['steps']} steps, energy {st['e_start']:.4f} → {st['e_end']:.4f} "
+                          f"{st['unit']}{'' if st['converged'] else ' (step limit reached, not converged)'}")
+    if not intact:
+        first = next((i for i, f in enumerate(res.frames) if structure_problem(mol, f)), None)
+        where = ""
+        if first is not None and first < len(res.frame_info):
+            stage, step, _, _ = res.frame_info[first]
+            where = f" ({stage}, step {step})"
+        events.append(f"failed: {problem}{where}")
     if not intact:
         opt_status, warning = "broken", (
             "The optimizer pulled the structure apart: bonds stretched or atoms collided. "
@@ -180,6 +202,7 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
         sub_id = cur.lastrowid
         total = scalar("SELECT COALESCE(SUM(score),0) FROM submissions WHERE player_id=?", player_id)
 
+    idx = subsample_idx(len(res.frames))
     return {
         "submission_id": sub_id,
         "score": score,
@@ -199,6 +222,15 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
         "optimized_geometry_id": g_opt.id,
         "method": {"name": calc.name, "version": calc.version, "energy_unit": calc.energy_unit},
         "energies": {"input": res.e_input, "optimized": res.e_opt},
-        "frames": [np.round(f, 3).tolist() for f in subsample(res.frames)],
+        "frames": [np.round(res.frames[i], 3).tolist() for i in idx],
+        # Per frame: [stage, step, energy, max force], for the readout during the movie.
+        "frame_info": [list(res.frame_info[i]) for i in idx] if len(res.frame_info) == len(res.frames) else [],
+        "log": {
+            "method": f"{calc.name} {calc.version}",
+            "elapsed_s": round(elapsed, 2),
+            "events": events,
+            "steps": [[st, n, round(e, 5), round(f, 4)] for st, n, e, f in
+                      (res.frame_info[i] for i in subsample_idx(len(res.frame_info), 400))],
+        },
         "coords_opt": np.round(res.coords_opt, 4).tolist(),
     }

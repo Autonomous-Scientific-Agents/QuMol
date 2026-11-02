@@ -1070,12 +1070,23 @@ function onTap(hit, bondHit = -1){
 /* ================= submit & scoring ================= */
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 function setCoords(x){ atoms.forEach((a,i) => a.p.set(x[3*i], x[3*i+1], x[3*i+2])); }
-async function animateFrames(frames, ms){
+// info[i] = [stage, step, energy, max force] for frames[i] (from the server), shown as a readout.
+async function animateFrames(frames, ms, info = null, unitOf = null){
   const step = Math.max(1, Math.floor(frames.length / 60)), sel = [];
-  for(let i=0;i<frames.length;i+=step) sel.push(frames[i]);
-  sel.push(frames[frames.length-1]);
-  const per = ms / sel.length;
-  for(const f of sel){ setCoords(f); rebuild(); await sleep(per); }
+  for(let i=0;i<frames.length;i+=step) sel.push(i);
+  if(sel[sel.length-1] !== frames.length-1) sel.push(frames.length-1);
+  const per = ms / sel.length, box = $('optInfo');
+  const show = info && info.length === frames.length;
+  if(show) box.classList.remove('hidden');
+  for(const i of sel){
+    setCoords(frames[i]); rebuild();
+    if(show){
+      const [stage, n, e, f] = info[i], u = unitOf ? unitOf(stage) : '';
+      box.textContent = `${stage} · step ${n} · E ${e.toFixed(4)} ${u} · max force ${f.toFixed(3)}`;
+    }
+    await sleep(per);
+  }
+  if(show) setTimeout(() => box.classList.add('hidden'), 1200);
 }
 
 async function submit(){
@@ -1206,9 +1217,13 @@ async function submitOnline(){
     bonds: bonds.map(b => [b.a, b.b, b.o]),
     input_method: inputMethod, mode: 'stable',
   };
-  toast('Optimizing…', 4000); SFX.whoosh();
+  SFX.whoosh();
   const before = serialize();
+  const tStart = performance.now();
+  const tick = () => toast(`Optimizing on the server… ${((performance.now() - tStart)/1000).toFixed(1)} s`, 60000);
+  tick(); const timer = setInterval(tick, 200);
   let r;
+  try{
   for(let attempt = 0; ; attempt++){
     try{ r = await api('/api/submissions', {method:'POST', body}); break; }
     catch(e){
@@ -1217,7 +1232,10 @@ async function submitOnline(){
       fail(e.message || 'Could not reach the server'); return;
     }
   }
-  await animateFrames(r.frames.map(f => f.flat()), 1300);
+  } finally { clearInterval(timer); }  // error toasts from fail() stay visible
+  $('toast').classList.remove('show');
+  const unitOf = stage => stage === 'toy force field' ? 'kcal/mol' : (r.method && r.method.energy_unit) || '';
+  await animateFrames(r.frames.map(f => f.flat()), Math.min(4000, 1300 + 25 * r.frames.length), r.frame_info, unitOf);
   if(r.opt_status === 'broken'){
     restore(before); rebuild(); changed();  // give the player their structure back to fix
     shake = 0.25; buzz([20,40,20]);
@@ -1227,7 +1245,8 @@ async function submitOnline(){
   }
   total = r.total; LS.set('qm.total', total);
   await showScore({lines: r.lines, score: r.score, discovery: r.discovery, name: r.pubchem && r.pubchem.name,
-                   formula: r.formula, smiles: r.smiles, pubchem: r.pubchem, warning: r.warning});
+                   formula: r.formula, smiles: r.smiles, pubchem: r.pubchem, warning: r.warning,
+                   log: r.log, unitOf});
   updateInfo();
 }
 
@@ -1253,7 +1272,7 @@ function closeBtn(card, text='Keep building'){
   card.appendChild(b);
 }
 // Header: name, formula, SMILES and the PubChem link; then the score lines; then the total.
-async function showScore({lines, score, discovery, name=null, formula:form=null, smiles=null, pubchem=null, warning=null}){
+async function showScore({lines, score, discovery, name=null, formula:form=null, smiles=null, pubchem=null, warning=null, log=null, unitOf=null}){
   const card = openCard();
   const h = document.createElement('h2'); h.className = 'mname';
   h.textContent = name || (score > 0 || discovery ? 'New molecule' : 'Hmm…'); card.appendChild(h);
@@ -1293,6 +1312,26 @@ async function showScore({lines, score, discovery, name=null, formula:form=null,
   } else if(score > 0){ SFX.chime(); buzz(30); }
   else SFX.err();
   closeBtn(card);
+  if(log) card.appendChild(logEl(log, unitOf));  // under the button, so it never pushes it off screen
+}
+// Collapsible optimization log: what ran, how long, what happened, and every step.
+function logEl(log, unitOf){
+  const d = document.createElement('details'); d.className = 'optlog';
+  d.open = LS.get('qm.logOpen', false);
+  d.addEventListener('toggle', () => LS.set('qm.logOpen', d.open));
+  const sum = document.createElement('summary');
+  sum.textContent = `Optimization log · ${log.method} · ${log.elapsed_s} s`;
+  d.appendChild(sum);
+  const ev = document.createElement('ul');
+  for(const e of log.events || []){ const li = document.createElement('li'); li.textContent = e; if(e.startsWith('failed')) li.className = 'bad'; ev.appendChild(li); }
+  d.appendChild(ev);
+  if(log.steps && log.steps.length){
+    const pre = document.createElement('pre');
+    const rows = log.steps.map(([st, n, e, f]) => `${st.padEnd(16)} ${String(n).padStart(4)}  ${e.toFixed(5).padStart(14)} ${(unitOf ? unitOf(st) : '').padEnd(8)} ${f.toFixed(4).padStart(9)}`);
+    pre.textContent = `${'stage'.padEnd(16)} ${'step'.padStart(4)}  ${'energy'.padStart(14)} ${''.padEnd(8)} ${'max force'.padStart(9)}\n` + rows.join('\n');
+    d.appendChild(pre);
+  }
+  return d;
 }
 function showHelp(){
   const card = openCard();
