@@ -1524,6 +1524,7 @@ async function startPuzzle(req){
   if(busy) return;
   let r;
   try{ r = await api('/api/puzzles/start', {method:'POST', body:req}); }catch(e){ return toast(e.message); }
+  if(busy) return toast('Wait for the optimization to finish');  // Build was pressed while this loaded
   $('ov').classList.add('hidden');
   const entering = !puzzle;
   if(entering) puzzleSaved = serialize();  // the player's own work, restored on exit

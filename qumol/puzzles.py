@@ -182,16 +182,28 @@ def _split(symbols, bonds):
     return heavy, hs, _graph([symbols[i] for i in heavy], hb)
 
 
+def _terminal_h(symbols, hs) -> bool:
+    """True if every hydrogen hangs off exactly one heavy atom."""
+    grouped = [h for g in hs.values() for h in g]
+    return bool(hs) and len(grouped) == len(set(grouped)) == sum(s == "H" for s in symbols)
+
+
 def _mappings(puzzle: dict, symbols, bonds, P):
     """Candidate atom mappings, reference atom i -> player atom idx[i].
 
     Heavy atoms are matched as a graph; hydrogens can only swap within their heavy atom,
     so they are permuted per group. When that is too many orderings (several methyls),
     each group instead takes the ordering that best fits the current alignment, refitted
-    a few times."""
+    a few times. Molecules with no heavy atoms, or hydrogens that are bridging or bonded
+    only to hydrogen (H2, diborane), are matched as a whole graph instead."""
     Q = puzzle["coords"]
     r_heavy, r_hs, r_graph = _split(puzzle["symbols"], puzzle["bonds"])
     p_heavy, p_hs, p_graph = _split(symbols, bonds)
+    if not (_terminal_h(puzzle["symbols"], r_hs) and _terminal_h(symbols, p_hs)):
+        target, query = _graph(symbols, bonds), _graph(puzzle["symbols"], puzzle["bonds"])
+        for m in target.GetSubstructMatches(query, uniquify=False, useChirality=False, maxMatches=MAX_MAPPINGS):
+            yield list(m)
+        return
     for m in p_graph.GetSubstructMatches(r_graph, uniquify=False, useChirality=False, maxMatches=MAX_MAPPINGS):
         idx = [0] * len(Q)
         groups = []

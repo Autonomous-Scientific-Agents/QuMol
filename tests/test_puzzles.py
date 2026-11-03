@@ -168,3 +168,34 @@ def test_rmsd_with_many_hydrogen_orderings():
     res = puzzles.compare(p, [symbols[i] for i in perm], p["coords"][perm] + 1.0,
                           [(int(inv[a]), int(inv[b]), o) for a, b, o in bonds])
     assert res["rmsd"] < 1e-6
+
+
+def _shuffled(p, seed):
+    perm = np.random.default_rng(seed).permutation(len(p["symbols"]))
+    inv = np.argsort(perm)
+    return ([p["symbols"][i] for i in perm], np.asarray(p["coords"])[perm] + 1.0,
+            [(int(inv[a]), int(inv[b]), o) for a, b, o in p["bonds"]])
+
+
+def test_rmsd_without_heavy_atoms():
+    from qumol import puzzles
+
+    p = {"symbols": ["H", "H"], "coords": np.array([[0, 0, 0], [0.741, 0, 0]]), "bonds": [(0, 1, 1)]}
+    symbols, x, bonds = _shuffled(p, 1)
+    assert puzzles.compare(p, symbols, x, bonds)["rmsd"] < 1e-6
+
+
+def test_bridging_hydrogens_map_one_to_one():
+    """Diborane: each bridging H is bonded to both borons, but maps to a single player atom."""
+    from qumol import puzzles
+
+    coords = [[0.885, 0, 0], [-0.885, 0, 0], [0, 0.97, 0], [0, -0.97, 0],
+              [1.45, 0, 1.04], [1.45, 0, -1.04], [-1.45, 0, 1.04], [-1.45, 0, -1.04]]
+    bonds = [(0, 2, 1), (0, 3, 1), (1, 2, 1), (1, 3, 1), (0, 4, 1), (0, 5, 1), (1, 6, 1), (1, 7, 1)]
+    p = {"symbols": ["B", "B"] + ["H"] * 6, "coords": np.array(coords, dtype=float), "bonds": bonds}
+    symbols, x, pbonds = _shuffled(p, 2)
+    res = puzzles.compare(p, symbols, x, pbonds)
+    assert res["rmsd"] < 1e-6
+    assert all(g is not None for g in res["ghost"])  # every player atom got exactly one reference atom
+    for idx in puzzles._mappings(p, symbols, pbonds, x):
+        assert sorted(idx) == list(range(len(symbols)))  # no candidate maps two atoms onto one
