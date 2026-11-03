@@ -199,3 +199,14 @@ def test_bridging_hydrogens_map_one_to_one():
     assert all(g is not None for g in res["ghost"])  # every player atom got exactly one reference atom
     for idx in puzzles._mappings(p, symbols, pbonds, x):
         assert sorted(idx) == list(range(len(symbols)))  # no candidate maps two atoms onto one
+
+
+def test_mapping_search_is_bounded(monkeypatch):
+    """The total number of alignments tried per solve is capped, whatever the symmetry."""
+    from qumol import puzzles
+
+    p = puzzles.load()["se100-benzene"]
+    symbols, x, bonds = _shuffled(p, 4)
+    assert sum(1 for _ in puzzles._mappings(p, symbols, bonds, x)) == 12  # D6h: 12 heavy-atom matches
+    monkeypatch.setattr(puzzles, "MAX_FITS", 5)
+    assert sum(1 for _ in puzzles._mappings(p, symbols, bonds, x)) == 5

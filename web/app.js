@@ -757,6 +757,7 @@ function applyXYZ(){
   ta.classList.remove('bad');
   const sameEls = list.length === atoms.length && list.every((a,i) => a.el === atoms[i].el);
   if(sameEls && list.every((a,i) => a.p.distanceTo(atoms[i].p) < 1e-5)){ xyzMsg('Up to date.'); return; }
+  if(busy){ xyzMsg('Not applied: wait for the optimization to finish.', 'err'); return false; }
   act(() => {
     if(sameEls) list.forEach((a,i) => atoms[i].p.copy(a.p));
     else {

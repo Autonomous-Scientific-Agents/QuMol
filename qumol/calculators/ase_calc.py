@@ -20,6 +20,28 @@ def _optimizer_name() -> str:
     return name if name in ("BFGS", "LBFGS", "FIRE") else "BFGS"
 
 
+class _Serialized:
+    """One shared ASE calculator, called by one thread at a time.
+
+    ASE calculators keep their last results on the object, so each call (which checks
+    the atoms, computes if needed and copies the results out) holds the lock. The rest of
+    an optimization (optimizer steps, the toy force field prerelax) runs in parallel."""
+
+    def __init__(self, calc, lock):
+        self._calc, self._lock = calc, lock
+
+    def __getattr__(self, name):
+        attr = getattr(self._calc, name)
+        if not callable(attr):
+            return attr
+
+        def locked(*args, **kwargs):
+            with self._lock:
+                return attr(*args, **kwargs)
+
+        return locked
+
+
 class ASECalculator(Calculator):
     kind = "mlip"
     energy_unit = "eV"
@@ -30,12 +52,14 @@ class ASECalculator(Calculator):
     nudge_steps = 40  # the saddle-point check only needs a short re-optimization
 
     def __init__(self, name: str, version: str, factory, kind: str = "mlip", params: dict | None = None):
-        self.name, self.version, self.kind = name, version, kind
+        self.name, self.kind = name, kind
+        # Methods are keyed by name + version, so results from another optimizer get their
+        # own method row (BFGS, the default, keeps the plain model version).
+        opt = _optimizer_name()
+        self.version = version if opt == "BFGS" else f"{version}+{opt}"
         self._factory = factory
         self._calc = None
         self._params = params or {}
-        # ASE calculators keep their last results on the object, so two optimizations
-        # sharing one model at the same time would read each other's energies and forces.
         self._lock = threading.RLock()
 
     def params(self):
@@ -45,7 +69,7 @@ class ASECalculator(Calculator):
     def calc(self):
         with self._lock:
             if self._calc is None:
-                self._calc = self._factory()
+                self._calc = _Serialized(self._factory(), self._lock)
             return self._calc
 
     def _atoms(self, mol: Molecule, coords):
@@ -76,10 +100,6 @@ class ASECalculator(Calculator):
         return float(atoms.get_potential_energy()), float(np.linalg.norm(f, axis=1).max()), bool(conv), opt.nsteps
 
     def optimize(self, mol: Molecule, seed: int = 0) -> OptResult:
-        with self._lock:
-            return self._optimize(mol, seed)
-
-    def _optimize(self, mol: Molecule, seed: int) -> OptResult:
         from ase.constraints import FixAtoms
 
         at = self._atoms(mol, mol.coords)

@@ -110,3 +110,16 @@ def test_game_files_are_revalidated(client):
     for path in ("/", "/app.js"):
         r = client.get(path)
         assert r.status_code == 200 and r.headers["cache-control"] == "no-cache", path
+
+
+def test_rate_limiter_memory_is_capped(monkeypatch):
+    from qumol.security import RateLimiter
+
+    lim = RateLimiter()
+    monkeypatch.setattr(RateLimiter, "MAX_KEYS", 100)
+    lim.hit("kept", 5, 86400)
+    for i in range(500):  # sprayed keys with a daily window: none expire
+        lim.hit(f"spray:{i}", 5, 86400)
+        if i % 50 == 0:
+            lim.hit("kept", 50, 86400)  # recently used keys survive
+    assert len(lim._hits) == 100 and "kept" in lim._hits

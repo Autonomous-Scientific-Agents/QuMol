@@ -101,7 +101,7 @@ After deploying, check that `journalctl -u qumol` shows players' real IP address
 | `QUMOL_UMA_MODEL` | `uma-s-1p2p1` | UMA checkpoint, the newest and fastest small model (needs `fairchem-core` and accepted access to the gated weights) |
 | `QUMOL_DEVICE` | `cpu` | Device for ML potentials |
 | `QUMOL_PRERELAX` | `toyff` | Relax with the toy force field before the ML potential (faster, fewer blow-ups); `none` turns it off |
-| `QUMOL_OPTIMIZER` | `BFGS` | ASE optimizer for ML potentials: `BFGS`, `LBFGS` or `FIRE` |
+| `QUMOL_OPTIMIZER` | `BFGS` | ASE optimizer for ML potentials: `BFGS`, `LBFGS` or `FIRE`. Anything but BFGS is recorded as its own method version (e.g. `uma-s-1p2p1+FIRE`) |
 | `QUMOL_UMA_SETTINGS` | `default` | fairchem inference settings (`default` or `batch`; benchmark with `scripts/bench_uma.py`) |
 | `QUMOL_WORKERS` | `2` | Optimizations allowed at once. With an ML potential they take turns on the one loaded model |
 | `QUMOL_PUBCHEM` | `1` | Set to `0` to skip live PubChem lookups (a local-table miss then counts as not in PubChem) |

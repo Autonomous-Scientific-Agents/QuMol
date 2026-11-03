@@ -39,6 +39,7 @@ GEOMETRY_MAX, GEOMETRY_SCALE = 1000, 0.25   # points, Å
 SPEED_MAX, SPEED_SECONDS_PER_ATOM = 500, 20.0
 MAX_MAPPINGS = 5000          # heavy-atom graph matches tried
 MAX_H_PERMUTATIONS = 1000    # hydrogen orderings tried exhaustively per heavy-atom match
+MAX_FITS = 20000             # alignments tried per solve, across all heavy-atom matches
 
 _lock = threading.Lock()
 _cache: dict | None = None
@@ -194,8 +195,9 @@ def _mappings(puzzle: dict, symbols, bonds, P):
     Heavy atoms are matched as a graph; hydrogens can only swap within their heavy atom,
     so they are permuted per group. When that is too many orderings (several methyls),
     each group instead takes the ordering that best fits the current alignment, refitted
-    a few times. Molecules with no heavy atoms, or hydrogens that are bridging or bonded
-    only to hydrogen (H2, diborane), are matched as a whole graph instead."""
+    a few times, as it also does once MAX_FITS is used up. Molecules with no heavy atoms,
+    or hydrogens that are bridging or bonded only to hydrogen (H2, diborane), are matched
+    as a whole graph instead."""
     Q = puzzle["coords"]
     r_heavy, r_hs, r_graph = _split(puzzle["symbols"], puzzle["bonds"])
     p_heavy, p_hs, p_graph = _split(symbols, bonds)
@@ -204,7 +206,10 @@ def _mappings(puzzle: dict, symbols, bonds, P):
         for m in target.GetSubstructMatches(query, uniquify=False, useChirality=False, maxMatches=MAX_MAPPINGS):
             yield list(m)
         return
+    budget = MAX_FITS
     for m in p_graph.GetSubstructMatches(r_graph, uniquify=False, useChirality=False, maxMatches=MAX_MAPPINGS):
+        if budget <= 0:
+            return
         idx = [0] * len(Q)
         groups = []
         for r, k in zip(r_heavy, m):
@@ -212,13 +217,16 @@ def _mappings(puzzle: dict, symbols, bonds, P):
             groups.append((r_hs[r], p_hs[p_heavy[k]]))
         if any(len(a) != len(b) for a, b in groups):
             continue  # same skeleton, different hydrogen counts: not this mapping
-        if math.prod(math.factorial(len(a)) for a, _ in groups) <= MAX_H_PERMUTATIONS:
+        n_perm = math.prod(math.factorial(len(a)) for a, _ in groups)
+        if n_perm <= min(MAX_H_PERMUTATIONS, budget):
+            budget -= n_perm
             for combo in itertools.product(*(itertools.permutations(b) for _, b in groups)):
                 for (a, _), b in zip(groups, combo):
                     for r, j in zip(a, b):
                         idx[r] = j
                 yield list(idx)
             continue
+        budget -= 4
         for a, b in groups:
             for r, j in zip(a, b):
                 idx[r] = j
