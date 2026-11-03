@@ -7,7 +7,7 @@ QuMol is a 3D molecule-building game that runs in the browser on phones and desk
 ## In the game
 
 - **3D builder** with H, C, N, O, S and F, plus Add, Bond, Move and Delete modes, Undo, H+ (saturate with hydrogens) and Clear. Every button has a hover tooltip.
-- **Quick placement:** clicking an element button drops an atom. The first goes at the center, the second 1 Å away, and later ones 1 Å from the newest atom that still has a free bond, in a VSEPR-like direction, never closer than 0.95 Å to anything. If every atom is saturated, the new atom goes into open space beside the molecule. Bonds are perceived from distance (within 1.2× the covalent radii, respecting valence, and never closing a 3-ring with a bond just made).
+- **Quick placement:** clicking an element button drops an atom. The first goes at the center, the second 1 Å away, and later ones 1 Å from the newest atom that still has a free bond, in a VSEPR-like direction, never closer than 0.95 Å to anything. If every atom is saturated, the new atom goes into open space beside the molecule. Bonds are perceived from distance (within 1.2× the covalent radii, respecting valence, and never closing a 3- or 4-membered ring with a bond just made).
 - **Formal charges and radicals:**
   - Charges are automatic. An O with 3 bonds or an N with 4 becomes **+**, and the nearest atom that is one bond short becomes **−**, so molecules stay neutral: carbon monoxide is `[C-]#[O+]`, nitromethane is `C[N+](=O)[O-]`. S can make 2, 4 or 6 bonds without a charge.
   - If free bonds remain at Build, the player chooses: fill them with H, or build a **radical**. Radicals can have at most 2 unpaired electrons, and the spin multiplicity is stored in the HashMol3D ID (`m2`, `m3`) and passed to UMA.
@@ -18,7 +18,7 @@ QuMol is a 3D molecule-building game that runs in the browser on phones and desk
   - **Elements**: animated Lewis dots, bonds vs. lone pairs, valence electrons, shapes, bond lengths and a fun fact for each element.
   - **Bonds & shapes**: tetrahedral, pyramidal, bent, trigonal planar, linear, single/double/triple bonds and rings. Each has a *Show me* button that loads an example into the 3D view.
   - **Quiz**: 12 questions with explanations and a streak counter.
-- **XYZ panel**: the live formula, SMILES and XYZ coordinates as you build. Editing the coordinates changes the molecule. Adding or removing lines adds or removes atoms, and bonds are then guessed from distances. It can be turned off and remembers your choice.
+- **XYZ panel**: the live formula, SMILES and XYZ coordinates as you build. Editing the coordinates changes the molecule. Adding or removing lines adds or removes atoms, and bonds are then guessed from distances (within 1.25× the covalent radii). It can be turned off and remembers your choice.
 - **Fair scoring by input method**: a molecule loaded from Learn is `example` (no geometry or hand-built points). Coordinates edited in the XYZ panel make it `xyz` (geometry points, but no hand-built bonus). Clear resets it to `hand`.
 
 ## Quick start (game + server)
@@ -59,7 +59,7 @@ Re-run it to update. Options: `APP_DIR`, `PORT`, `METHOD=uma`, `TAILSCALE=serve|
 The game is meant to be safe to expose publicly through Tailscale Funnel.
 
 - **Accounts:** random 256-bit login tokens and 80-bit recovery codes. Only SHA-256 hashes are stored, and codes are compared in constant time. Recovering an account rotates its token.
-- **Abuse limits:** these are per player and per IP, and can be changed with environment variables in `qumol/app.py`.
+- **Abuse limits:** these are per player and per IP, and can be changed with the `QUMOL_*` environment variables at the top of `qumol/app.py`.
   - Sign-ups: 20 per IP per hour.
   - Recovery attempts: 10 per IP per hour, and 5 per IP per nickname.
   - Submissions: 20 per minute and 1,000 per day per player; 40 per minute and 3,000 per day per IP.
@@ -77,7 +77,7 @@ The game is meant to be safe to expose publicly through Tailscale Funnel.
   - New data is refused when the disk has less than 1 GB free (`QUMOL_MIN_FREE_MB`).
   - Leaderboards and stats are cached for 30 s.
 - **Web:**
-  - A strict Content-Security-Policy with no inline or third-party scripts. SMILES are computed on the server, so the page needs no `eval`.
+  - A strict Content-Security-Policy with no inline or third-party scripts. SMILES are computed on the server, so the page needs no `eval`; `'wasm-unsafe-eval'` is allowed only so the RDKit WebAssembly fallback can run if the server stops answering.
   - `nosniff`, `frame-ancestors 'none'`, `no-referrer` and HSTS headers.
   - All user-controlled text is rendered with `textContent`.
   - All SQL is parameterised.
@@ -101,16 +101,30 @@ After deploying, check that `journalctl -u qumol` shows players' real IP address
 | `QUMOL_UMA_MODEL` | `uma-s-1p2p1` | UMA checkpoint, the newest and fastest small model (needs `fairchem-core` and accepted access to the gated weights) |
 | `QUMOL_DEVICE` | `cpu` | Device for ML potentials |
 | `QUMOL_PRERELAX` | `toyff` | Relax with the toy force field before the ML potential (faster, fewer blow-ups); `none` turns it off |
-| `QUMOL_PUBCHEM` | `1` | Set to `0` to skip live PubChem lookups |
+| `QUMOL_OPTIMIZER` | `BFGS` | ASE optimizer for ML potentials: `BFGS`, `LBFGS` or `FIRE` |
+| `QUMOL_UMA_SETTINGS` | `default` | fairchem inference settings (`default` or `batch`; benchmark with `scripts/bench_uma.py`) |
+| `QUMOL_WORKERS` | `2` | Optimizations allowed at once. With an ML potential they take turns on the one loaded model |
+| `QUMOL_PUBCHEM` | `1` | Set to `0` to skip live PubChem lookups (a local-table miss then counts as not in PubChem) |
+| `QUMOL_PUBCHEM_DB` | `pubchem.sqlite` next to the database | Local PubChem lookup table |
+| `QUMOL_PUZZLE_FILES` | | Extra puzzle files, `:`-separated (besides any `*.json` in `puzzles/` next to the database) |
+| `QUMOL_DOCS` | | Set to `1` to serve the API docs at `/docs` |
+| `QUMOL_MAX_BODY` | `262144` | Request body cap in bytes |
+| `QUMOL_MIN_FREE_MB` | `1024` | Refuse new data below this much free disk |
+| `QUMOL_CACHE_SECONDS` | `30` | How long leaderboards and stats are cached |
+| `QUMOL_SIGNUPS_PER_IP_HOUR`, `QUMOL_RECOVERS_PER_IP_HOUR`, `QUMOL_RECOVERS_PER_NICK_HOUR`, `QUMOL_SUBMITS_PER_MIN`, `QUMOL_SUBMITS_PER_DAY`, `QUMOL_SUBMITS_PER_IP_MIN`, `QUMOL_SUBMITS_PER_IP_DAY`, `QUMOL_READS_PER_IP_MIN` | see Security | Abuse limits |
 
 ## How it fits together
 
 ```
-web/index.html          the game: three.js builder, effects, sign-up, leaderboards
+web/index.html          the game page: layout and styles
+web/app.js              the game: three.js builder, effects, sign-up, leaderboards, puzzles
 qumol/app.py            FastAPI: players, submissions, leaderboards, stats, serves the game
 qumol/scoring.py        submission pipeline: optimize → hash → store → score
 qumol/chem.py           validation, HashMol3D identifiers, SMILES (RDKit), sanity checks
 qumol/calculators/      pluggable energy methods (toy force field; any ASE calculator, e.g. UMA)
+qumol/puzzles.py        puzzle mode: reference structures, daily set, RMSD scoring
+qumol/pubchem.py        PubChem lookups (local table, then the web API)
+qumol/security.py       body limit, security headers, rate limits, compute slots
 qumol/db.py             SQLite schema
 scripts/export_dataset.py   dump collected molecules as extended XYZ
 ```
@@ -143,11 +157,11 @@ The server is authoritative: it recomputes every energy itself, so scores can't 
 | POST | `/api/submissions` | `{atoms:[{el,x,y,z}], bonds:[[i,j,order]], input_method (hand\|xyz\|example\|smiles\|2d), mode}` |
 | GET | `/api/submissions/mine` | the player's history |
 | GET | `/api/leaderboards` | the available categories |
-| GET | `/api/leaderboard/{category}` | overall, hand, xyz, weekly, small, discoveries, molecules, records |
+| GET | `/api/leaderboard/{category}` | overall, hand, xyz, weekly, small, discoveries, molecules, records, puzzle_daily, puzzles |
 | GET | `/api/geometries/{id}.xyz` | standardized geometry |
 | GET | `/api/stats`, `/api/health` | |
 
-Authenticated calls send `Authorization: Bearer <token>`. Interactive docs are at `/docs`.
+Authenticated calls send `Authorization: Bearer <token>`. Interactive docs are at `/docs` when the server runs with `QUMOL_DOCS=1`.
 
 ## Scoring
 
@@ -162,12 +176,13 @@ The score card shows the compound's name, formula, SMILES and PubChem link at th
 | Stable | +50 | |
 | Hand-built | +50 | built in the 3D editor |
 | Geometry | up to 100 | ΔE per atom between your geometry and the optimum (hand-built and XYZ only) |
-| Formal charges | +50 | e.g. ⁻C≡O⁺, nitro groups |
+| Saddle point | 0 | the structure rolled off a saddle point to a minimum |
 | Radical | 0 | number of unpaired electrons |
+| Formal charges | +50 | e.g. ⁻C≡O⁺, nitro groups |
 | Not in PubChem | +1,000 | possibly new to science; stable molecules only (later also verified transition states) |
 | Size bonus | 1,000 − 50 × (atoms − 2) | all atoms count, hydrogens included: 1,000 for 2 atoms, 50 for 21, nothing from 22 up; stable molecules only (later also verified transition states) |
 
-Resubmitting a molecule you already have is stored but scores 0. Point values live in `POINTS` in `qumol/scoring.py`.
+All points need a **stable** molecule with a readable SMILES. Otherwise the card shows *Optimization failed*, *Not converged* or *Unstable* in place of *Stable*, and every line scores 0. Resubmitting a molecule you already have is stored but scores 0 (*Already collected*). Point values live in `POINTS` in `qumol/scoring.py`.
 
 ## Puzzle mode
 
@@ -179,9 +194,9 @@ The 🧩 button opens puzzles: the player gets a molecule's name, formula and SM
 - After solving, the experimental structure appears as a green outline over the player's, with the bond lengths that differ most.
 - During a puzzle, examples, XYZ editing and 📏 Measure are off; the player's own work comes back on exit.
 
-Every day (UTC) brings five puzzles from easy to hard, the same for everyone, plus random puzzles from the whole set. Only a player's first solve of each puzzle counts. Puzzle leaderboards (`puzzle_daily`, `puzzles`) rank by puzzles solved, then by lowest total time.
+Every day (UTC) brings five puzzles from easy to hard, the same for everyone, plus random puzzles from the whole set. Only a player's first solve of each puzzle counts: once in free play, and once each time it is a daily puzzle. On the all-time board each puzzle counts once, with its fastest counted time. Puzzle leaderboards (`puzzle_daily`, `puzzles`) rank by puzzles solved, then by lowest total time.
 
-Reference structures: the 80 SE100 molecules in `puzzles/se100_geometries.json` (see `puzzles/README.md`). Extra sets in the same format can be added with `QUMOL_PUZZLE_FILES=/path/a.json:/path/b.json`, for example a private CCCBDB set kept out of the repo.
+Reference structures: the 80 SE100 molecules in `puzzles/se100_geometries.json` (see `puzzles/README.md`). Extra sets in the same format, for example a private CCCBDB set kept out of the repo (`scripts/build_cccbdb_puzzles.py`), are loaded from any `*.json` in a `puzzles/` folder next to the database (`data/puzzles/` in a deployment), or from `QUMOL_PUZZLE_FILES=/path/a.json:/path/b.json`. Restart the server after adding one.
 
 ### PubChem names and links
 
@@ -192,14 +207,12 @@ python3 scripts/build_pubchem_index.py --src /path/to/pubchem --out pubchem.sqli
 scp pubchem.sqlite chemgraphserver:~/qumol/data/pubchem.sqlite
 ```
 
-Without the table, QuMol falls back to PubChem's web API. That fallback gives a yes/no answer and a CID, but no names. A compound missing from the table is double-checked online before the +1,000 bonus is awarded, because the dump may be older than PubChem.
+Without the table, QuMol falls back to PubChem's web API. That fallback gives a yes/no answer and a CID, but no names. A compound missing from the table is double-checked online before the +1,000 bonus is awarded, because the dump may be older than PubChem. If that check fails, PubChem status counts as unknown and no bonus is given.
 
 ## Known limitations
 
 - The default `toyff` method is a **toy force field**: harmonic bonds and angles plus soft repulsion, with no torsions. Every bonding pattern relaxes to an energy near zero, so formula records aren't chemically meaningful until a real potential (`QUMOL_METHOD=uma`) is switched on. The UMA adapter is written but untested.
 - There are no vibrational frequencies yet, so stability is judged by convergence, a check that bonds are intact, and a saddle-point "nudge" test.
-- There is no rate limiting yet, which is fine for a friends-only phase.
-- three.js and RDKit.js load from CDNs.
 
 ## Tests
 

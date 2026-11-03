@@ -7,11 +7,17 @@ toy force field's 2 kcal/mol per atom.
 from __future__ import annotations
 
 import os
+import threading
 
 import numpy as np
 
 from ..chem import Molecule
 from . import Calculator, OptResult, register
+
+
+def _optimizer_name() -> str:
+    name = os.environ.get("QUMOL_OPTIMIZER", "BFGS")
+    return name if name in ("BFGS", "LBFGS", "FIRE") else "BFGS"
 
 
 class ASECalculator(Calculator):
@@ -28,15 +34,19 @@ class ASECalculator(Calculator):
         self._factory = factory
         self._calc = None
         self._params = params or {}
+        # ASE calculators keep their last results on the object, so two optimizations
+        # sharing one model at the same time would read each other's energies and forces.
+        self._lock = threading.RLock()
 
     def params(self):
-        return {**self._params, "optimizer": "FIRE", "fmax": self.fmax_target}
+        return {**self._params, "optimizer": _optimizer_name(), "fmax": self.fmax_target}
 
     @property
     def calc(self):
-        if self._calc is None:
-            self._calc = self._factory()
-        return self._calc
+        with self._lock:
+            if self._calc is None:
+                self._calc = self._factory()
+            return self._calc
 
     def _atoms(self, mol: Molecule, coords):
         from ase import Atoms
@@ -51,8 +61,7 @@ class ASECalculator(Calculator):
         # with an ML potential. BFGS needs far fewer steps than FIRE for small molecules.
         from ase import optimize
 
-        name = os.environ.get("QUMOL_OPTIMIZER", "BFGS")
-        opt_cls = {"BFGS": optimize.BFGS, "LBFGS": optimize.LBFGS, "FIRE": optimize.FIRE}.get(name, optimize.BFGS)
+        opt_cls = {"BFGS": optimize.BFGS, "LBFGS": optimize.LBFGS, "FIRE": optimize.FIRE}[_optimizer_name()]
         opt = opt_cls(atoms, logfile=None, maxstep=0.2)
         if record is not None:
             def observe():  # runs after forces are computed, so energy and forces are cached
@@ -67,6 +76,10 @@ class ASECalculator(Calculator):
         return float(atoms.get_potential_energy()), float(np.linalg.norm(f, axis=1).max()), bool(conv), opt.nsteps
 
     def optimize(self, mol: Molecule, seed: int = 0) -> OptResult:
+        with self._lock:
+            return self._optimize(mol, seed)
+
+    def _optimize(self, mol: Molecule, seed: int) -> OptResult:
         from ase.constraints import FixAtoms
 
         at = self._atoms(mol, mol.coords)

@@ -180,6 +180,28 @@ def test_broken_optimization_is_reported(client, monkeypatch):
     assert "Optimization failed" in labels and "New QuMol SMILES" not in labels and "New QuMol formula" not in labels
     assert "Size bonus" not in labels
     assert any("stretched" in e for e in j["log"]["events"])  # says which bond broke
+    # a failed build earns nothing, so resubmitting it can't farm points
+    assert j["score"] == 0
+    again = client.post("/api/submissions", json=ethanol(), headers=h).json()
+    assert again["score"] == 0 and again["total"] == 0
+
+
+def test_formula_novelty_is_across_methods(client, monkeypatch):
+    """Switching to a new energy method doesn't make an already-built formula new again."""
+    from qumol import scoring
+    from qumol.calculators.toyff import ToyFF
+
+    h, _ = player(client)
+    assert ["New QuMol formula", 1000, None] in client.post("/api/submissions", json=ethanol(), headers=h).json()["lines"]
+
+    class NewMethod(ToyFF):
+        version = "2"
+
+    new = NewMethod()
+    monkeypatch.setattr(scoring, "get_calculator", lambda method=None: new)
+    other, _ = player(client, "eve")
+    labels = [l[0] for l in client.post("/api/submissions", json=ethanol(), headers=other).json()["lines"]]
+    assert "New QuMol formula" not in labels and "Formula record" not in labels
 
 
 def test_size_bonus():

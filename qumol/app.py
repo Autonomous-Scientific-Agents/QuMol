@@ -33,6 +33,8 @@ from .security import (BodyLimit, SecurityHeaders, compute_slot, ensure_disk_spa
 
 # Abuse limits (override with environment variables if needed)
 SIGNUPS_PER_IP_HOUR = env_int("QUMOL_SIGNUPS_PER_IP_HOUR", 20)
+RECOVERS_PER_IP_HOUR = env_int("QUMOL_RECOVERS_PER_IP_HOUR", 10)
+RECOVERS_PER_NICK_HOUR = env_int("QUMOL_RECOVERS_PER_NICK_HOUR", 5)
 SUBMITS_PER_PLAYER_MIN = env_int("QUMOL_SUBMITS_PER_MIN", 20)
 SUBMITS_PER_PLAYER_DAY = env_int("QUMOL_SUBMITS_PER_DAY", 1000)
 SUBMITS_PER_IP_MIN = env_int("QUMOL_SUBMITS_PER_IP_MIN", 40)
@@ -166,9 +168,9 @@ def create_player(body: NewPlayer, request: Request, con=Depends(get_con)):
 @app.post("/api/players/recover")
 def recover(body: Recover, request: Request, con=Depends(get_con)):
     ip = client_ip(request)
-    limiter.hit("recover:" + ip, 10, 3600)
+    limiter.hit("recover:" + ip, RECOVERS_PER_IP_HOUR, 3600)
     # keyed on IP + nickname, so nobody can lock someone else out of their own account
-    limiter.hit(f"recover-nick:{ip}:{body.nickname.strip().lower()}", 5, 3600)
+    limiter.hit(f"recover-nick:{ip}:{body.nickname.strip().lower()}", RECOVERS_PER_NICK_HOUR, 3600)
     row = con.execute(
         "SELECT id, nickname, recovery_hash FROM players WHERE nickname=?", (body.nickname.strip(),)
     ).fetchone()
@@ -287,10 +289,12 @@ def geometry_xyz(gid: str = PathParam(max_length=200), con=Depends(get_con)):
 
 
 def _puzzle_status(con, pid: int, puzzle_id: str, day: str | None):
+    """Score of the counted solve, or None. Free play (day None) and each daily puzzle
+    are counted separately, whichever comes first."""
     row = con.execute(
         """SELECT MAX(score) AS score FROM puzzle_attempts
-           WHERE player_id=? AND puzzle_id=? AND counted=1 AND (day IS ? OR ? IS NULL)""",
-        (pid, puzzle_id, day, day),
+           WHERE player_id=? AND puzzle_id=? AND counted=1 AND day IS ?""",
+        (pid, puzzle_id, day),
     ).fetchone()
     return row["score"]
 
@@ -400,8 +404,11 @@ def puzzle_solve(body: PuzzleSolve, player=Depends(current_player), con=Depends(
     total = max(0, sum(l[1] for l in lines))
     with db.write_lock(), con:
         first = _puzzle_status(con, pid, p["id"], row["day"]) is None
-        con.execute("UPDATE puzzle_attempts SET solved_at=?, rmsd=?, counted=?, score=? WHERE id=?",
-                    (now, cmp["rmsd"], int(first), total if first else 0, row["id"]))
+        cur = con.execute(
+            "UPDATE puzzle_attempts SET solved_at=?, rmsd=?, counted=?, score=? WHERE id=? AND solved_at IS NULL",
+            (now, cmp["rmsd"], int(first), total if first else 0, row["id"]))
+    if cur.rowcount == 0:  # a second Check on the same attempt got here first
+        raise HTTPException(409, "Already solved. Start a new puzzle")
     return {
         "correct": True, "puzzle": puzzles.public(p), "smiles": p["smiles"],
         "rmsd": round(cmp["rmsd"], 4), "seconds": round(seconds, 1), "tries": row["tries"] + 1,
@@ -462,11 +469,14 @@ def leaderboard(category: str, request: Request, limit: int = Query(20, ge=1, le
 
 def _leaderboard(con, category: str, limit: int):
     if category in PUZZLE_BOARDS:
-        day_clause, args = ("AND a.day=?", (puzzles.today(),)) if category == "puzzle_daily" else ("", ())
+        day_clause, args = ("AND day=?", (puzzles.today(),)) if category == "puzzle_daily" else ("", ())
+        # Each puzzle counts once per player (free play and daily solves of the same
+        # molecule are separate counted solves), with its fastest counted time.
         rows = con.execute(
-            f"""SELECT p.nickname, COUNT(*) AS solved, SUM(a.solved_at - a.started_at) AS seconds
-                FROM puzzle_attempts a JOIN players p ON p.id=a.player_id
-                WHERE a.counted=1 {day_clause} GROUP BY p.id
+            f"""SELECT p.nickname, COUNT(*) AS solved, SUM(a.seconds) AS seconds
+                FROM (SELECT player_id, puzzle_id, MIN(solved_at - started_at) AS seconds
+                      FROM puzzle_attempts WHERE counted=1 {day_clause} GROUP BY player_id, puzzle_id) a
+                JOIN players p ON p.id=a.player_id GROUP BY p.id
                 ORDER BY solved DESC, seconds ASC LIMIT ?""",
             (*args, limit),
         ).fetchall()

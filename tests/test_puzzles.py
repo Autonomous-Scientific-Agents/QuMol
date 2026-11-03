@@ -63,7 +63,7 @@ def test_daily_set_and_solving(client):
     assert client.post("/api/puzzles/solve", headers=other, json={"attempt_id": aid, "atoms": atoms, "bonds": bonds}).status_code == 404
 
 
-def test_puzzle_leaderboard_ranks_by_solved_then_time(client):
+def test_puzzle_leaderboard_ranks_by_solved_then_time(client, monkeypatch):
     import time
 
     from qumol import db
@@ -95,6 +95,22 @@ def test_puzzle_leaderboard_ranks_by_solved_then_time(client):
     rows = client.get("/api/leaderboard/puzzles").json()["rows"]
     assert [x["nickname"] for x in rows] == ["many", "fast", "slow"]  # most solved first, then fastest
     assert rows[0]["solved"] == 2 and rows[1]["value"].startswith("1 solved · 0:3")
+
+    # solving water again as a daily puzzle is a counted solve, but it's still one puzzle
+    from qumol import puzzles
+    monkeypatch.setattr(puzzles, "daily", lambda day=None: [puzzles.load()["se100-water"]])
+    a = client.post("/api/puzzles/start", json={"puzzle_id": "se100-water", "daily": True}, headers=fast).json()
+    assert not a["practice"]
+    r = client.post("/api/puzzles/solve", headers=fast, json={"attempt_id": a["attempt_id"], "atoms": atoms,
+                                                             "bonds": bonds}).json()
+    assert r["score"] > 0
+    from qumol.security import read_cache
+    read_cache.clear()
+    rows = {x["nickname"]: x for x in client.get("/api/leaderboard/puzzles").json()["rows"]}
+    assert rows["fast"]["solved"] == 1
+    # and free play after a daily solve is counted too (each is counted once, in either order)
+    b = client.post("/api/puzzles/start", json={"puzzle_id": "se100-water"}, headers=slow).json()
+    assert b["practice"]
 
 
 def test_symmetry_aware_rmsd():
@@ -130,3 +146,25 @@ def test_private_puzzle_folder(client, tmp_path, monkeypatch):
         assert "extra-methane" in puzzles.load()
     finally:
         puzzles.reset_cache()
+
+
+def test_rmsd_with_many_hydrogen_orderings():
+    """Several methyl rotors give too many hydrogen orderings to try; the best one is still found."""
+    from qumol import puzzles
+
+    C = np.array([[0, 0, 0], [1.53, 0, 0], [-0.51, 1.44, 0], [-0.51, -0.72, 1.25], [-0.51, -0.72, -1.25]])
+    symbols, coords, bonds = ["C"] * 5, list(C), [(0, i, 1) for i in range(1, 5)]
+    for i in range(1, 5):  # neopentane: 4 methyls, (3!)^4 = 1296 orderings
+        d = C[i] / np.linalg.norm(C[i])
+        a = np.cross(d, [0.3, 1, 0.2]); a /= np.linalg.norm(a)
+        b = np.cross(d, a)
+        for k in range(3):
+            t = 2 * np.pi * k / 3
+            bonds.append((i, len(symbols), 1)); symbols.append("H")
+            coords.append(C[i] + 1.09 * (0.334 * d + 0.943 * (np.cos(t) * a + np.sin(t) * b)))
+    p = {"symbols": symbols, "coords": np.array(coords), "bonds": bonds}
+    perm = np.random.default_rng(5).permutation(len(symbols))
+    inv = np.argsort(perm)
+    res = puzzles.compare(p, [symbols[i] for i in perm], p["coords"][perm] + 1.0,
+                          [(int(inv[a]), int(inv[b]), o) for a, b, o in bonds])
+    assert res["rmsd"] < 1e-6

@@ -110,3 +110,32 @@ def test_structure_problem_names_the_broken_bond():
     assert structure_problem(mol, x) is None
     x[1] = x[0] + (x[1] - x[0]) * 3
     assert "bond O1–H2 stretched" in structure_problem(mol, x)
+
+
+def test_toyff_is_safe_to_share_between_threads():
+    """The server runs two optimizations at once on one registered calculator."""
+    import threading
+
+    from qumol.calculators import get_calculator
+    from qumol.chem import validate
+
+    calc = get_calculator("toyff")
+    water = validate(["O", "H", "H"], [[0, 0, 0], [0.96, 0, 0], [-0.24, 0.93, 0]], [(0, 1, 1), (0, 2, 1)])
+    co2 = validate(["C", "O", "O"], [[0, 0, 0], [1.3, 0, 0], [-1.1, 0.2, 0]], [(0, 1, 2), (0, 2, 2)])
+    ref = {id(m): calc.optimize(m).e_opt for m in (water, co2)}
+    errors = []
+
+    def run(m):
+        for _ in range(40):
+            try:
+                if abs(calc.optimize(m).e_opt - ref[id(m)]) > 1e-9:
+                    errors.append("wrong energy")
+            except Exception as e:  # noqa: BLE001
+                errors.append(type(e).__name__)
+
+    threads = [threading.Thread(target=run, args=(m,)) for m in (water, co2)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join()
+    assert not errors
