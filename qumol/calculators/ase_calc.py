@@ -7,11 +7,39 @@ toy force field's 2 kcal/mol per atom.
 from __future__ import annotations
 
 import os
+import threading
 
 import numpy as np
 
 from ..chem import Molecule
 from . import Calculator, OptResult, register
+
+
+def _optimizer_name() -> str:
+    name = os.environ.get("QUMOL_OPTIMIZER", "BFGS")
+    return name if name in ("BFGS", "LBFGS", "FIRE") else "BFGS"
+
+
+class _Serialized:
+    """One shared ASE calculator, called by one thread at a time.
+
+    ASE calculators keep their last results on the object, so each call (which checks
+    the atoms, computes if needed and copies the results out) holds the lock. The rest of
+    an optimization (optimizer steps, the toy force field prerelax) runs in parallel."""
+
+    def __init__(self, calc, lock):
+        self._calc, self._lock = calc, lock
+
+    def __getattr__(self, name):
+        attr = getattr(self._calc, name)
+        if not callable(attr):
+            return attr
+
+        def locked(*args, **kwargs):
+            with self._lock:
+                return attr(*args, **kwargs)
+
+        return locked
 
 
 class ASECalculator(Calculator):
@@ -24,19 +52,25 @@ class ASECalculator(Calculator):
     nudge_steps = 40  # the saddle-point check only needs a short re-optimization
 
     def __init__(self, name: str, version: str, factory, kind: str = "mlip", params: dict | None = None):
-        self.name, self.version, self.kind = name, version, kind
+        self.name, self.kind = name, kind
+        # Methods are keyed by name + version, so results from another optimizer get their
+        # own method row (BFGS, the default, keeps the plain model version).
+        opt = _optimizer_name()
+        self.version = version if opt == "BFGS" else f"{version}+{opt}"
         self._factory = factory
         self._calc = None
         self._params = params or {}
+        self._lock = threading.RLock()
 
     def params(self):
-        return {**self._params, "optimizer": "FIRE", "fmax": self.fmax_target}
+        return {**self._params, "optimizer": _optimizer_name(), "fmax": self.fmax_target}
 
     @property
     def calc(self):
-        if self._calc is None:
-            self._calc = self._factory()
-        return self._calc
+        with self._lock:
+            if self._calc is None:
+                self._calc = _Serialized(self._factory(), self._lock)
+            return self._calc
 
     def _atoms(self, mol: Molecule, coords):
         from ase import Atoms
@@ -51,8 +85,7 @@ class ASECalculator(Calculator):
         # with an ML potential. BFGS needs far fewer steps than FIRE for small molecules.
         from ase import optimize
 
-        name = os.environ.get("QUMOL_OPTIMIZER", "BFGS")
-        opt_cls = {"BFGS": optimize.BFGS, "LBFGS": optimize.LBFGS, "FIRE": optimize.FIRE}.get(name, optimize.BFGS)
+        opt_cls = {"BFGS": optimize.BFGS, "LBFGS": optimize.LBFGS, "FIRE": optimize.FIRE}[_optimizer_name()]
         opt = opt_cls(atoms, logfile=None, maxstep=0.2)
         if record is not None:
             def observe():  # runs after forces are computed, so energy and forces are cached

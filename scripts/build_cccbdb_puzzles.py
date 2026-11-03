@@ -6,11 +6,11 @@ connectivity but not bond orders; orders come from RDKit's DetermineBondOrders o
 experimental geometry, and every molecule must pass QuMol's own validation.
 
 CCCBDB is NIST Standard Reference Data (SRD 101, "all rights reserved"), so the
-output is NOT stored in this repository. Keep it next to the database and point
-QUMOL_PUZZLE_FILES at it:
+output is NOT stored in this repository (data/ is git-ignored). Put it in the
+'puzzles' folder next to the database, where the server picks it up on restart
+(or list it in QUMOL_PUZZLE_FILES):
 
-    python3 scripts/build_cccbdb_puzzles.py cccbdb_raw.json --out data/cccbdb_geometries.json
-    QUMOL_PUZZLE_FILES=$PWD/data/cccbdb_geometries.json
+    python3 scripts/build_cccbdb_puzzles.py cccbdb_raw.json --out data/puzzles/cccbdb_geometries.json
 
 Molecules already in the SE100 set (same SMILES) are skipped: the SE100 semi-experimental
 equilibrium structures are the better reference for comparison with optimized geometries.
@@ -153,7 +153,7 @@ def search_orders(symbols, coords, pairs, radicals=None, max_heavy_bonds=10):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("raw")
-    ap.add_argument("--out", default="data/cccbdb_geometries.json")
+    ap.add_argument("--out", default="data/puzzles/cccbdb_geometries.json")
     ap.add_argument("--states", help="JSON {casno: ground-state term, e.g. '2A1'} to check spin")
     ap.add_argument("--se100", default=str(Path(__file__).resolve().parent.parent / "puzzles" / "se100_geometries.json"))
     a = ap.parse_args()

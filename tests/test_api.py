@@ -180,8 +180,50 @@ def test_broken_optimization_is_reported(client, monkeypatch):
     assert "Optimization failed" in labels and "New QuMol SMILES" not in labels and "New QuMol formula" not in labels
     assert "Size bonus" not in labels
     assert any("stretched" in e for e in j["log"]["events"])  # says which bond broke
+    # a failed build earns nothing, so resubmitting it can't farm points
+    assert j["score"] == 0
+    again = client.post("/api/submissions", json=ethanol(), headers=h).json()
+    assert again["score"] == 0 and again["total"] == 0
+
+
+def test_formula_novelty_is_across_methods(client, monkeypatch):
+    """Switching to a new energy method doesn't make an already-built formula new again."""
+    from qumol import scoring
+    from qumol.calculators.toyff import ToyFF
+
+    h, _ = player(client)
+    assert ["New QuMol formula", 1000, None] in client.post("/api/submissions", json=ethanol(), headers=h).json()["lines"]
+
+    class NewMethod(ToyFF):
+        version = "2"
+
+    new = NewMethod()
+    monkeypatch.setattr(scoring, "get_calculator", lambda method=None: new)
+    other, _ = player(client, "eve")
+    labels = [l[0] for l in client.post("/api/submissions", json=ethanol(), headers=other).json()["lines"]]
+    assert "New QuMol formula" not in labels and "Formula record" not in labels
 
 
 def test_size_bonus():
     from qumol.scoring import size_bonus
     assert [size_bonus(n) for n in (1, 2, 3, 9, 21, 22, 60)] == [1000, 1000, 950, 650, 50, 0, 0]
+
+
+def test_discovery_claimed_after_pubchem_outage(client, monkeypatch):
+    """If the online check failed the first time, a resubmission can still earn the bonus, once."""
+    from qumol import pubchem
+
+    h, _ = player(client)
+    state = {"known": None}
+    monkeypatch.setattr(pubchem, "lookup", lambda con, smiles, inchikey, use_web=True:
+                        {"known": state["known"], "cid": None, "name": None, "url": None})
+    first = client.post("/api/submissions", json=ethanol(), headers=h).json()
+    assert not first["discovery"] and "Not in PubChem" not in [l[0] for l in first["lines"]]
+
+    state["known"] = False  # PubChem is back: not found
+    late = client.post("/api/submissions", json=ethanol(), headers=h).json()
+    assert late["already"] and late["discovery"]
+    assert [l[0] for l in late["lines"]] == ["Already collected", "Not in PubChem"] and late["score"] == 1000
+
+    again = client.post("/api/submissions", json=ethanol(), headers=h).json()
+    assert again["already"] and not again["discovery"] and again["score"] == 0

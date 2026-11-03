@@ -5,9 +5,11 @@
    Location: QUMOL_PUBCHEM_DB, else pubchem.sqlite next to the game database.
 2. PubChem's web API, used when there is no local table, and to double-check a
    local "not found" before awarding the discovery bonus (the dump may be older
-   than PubChem). Results are cached in the game database.
+   than PubChem). If that check fails, the result counts as unknown and no bonus is
+   given. Results are cached in the game database.
 
-Set QUMOL_PUBCHEM=0 to turn the web API off (tests, offline play).
+Set QUMOL_PUBCHEM=0 to turn the web API off (tests, offline play); a local "not found"
+is then trusted as is.
 """
 
 from __future__ import annotations
@@ -84,6 +86,10 @@ def lookup_live(smiles: str, timeout: float = 8.0) -> tuple[bool | None, list[in
     return bool(cids), cids
 
 
+def web_enabled() -> bool:
+    return os.environ.get("QUMOL_PUBCHEM", "1") != "0"
+
+
 def lookup_web(con, smiles: str | None) -> tuple[bool | None, int | None]:
     """(known, first cid) from the web API, cached in the game database."""
     if not smiles:
@@ -92,7 +98,7 @@ def lookup_web(con, smiles: str | None) -> tuple[bool | None, int | None]:
     if row:
         cids = json.loads(row["cids_json"] or "[]")
         return bool(row["in_pubchem"]), (cids[0] if cids else None)
-    if os.environ.get("QUMOL_PUBCHEM", "1") == "0":
+    if not web_enabled():
         return None, None
     known, cids = lookup_live(smiles)
     if known is not None:
@@ -112,6 +118,8 @@ def lookup(con, smiles: str | None, inchikey: str | None, use_web: bool = True) 
         web, web_cid = lookup_web(con, smiles)
         if web:
             found, cid = True, web_cid
+        elif web is None and web_enabled():
+            found = None  # the online check failed: don't call it new without it
     elif found is None and use_web:
         found, cid = lookup_web(con, smiles)
     return {

@@ -11,14 +11,16 @@ Scoring (server-side; the client never sees the reference before solving):
   equivalent atom mapping and best rotation (mirror images allowed),
 - Speed: up to 500, decaying with time; slower decay for bigger molecules.
 The player is given the name, formula and SMILES; the 3D structure is the challenge.
-Only a player's first solve of a puzzle (and of each daily puzzle) counts. Puzzle
-leaderboards rank by puzzles solved, then by lowest total solve time.
+Only a player's first solve of a puzzle counts: once in free play and once per daily
+puzzle. Puzzle leaderboards rank by puzzles solved (each puzzle once), then by lowest
+total solve time.
 """
 
 from __future__ import annotations
 
 import datetime as dt
 import hashlib
+import itertools
 import json
 import math
 import os
@@ -35,7 +37,9 @@ ROOT = Path(__file__).resolve().parent.parent / "puzzles"
 DAILY_BINS = [(1, 2), (3, 3), (4, 4), (5, 5), (6, 10)]  # heavy atoms per daily slot, easy to hard
 GEOMETRY_MAX, GEOMETRY_SCALE = 1000, 0.25   # points, Å
 SPEED_MAX, SPEED_SECONDS_PER_ATOM = 500, 20.0
-MAX_MAPPINGS = 5000
+MAX_MAPPINGS = 5000          # heavy-atom graph matches tried
+MAX_H_PERMUTATIONS = 1000    # hydrogen orderings tried exhaustively per heavy-atom match
+MAX_FITS = 20000             # alignments tried per solve, across all heavy-atom matches
 
 _lock = threading.Lock()
 _cache: dict | None = None
@@ -165,21 +169,89 @@ def _fit(P, Q):
     return float(np.sqrt((diff ** 2).sum() / len(P))), R, pc, qc
 
 
+def _split(symbols, bonds):
+    """Heavy atom indices, each heavy atom's hydrogens, and the heavy-atom graph."""
+    heavy = [i for i, s in enumerate(symbols) if s != "H"]
+    pos = {i: k for k, i in enumerate(heavy)}
+    hs = {i: [] for i in heavy}
+    for a, b, _ in bonds:
+        if a in pos and b not in pos:
+            hs[a].append(b)
+        elif b in pos and a not in pos:
+            hs[b].append(a)
+    hb = [(pos[a], pos[b], o) for a, b, o in bonds if a in pos and b in pos]
+    return heavy, hs, _graph([symbols[i] for i in heavy], hb)
+
+
+def _terminal_h(symbols, hs) -> bool:
+    """True if every hydrogen hangs off exactly one heavy atom."""
+    grouped = [h for g in hs.values() for h in g]
+    return bool(hs) and len(grouped) == len(set(grouped)) == sum(s == "H" for s in symbols)
+
+
+def _mappings(puzzle: dict, symbols, bonds, P):
+    """Candidate atom mappings, reference atom i -> player atom idx[i].
+
+    Heavy atoms are matched as a graph; hydrogens can only swap within their heavy atom,
+    so they are permuted per group. When that is too many orderings (several methyls),
+    each group instead takes the ordering that best fits the current alignment, refitted
+    a few times, as it also does once MAX_FITS is used up. Molecules with no heavy atoms,
+    or hydrogens that are bridging or bonded only to hydrogen (H2, diborane), are matched
+    as a whole graph instead."""
+    Q = puzzle["coords"]
+    r_heavy, r_hs, r_graph = _split(puzzle["symbols"], puzzle["bonds"])
+    p_heavy, p_hs, p_graph = _split(symbols, bonds)
+    if not (_terminal_h(puzzle["symbols"], r_hs) and _terminal_h(symbols, p_hs)):
+        target, query = _graph(symbols, bonds), _graph(puzzle["symbols"], puzzle["bonds"])
+        for m in target.GetSubstructMatches(query, uniquify=False, useChirality=False, maxMatches=MAX_MAPPINGS):
+            yield list(m)
+        return
+    budget = MAX_FITS
+    for m in p_graph.GetSubstructMatches(r_graph, uniquify=False, useChirality=False, maxMatches=MAX_MAPPINGS):
+        if budget <= 0:
+            return
+        idx = [0] * len(Q)
+        groups = []
+        for r, k in zip(r_heavy, m):
+            idx[r] = p_heavy[k]
+            groups.append((r_hs[r], p_hs[p_heavy[k]]))
+        if any(len(a) != len(b) for a, b in groups):
+            continue  # same skeleton, different hydrogen counts: not this mapping
+        n_perm = math.prod(math.factorial(len(a)) for a, _ in groups)
+        if n_perm <= min(MAX_H_PERMUTATIONS, budget):
+            budget -= n_perm
+            for combo in itertools.product(*(itertools.permutations(b) for _, b in groups)):
+                for (a, _), b in zip(groups, combo):
+                    for r, j in zip(a, b):
+                        idx[r] = j
+                yield list(idx)
+            continue
+        budget -= 4
+        for a, b in groups:
+            for r, j in zip(a, b):
+                idx[r] = j
+        for _ in range(3):
+            _, R, pc, qc = _fit(P[idx], Q)
+            aligned = (Q - qc) @ R + pc
+            for a, b in groups:
+                best = min(itertools.permutations(b),
+                           key=lambda perm: sum(float(np.sum((P[j] - aligned[r]) ** 2)) for r, j in zip(a, perm)))
+                for r, j in zip(a, best):
+                    idx[r] = j
+        yield list(idx)
+
+
 def compare(puzzle: dict, symbols, coords, bonds) -> dict:
     """Best symmetry-equivalent match of the player's structure to the reference."""
     P = np.asarray(coords, dtype=float)
     Q = puzzle["coords"]
-    target = _graph(symbols, bonds)
-    query = _graph(puzzle["symbols"], puzzle["bonds"])
-    maps = target.GetSubstructMatches(query, uniquify=False, useChirality=False, maxMatches=MAX_MAPPINGS)
-    if not maps:
-        raise ValueError("structure does not match the reference graph")
     best = None
-    for m in maps:
-        idx = list(m)  # reference atom i -> player atom idx[i]
+    for idx in _mappings(puzzle, symbols, bonds, P):
         r, R, pc, qc = _fit(P[idx], Q)
         if best is None or r < best[0]:
             best = (r, idx, R, pc, qc)
+    if best is None:
+        raise ValueError("structure does not match the reference graph")
     rmsd, idx, R, pc, qc = best
     aligned = (Q - qc) @ R + pc  # reference atoms in the player's frame
     ghost = [None] * len(P)

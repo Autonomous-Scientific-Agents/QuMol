@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS submissions (
     id            INTEGER PRIMARY KEY,
     player_id     INTEGER NOT NULL REFERENCES players(id),
     method_id     INTEGER NOT NULL REFERENCES methods(id),
-    input_method  TEXT NOT NULL,             -- 'hand' | 'xyz' | 'smiles' | '2d'
+    input_method  TEXT NOT NULL,             -- 'hand' | 'xyz' | 'smiles' | '2d' | 'example'
     mode          TEXT NOT NULL DEFAULT 'stable',
     raw_xyz       TEXT NOT NULL,             -- exactly what the player sent
     bonds_json    TEXT NOT NULL,             -- the player's bonding [[i, j, order], ...]

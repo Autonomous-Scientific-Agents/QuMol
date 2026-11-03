@@ -451,6 +451,7 @@ function restore(s){
   }catch{ atoms = []; bonds = []; inputMethod = 'hand'; }
 }
 function act(fn){
+  if(busy) return;  // no edits while a molecule is being optimized or checked
   const snap = serialize();
   const ok = fn();
   if(ok !== false){ undoStack.push(snap); if(undoStack.length > 60) undoStack.shift(); changed(); }
@@ -460,7 +461,7 @@ function changed(){
   if(!atoms.length) inputMethod = 'hand';
   hoverBond = -1;
   rebuild(); updateInfo(); refreshXYZ();
-  try{ localStorage.setItem('qm.work', serialize()); }catch{}
+  if(!puzzle) try{ localStorage.setItem('qm.work', serialize()); }catch{}  // a puzzle build isn't the player's own work
 }
 
 /* ================= toy force field + FIRE optimizer ================= */
@@ -672,7 +673,7 @@ function setMode(m){
 }
 document.querySelectorAll('.mode').forEach(b => b.onclick = () => { unlockAudio(); setMode(b.dataset.mode); SFX.tick(1); });
 $('hplus').onclick = () => { unlockAudio(); act(() => { const n = fillH(); if(!n) return fail('No open valences to fill'); SFX.chime(); }); };
-$('undo').onclick = () => { unlockAudio(); if(!undoStack.length) return fail('Nothing to undo'); restore(undoStack.pop()); bondFirst = null; SFX.tick(2); changed(); };
+$('undo').onclick = () => { unlockAudio(); if(busy) return; if(!undoStack.length) return fail('Nothing to undo'); restore(undoStack.pop()); bondFirst = null; SFX.tick(2); changed(); };
 $('clear').onclick = () => { unlockAudio(); if(!atoms.length) return; act(() => { atoms.forEach(a => burst(a.p, EL[a.el].c, 8, 3, 0.5)); atoms = []; bonds = []; SFX.del(); }); };
 $('submit').onclick = () => { unlockAudio(); submit(); };
 $('mute').textContent = muted ? '🔇' : '🔊';
@@ -682,13 +683,7 @@ $('measure').onclick = () => {
   $('measure').classList.toggle('on', measureOn); SFX.tick();
   if(measureOn) toast('Tap or drag an atom to see its bond angles');
 };
-$('mute').onclick = () => { unlockAudio(); muted = !muted; LS.set('qm.muted', muted); $('mute').textContent = muted ? '🔇' : '🔊';
-$('measure').classList.toggle('on', measureOn);
-$('measure').onclick = () => {
-  unlockAudio(); measureOn = !measureOn; LS.set('qm.measure', measureOn);
-  $('measure').classList.toggle('on', measureOn); SFX.tick();
-  if(measureOn) toast('Tap or drag an atom to see its bond angles');
-}; };
+$('mute').onclick = () => { unlockAudio(); muted = !muted; LS.set('qm.muted', muted); $('mute').textContent = muted ? '🔇' : '🔊'; };
 $('help').onclick = () => { unlockAudio(); showHelp(); };
 $('total').onclick = () => { unlockAudio(); showCollection(); };
 $('lb').onclick = () => { unlockAudio(); showLeaderboard(); };
@@ -698,8 +693,8 @@ $('pzExit').onclick = () => { unlockAudio(); exitPuzzle(); };
 /* ================= formula / XYZ panel ================= */
 let xyzOpen = LS.get('qm.xyzOpen', innerWidth > 640);
 let xyzTimer = 0;
-function setXYZOpen(open){
-  xyzOpen = open; LS.set('qm.xyzOpen', open);
+function setXYZOpen(open, remember = true){
+  xyzOpen = open; if(remember) LS.set('qm.xyzOpen', open);
   $('xyzPanel').classList.toggle('hidden', !open);
   $('xyzBtn').classList.toggle('on', open);
   if(open) refreshXYZ(true);
@@ -762,6 +757,7 @@ function applyXYZ(){
   ta.classList.remove('bad');
   const sameEls = list.length === atoms.length && list.every((a,i) => a.el === atoms[i].el);
   if(sameEls && list.every((a,i) => a.p.distanceTo(atoms[i].p) < 1e-5)){ xyzMsg('Up to date.'); return; }
+  if(busy){ xyzMsg('Not applied: wait for the optimization to finish.', 'err'); return false; }
   act(() => {
     if(sameEls) list.forEach((a,i) => atoms[i].p.copy(a.p));
     else {
@@ -821,6 +817,7 @@ const EXAMPLES = {
 };
 function loadExample(key){
   if(puzzle) return fail('Examples are off during a puzzle');
+  if(busy) return toast('Wait for the current molecule to finish');
   const ex = EXAMPLES[key];
   act(() => {
     const now = performance.now();
@@ -1525,14 +1522,18 @@ async function showPuzzles(){
 }
 
 async function startPuzzle(req){
+  if(busy) return;
   let r;
   try{ r = await api('/api/puzzles/start', {method:'POST', body:req}); }catch(e){ return toast(e.message); }
+  if(busy) return toast('Wait for the optimization to finish');  // Build was pressed while this loaded
   $('ov').classList.add('hidden');
-  if(!puzzle) puzzleSaved = serialize();  // the player's own work, restored on exit
+  const entering = !puzzle;
+  if(entering) puzzleSaved = serialize();  // the player's own work, restored on exit
   clearGhost();
   puzzle = {attempt: r.attempt_id, info: r.puzzle, daily: r.daily, practice: r.practice, t0: performance.now(), next: null};
   atoms = []; bonds = []; undoStack = []; inputMethod = 'hand'; bondFirst = null;
-  setPuzzleUI(true); changed();
+  if(entering) setPuzzleUI(true);  // a second call would save the puzzle's settings as the player's
+  changed();
   formulaInto($('pzTitle'), ''); $('pzTitle').textContent = `🧩 ${r.puzzle.name} · `;
   const f = document.createElement('span'); formulaInto(f, r.puzzle.formula); $('pzTitle').appendChild(f);
   $('pzSub').textContent = [`SMILES ${r.puzzle.smiles}`, r.puzzle.note, r.practice ? 'practice: already solved, not counted' : null].filter(Boolean).join(' · ');
@@ -1547,13 +1548,14 @@ function setPuzzleUI(on){
   $('puzzleBar').classList.toggle('hidden', !on);
   document.body.classList.toggle('puzzling', on);
   $('submitLabel').textContent = on ? 'Check' : 'Build';
-  if(on){ measureBefore = measureOn; measureOn = false; xyzBefore = xyzOpen; setXYZOpen(false); }
+  if(on){ measureBefore = measureOn; measureOn = false; xyzBefore = xyzOpen; setXYZOpen(false, false); }
   else { measureOn = measureBefore; setXYZOpen(xyzBefore); }
   for(const id of ['measure', 'xyzBtn']){ $(id).classList.toggle('disabled', on); $(id).disabled = on; }
   $('measure').classList.toggle('on', measureOn);
 }
 function exitPuzzle(){
   if(!puzzle) return;
+  if(busy) return toast('Checking your molecule…');
   puzzle = null; clearInterval(pzTimer); clearGhost(); setPuzzleUI(false);
   if(puzzleSaved){ restore(puzzleSaved); puzzleSaved = null; }
   undoStack = []; changed(); SFX.tick();
@@ -1570,6 +1572,7 @@ async function submitPuzzle(){
       bonds: bonds.map(b => [b.a, b.b, b.o])}});
   }catch(e){ busy = false; document.body.classList.remove('busy'); return fail(e.message || 'Could not reach the server'); }
   busy = false; document.body.classList.remove('busy');
+  if(!puzzle) return;  // left the puzzle while it was being checked
   if(!r.correct){ shake = 0.3; buzz([20,40,20]); SFX.err(); return toast(`${r.message} ${r.tip || ''}`, 4500); }
   clearInterval(pzTimer);
   showGhost(r.ghost);

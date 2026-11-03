@@ -12,7 +12,7 @@ import os
 import shutil
 import threading
 import time
-from collections import defaultdict, deque
+from collections import OrderedDict, deque
 from contextlib import contextmanager
 
 from fastapi import HTTPException
@@ -126,15 +126,23 @@ class SecurityHeaders:
 
 
 class RateLimiter:
+    MAX_KEYS = 50000  # hard cap: past it, the least recently hit keys are forgotten
+
     def __init__(self):
-        self._hits: dict[str, deque] = defaultdict(deque)
+        self._hits: OrderedDict[str, deque] = OrderedDict()  # least recently hit first
+        self._windows: dict[str, float] = {}
+        self._next_prune = 0.0
         self._lock = threading.Lock()
 
     def hit(self, key: str, limit: int, window: float) -> None:
         """Record one hit for ``key``; raise 429 if over ``limit`` within ``window`` seconds."""
         now = time.monotonic()
         with self._lock:
-            dq = self._hits[key]
+            dq = self._hits.get(key)
+            if dq is None:
+                dq = self._hits[key] = deque()
+            else:
+                self._hits.move_to_end(key)
             while dq and dq[0] <= now - window:
                 dq.popleft()
             if len(dq) >= limit:
@@ -142,13 +150,23 @@ class RateLimiter:
                 raise HTTPException(429, f"Too many requests. Try again in {retry} s.",
                                     headers={"Retry-After": str(retry)})
             dq.append(now)
-            if len(self._hits) > 20000:  # keep memory bounded
-                for k in [k for k, v in self._hits.items() if not v or v[-1] <= now - 3600]:
+            self._windows[key] = window
+            if len(self._hits) > 20000 and now >= self._next_prune:  # keep memory bounded
+                # Drop only keys whose window has fully passed, so a daily limit isn't reset
+                # after an idle hour; scan at most once a minute.
+                for k in [k for k, v in self._hits.items() if not v or v[-1] <= now - self._windows.get(k, 0)]:
                     del self._hits[k]
+                    self._windows.pop(k, None)
+                self._next_prune = now + 60
+            while len(self._hits) > self.MAX_KEYS:  # key spraying between scans
+                k, _ = self._hits.popitem(last=False)
+                self._windows.pop(k, None)
 
     def reset(self):
         with self._lock:
             self._hits.clear()
+            self._windows.clear()
+            self._next_prune = 0.0
         read_cache.clear()
 
 

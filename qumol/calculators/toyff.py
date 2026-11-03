@@ -8,6 +8,8 @@ near zero. Swap in a real potential (see ``ase_calc.py``) for science.
 
 from __future__ import annotations
 
+import copy
+
 import numpy as np
 
 from ..chem import ELEMENTS, Molecule
@@ -155,7 +157,13 @@ class ToyFF(Calculator):
 
     # ------------------------------------------------------------- API
     def optimize(self, mol: Molecule, seed: int = 0) -> OptResult:
-        self.build(mol)
+        # The registered instance is shared by concurrent requests, and build() stores the
+        # molecule's terms on the instance, so each optimization gets its own copy.
+        ff = copy.copy(self)
+        ff.build(mol)
+        return ff._optimize(mol, seed)
+
+    def _optimize(self, mol: Molecule, seed: int) -> OptResult:
         x = np.array(mol.coords, dtype=float)
         is_h = np.array([s == "H" for s in mol.symbols])
         # Tidy hydrogens only, so the player is judged on the skeleton they built.
