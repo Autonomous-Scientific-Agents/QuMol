@@ -1151,7 +1151,9 @@ async function submit(){
     const already = smiles && seen.has(smiles);
     let pubNew = null;
     if(stable && smiles && !already){ toast('Checking PubChem…', 3000); pubNew = await pubchemIsNew(smiles); }
-    // Same order as the server's score card.
+    // Same order and rules as the server's score card: points need a stable molecule with a
+    // SMILES, since "Already collected" is keyed on it (anything else could be farmed).
+    const scorable = stable && !!smiles;
     if(already){
       lines.push(['Already collected', 0]);
     } else {
@@ -1161,17 +1163,18 @@ async function submit(){
         else if(E1 < rec - 0.01){ lines.push(['Formula record', 300, 'lowest energy yet for this formula']); records[form] = E1; }
         lines.push(['New QuMol SMILES', 100]);
       } else if(stable && !smiles) lines.push(['New QuMol SMILES', 0, 'chemistry engine offline']);
-      lines.push(stable ? ['Stable', 50] : broken ? ['Optimization failed', 0, 'structure fell apart; no bonuses']
+      lines.push(scorable ? ['Stable', 50] : stable ? ['Stable', 0, 'no points without a readable SMILES']
+        : broken ? ['Optimization failed', 0, 'structure fell apart; no bonuses']
         : !res.converged ? ['Not converged', 0, 'no bonuses'] : ['Unstable', 0, 'no bonuses']);
-      if(inputMethod === 'hand') lines.push(['Hand-built', 50]);
+      if(inputMethod === 'hand') lines.push(['Hand-built', scorable ? 50 : 0]);
       if(inputMethod === 'example') lines.push(['Geometry', 0, 'example molecule']);
-      else lines.push(['Geometry', Math.round(100*Math.exp(-dEpa/2)), `ΔE ${dEpa.toFixed(2)} kcal/mol per atom`]);
+      else lines.push(['Geometry', scorable ? Math.round(100*Math.exp(-dEpa/2)) : 0, `ΔE ${dEpa.toFixed(2)} kcal/mol per atom`]);
       if(saddle) lines.push(['Saddle point', 0, 'rolled off to a minimum']);
       const nRad = freeHeavy();
       if(nRad) lines.push(['Radical', 0, `${nRad} unpaired electron${nRad > 1 ? 's' : ''}`]);
-      if(stable && valenceState().charge.some(q => q)) lines.push(['Formal charges', 50]);
+      if(scorable && valenceState().charge.some(q => q)) lines.push(['Formal charges', 50]);
       if(pubNew === true) lines.push(['Not in PubChem', 1000, 'possibly new to science']);
-      if(stable){
+      if(scorable){
         const n = atoms.length;
         lines.push(['Size bonus', Math.max(0, 1000 - 50*(Math.max(2, n) - 2)), `${n} atoms: smaller scores more`]);
       }
