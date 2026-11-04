@@ -27,7 +27,7 @@ from . import db
 URL = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/smiles/cids/JSON"
 COMPOUND_URL = "https://pubchem.ncbi.nlm.nih.gov/compound/{cid}"
 
-_local = {"path": None, "con": None}
+_local = {"path": None, "con": None, "stamp": None}
 _local_lock = threading.Lock()
 
 
@@ -36,13 +36,25 @@ def local_path() -> str:
         os.path.dirname(os.path.abspath(db.db_path())), "pubchem.sqlite")
 
 
+def _stamp(path):
+    """Identity of the file at ``path``, which changes when it is replaced or rewritten."""
+    try:
+        st = os.stat(path)
+    except OSError:
+        return None
+    return st.st_dev, st.st_ino, st.st_size, st.st_mtime_ns
+
+
 def _local_con():
+    # Picked up as soon as the file is copied in, and reopened when it is replaced (an open
+    # connection keeps reading the old file), so no restart is needed.
     path = local_path()
-    if _local["path"] != path or (_local["con"] is None and os.path.exists(path)):
+    stamp = _stamp(path)
+    if _local["path"] != path or _local["stamp"] != stamp:
         if _local["con"] is not None:
             _local["con"].close()
-        _local["path"], _local["con"] = path, None
-        if os.path.exists(path):  # picked up as soon as the file is copied in, no restart needed
+        _local.update(path=path, con=None, stamp=stamp)
+        if stamp is not None:
             _local["con"] = sqlite3.connect(f"file:{path}?mode=ro", uri=True, check_same_thread=False)
     return _local["con"]
 

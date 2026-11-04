@@ -327,6 +327,7 @@ class PuzzleStart(BaseModel):
 def puzzle_start(body: PuzzleStart, player=Depends(current_player), con=Depends(get_con)):
     pid = player["id"]
     limiter.hit(f"puzzle-start:{pid}", 60, 60)
+    ensure_disk_space(db.db_path())
     pool = puzzles.load()
     day = puzzles.today() if body.daily else None
     if body.daily:
@@ -368,6 +369,7 @@ class PuzzleSolve(BaseModel):
 def puzzle_solve(body: PuzzleSolve, player=Depends(current_player), con=Depends(get_con)):
     pid = player["id"]
     limiter.hit(f"puzzle-solve:{pid}", 30, 60)
+    ensure_disk_space(db.db_path())
     row = _attempt(con, body.attempt_id, pid)
     if row["solved_at"] is not None:
         raise HTTPException(409, "Already solved. Start a new puzzle")

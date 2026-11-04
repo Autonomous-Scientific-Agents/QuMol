@@ -148,6 +148,18 @@ def test_local_pubchem_table(client, tmp_path, monkeypatch):
     # stereo variant only in the table: matched on the connectivity block of the InChIKey
     from qumol import pubchem
     assert pubchem.lookup_local("JVTAAEKCZFNVCJ-UHFFFAOYSA-N")[:2] == (True, 107689)
+    # an updated index swapped in at the same path is read without a restart
+    new = tmp_path / "pubchem.new"
+    con = sqlite3.connect(new)
+    con.executescript("""
+        CREATE TABLE compounds (cid INTEGER PRIMARY KEY, inchikey TEXT, key14 TEXT, heavy INTEGER, title TEXT);
+        INSERT INTO compounds VALUES (281, 'UGFAIRIUMAVXCW-UHFFFAOYSA-N', 'UGFAIRIUMAVXCW', 2, 'Carbon monoxide');
+    """)
+    con.commit()
+    con.close()
+    new.replace(path)
+    assert pubchem.lookup_local("UGFAIRIUMAVXCW-UHFFFAOYSA-N")[:2] == (True, 281)
+    assert pubchem.lookup_local("LFQSCWFLJHTTHZ-UHFFFAOYSA-N")[0] is False
 
 
 def test_broken_optimization_is_reported(client, monkeypatch):

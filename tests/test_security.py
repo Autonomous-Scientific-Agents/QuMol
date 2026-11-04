@@ -103,6 +103,7 @@ def test_disk_guard(client, monkeypatch):
     monkeypatch.setattr(sec, "MIN_FREE_BYTES", 1 << 62)
     assert client.post("/api/submissions", json=ethanol(), headers=h).status_code == 503
     assert client.post("/api/players", json={"nickname": "late"}).status_code == 503
+    assert client.post("/api/puzzles/start", json={}, headers=h).status_code == 503
 
 
 def test_game_files_are_revalidated(client):
