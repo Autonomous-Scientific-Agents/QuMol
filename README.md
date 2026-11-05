@@ -103,7 +103,7 @@ After deploying, check that `journalctl -u qumol` shows players' real IP address
 | `QUMOL_CLIENT_IP_HEADER` | (none) | Header holding the player's address behind a proxy, e.g. `cf-connecting-ip` for Cloudflare Tunnel (set by `PROXY=cloudflare` in the installer) |
 | `QUMOL_PRERELAX` | `toyff` | Relax with the toy force field before the ML potential (faster, fewer blow-ups); `none` turns it off |
 | `QUMOL_OPTIMIZER` | `BFGS` | ASE optimizer for ML potentials: `BFGS`, `LBFGS` or `FIRE`. Anything but BFGS is recorded as its own method version (e.g. `uma-s-1p2p1+FIRE`) |
-| `QUMOL_UMA_SETTINGS` | `default` | fairchem inference settings (`default` or `batch`; benchmark with `scripts/bench_uma.py`) |
+| `QUMOL_UMA_SETTINGS` | `default` | fairchem inference settings (`default` or `batch`; benchmark with `scripts/bench_uma.py`). On a CPU, `default` compiles the model, which needs `g++` and the Python headers (`python3.X-dev`; `install.sh` installs both). Without them QuMol falls back to `batch` and logs a warning. Compiled is about 1.5–2× faster per optimization, after a one-time compile of about a minute at startup |
 | `QUMOL_WORKERS` | `2` | Optimizations allowed at once. With an ML potential they take turns on the one loaded model |
 | `QUMOL_PUBCHEM` | `1` | Set to `0` to skip live PubChem lookups (a local-table miss then counts as not in PubChem) |
 | `QUMOL_PUBCHEM_DB` | `pubchem.sqlite` next to the database | Local PubChem lookup table |

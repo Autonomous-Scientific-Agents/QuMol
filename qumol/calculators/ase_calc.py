@@ -6,7 +6,10 @@ toy force field's 2 kcal/mol per atom.
 
 from __future__ import annotations
 
+import logging
 import os
+import shutil
+import sysconfig
 import threading
 
 import numpy as np
@@ -173,6 +176,13 @@ def _emt():
     return EMT()
 
 
+def _can_compile() -> bool:
+    """torch.compile on the CPU builds C++ at run time: it needs a compiler and Python.h."""
+    cxx = shutil.which(os.environ.get("CXX") or "g++")
+    header = os.path.exists(os.path.join(sysconfig.get_paths()["include"], "Python.h"))
+    return bool(cxx) and header
+
+
 def _uma():
     # Requires: pip install fairchem-core, plus access to the UMA weights on Hugging Face.
     from fairchem.core import FAIRChemCalculator, pretrained_mlip
@@ -183,6 +193,13 @@ def _uma():
     # merged/compiled model elsewhere; "batch" skips merging and compiling, which may suit
     # a CPU serving many different small molecules. Benchmark with scripts/bench_uma.py.
     settings = os.environ.get("QUMOL_UMA_SETTINGS", "default")
+    if settings == "default" and device == "cpu" and not _can_compile():
+        # Otherwise every optimization fails with an InductorError (InvalidCxxCompiler or a
+        # missing Python.h). "batch" doesn't compile: slower, but it works.
+        logging.getLogger("qumol").warning(
+            "No C++ compiler or Python headers, so UMA can't be compiled: using inference "
+            "settings 'batch'. Install g++ and python3-dev for the faster compiled model.")
+        settings = "batch"
     predictor = pretrained_mlip.get_predict_unit(model, inference_settings=settings, device=device)
     return FAIRChemCalculator(predictor, task_name="omol")
 

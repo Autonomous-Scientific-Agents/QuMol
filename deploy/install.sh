@@ -65,6 +65,12 @@ if [ "$METHOD" = "uma" ]; then
   if ! command -v nvidia-smi >/dev/null; then
     # No GPU: the CPU build of PyTorch is far smaller than the default CUDA one.
     "$APP_DIR/.venv/bin/pip" install -q torch --index-url https://download.pytorch.org/whl/cpu
+    if [ "${UMA_SETTINGS:-default}" = "default" ]; then
+      # The default settings compile the model (torch.compile), which builds C++ at run time:
+      # it needs a compiler and the Python headers, or every optimization fails.
+      PYDEV="$("$APP_DIR/.venv/bin/python" -c 'import sys; print(f"python{sys.version_info[0]}.{sys.version_info[1]}-dev")')"
+      sudo apt-get install -y -qq g++ "$PYDEV" >/dev/null
+    fi
   fi
   "$APP_DIR/.venv/bin/pip" install -q ase fairchem-core
   # The weights are gated on Hugging Face: accept the terms at https://huggingface.co/facebook/UMA,

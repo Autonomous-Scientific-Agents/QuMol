@@ -222,3 +222,11 @@ def test_charge_tie_break_matches_the_editor():
     js = (Path(__file__).resolve().parent.parent / "web" / "app.js").read_text()
     table = re.search(r"const MINUS_RANK = \{([^}]*)\}", js).group(1)
     assert {k.strip(): int(v) for k, v in (kv.split(":") for kv in table.split(","))} == MINUS_RANK
+
+
+def test_uma_compile_check(monkeypatch):
+    """Without a C++ compiler, UMA's default (compiled) settings would fail every optimization."""
+    from qumol.calculators import ase_calc
+
+    monkeypatch.setattr(ase_calc.shutil, "which", lambda name: None)
+    assert ase_calc._can_compile() is False
