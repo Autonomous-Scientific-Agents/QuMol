@@ -33,7 +33,7 @@ button.on{background:var(--acc);box-shadow:0 0 14px var(--acc)}
 }
 @keyframes tipIn{from{opacity:0}}
 #xyzBtn{font-size:13px;letter-spacing:.5px}
-#xyzBtn.on,#learn.on,#measure.on{background:var(--acc)}
+#xyzBtn.on,#measure.on{background:var(--acc)}
 /* measurement labels (bond lengths, angles) drawn over the 3D view */
 #measures{position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden}
 .ml{position:absolute;transform:translate(-50%,-50%);font:600 11.5px/1 ui-monospace,Menlo,monospace;color:#eef2ff;
@@ -59,10 +59,11 @@ body.puzzling #toast{top:128px}
 #pzTitle sub{font-size:.65em}
 #pzTimer{font-family:ui-monospace,Menlo,monospace;opacity:.85}
 #puzzleBar button{min-width:34px;height:34px;padding:0 8px;font-size:15px}
-#pzSub{font-size:12px;opacity:.8;font-family:ui-monospace,Menlo,monospace;word-break:break-all}
+#pzSub{font-size:15px;opacity:.9;font-family:ui-monospace,Menlo,monospace;word-break:break-all}
 #pzSub:empty{display:none}
 button.disabled{opacity:.35}
 .pzlist .line{cursor:pointer}
+.line small .smi,.coll .line small{font-family:ui-monospace,Menlo,monospace;font-size:14px;opacity:1}
 .pzlist .line:hover{background:rgba(124,92,255,.12)}
 .diffs{font-size:13px;margin:8px 0;opacity:.9}
 .diffs div{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
@@ -76,7 +77,7 @@ button.disabled{opacity:.35}
 .phead button{min-width:34px;height:34px;padding:0;font-size:15px}
 .pformula{font-size:24px;font-weight:800;line-height:1.1}
 .pformula sub{font-size:.6em}
-.psmiles{font-family:ui-monospace,Menlo,monospace;font-size:12px;opacity:.7;word-break:break-all}
+.psmiles{font-family:ui-monospace,Menlo,monospace;font-size:15px;opacity:.85;margin-top:2px;word-break:break-all}
 #xyzText{flex:1;min-height:140px;resize:none;background:#0e1530;color:var(--txt);border:1px solid #2c3a66;border-radius:10px;padding:8px;
   font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.45;white-space:pre;overflow:auto;
   user-select:text;-webkit-user-select:text;touch-action:auto}
@@ -148,7 +149,7 @@ body.busy #bottom button{opacity:.45;pointer-events:none}
 .card h2.mname{margin-bottom:2px}
 .mformula{text-align:center;font-size:22px;font-weight:800}
 .mformula sub{font-size:.6em}
-.msmiles{text-align:center;font-family:ui-monospace,Menlo,monospace;font-size:13px;opacity:.7;word-break:break-all;margin-top:2px}
+.msmiles{text-align:center;font-family:ui-monospace,Menlo,monospace;font-size:17px;opacity:.85;word-break:break-all;margin-top:2px}
 .mpubchem{text-align:center;font-size:14px;margin:6px 0 10px;opacity:.85}
 .mpubchem a{color:#9fb0ff}
 .card p{line-height:1.45;margin:6px 0}
@@ -181,10 +182,9 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
   <div class="left"><span class="brand">QuMol</span><span id="info" class="pill">Loading…</span></div>
   <div class="right">
     <button id="puzzleBtn" class="tip-below hidden" data-tip="Puzzles: build a named molecule as close to its experimental 3D structure as you can. Five new daily puzzles, plus random ones" aria-label="Puzzles">🧩</button>
-    <button id="learn" class="tip-below" data-tip="Learn chemistry: how each element bonds, molecular shapes, and a quiz" aria-label="Learn chemistry">🏫</button>
     <button id="xyzBtn" class="tip-below" data-tip="Formula and XYZ coordinates panel. Edit the coordinates to change the molecule directly" aria-label="Formula and XYZ panel">XYZ</button>
     <button id="mute" class="tip-below" data-tip="Sound on/off" aria-label="Sound on/off">🔊</button>
-    <button id="help" class="tip-below" data-tip="How to play" aria-label="How to play">?</button>
+    <button id="help" class="tip-below" data-tip="How to play, and the interactive tutorial" aria-label="How to play">?</button>
     <button id="lb" class="tip-below" data-tip="Leaderboards" aria-label="Leaderboards">🏆</button>
     <button id="total" class="tip-below tip-right" data-tip="Your score and molecule collection" aria-label="Your score and molecule collection">0 ⭐</button>
   </div>

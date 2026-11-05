@@ -180,8 +180,8 @@ The score card shows the compound's name, formula, SMILES and PubChem link at th
 | Saddle point | 0 | the structure rolled off a saddle point to a minimum |
 | Radical | 0 | number of unpaired electrons |
 | Formal charges | +50 | e.g. ⁻C≡O⁺, nitro groups |
-| Not in PubChem | +1,000 | possibly new to science; stable molecules only (later also verified transition states) |
-| Size bonus | 1,000 − 50 × (atoms − 2) | all atoms count, hydrogens included: 1,000 for 2 atoms, 50 for 21, nothing from 22 up; stable molecules only (later also verified transition states) |
+| Not in PubChem | 1,000 × 10^(3 / atoms) | possibly new to science; all atoms count, hydrogens included: 31,623 for 2 atoms, 10,000 for 3, 2,154 for 9, approaching 1,000 for large molecules; stable molecules only (later also verified transition states) |
+| Bond types | +20 per bond type | each distinct element pair and bond order counts once (C–H, C–C, C=C, C–O, …); ethanol has 4 types, so +80; stable molecules only (later also verified transition states) |
 
 All points need a **stable** molecule with a readable SMILES. Otherwise the card shows *Optimization failed*, *Not converged* or *Unstable* in place of *Stable*, and every line scores 0. Resubmitting a molecule you already have is stored but scores 0 (*Already collected*). Point values live in `POINTS` in `qumol/scoring.py`.
 

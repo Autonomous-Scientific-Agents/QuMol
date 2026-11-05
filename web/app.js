@@ -558,6 +558,20 @@ function sane(ff, x){
   return true;
 }
 
+// Distinct bond types ("C–H", "C=C", "O–H"), ordered like the server's scoring.bond_types:
+// carbon first, hydrogen last, the rest alphabetically, then by bond order.
+function bondTypes(){
+  const rank = el => (el === 'C' ? '0' : el === 'H' ? '2' : '1') + el;
+  const seen = new Map();
+  for(const b of bonds){
+    const [x, y] = [atoms[b.a].el, atoms[b.b].el].sort((p, q) => rank(p) < rank(q) ? -1 : rank(p) > rank(q) ? 1 : 0);
+    seen.set(`${x}|${y}|${b.o}`, {x, y, o: b.o});
+  }
+  const cmp = (p, q) => p < q ? -1 : p > q ? 1 : 0;
+  return [...seen.values()].sort((p, q) => cmp(rank(p.x), rank(q.x)) || cmp(rank(p.y), rank(q.y)) || p.o - q.o)
+    .map(t => t.x + ['', '–', '=', '≡'][t.o] + t.y);
+}
+
 /* ================= RDKit (SMILES) ================= */
 // Online, SMILES come from the server (RDKit in Python), so the page never needs
 // eval-like code and can run under a strict Content-Security-Policy.
@@ -860,7 +874,7 @@ function lewisSVG(el){
   return `<svg class="lewis" viewBox="0 0 92 92"><circle cx="46" cy="46" r="20" fill="${c}"/><text x="46" y="53" text-anchor="middle" font-size="20" font-weight="800" fill="${el==='H'||el==='F'?'#111':'#fff'}">${el}</text>${dots}</svg>`;
 }
 let learnEl = 'C', learnTab = 'elements';
-const quizState = {streak:0, best:Math.max(0, Math.floor(Number(LS.get('qm.quizBest', 0))) || 0), order:[], i:0};
+const quizState = {streak:0, best:Math.max(0, Math.floor(Number(LS.get('qm.quizBest', 0))) || 0), order:[], i:0, right:0, answered:-1};
 const QUIZ = [
   {q:'How many bonds does nitrogen usually form?', a:['1','2','3','4'], c:2, e:'Nitrogen has 5 valence electrons. 3 bonds + 1 lone pair = a full octet.'},
   {q:'Which bond is the shortest?', a:['C–C','C=C','C≡C'], c:2, e:'More shared electrons pull atoms closer: C≡C 1.20 Å < C=C 1.34 Å < C–C 1.54 Å.'},
@@ -889,6 +903,9 @@ function showLearn(tab = learnTab){
   const body = document.createElement('div'); card.appendChild(body);
   ({elements: learnElements, shapes: learnShapes, quiz: learnQuiz})[tab](body);
   closeBtn(card, 'Back to building');
+  const back = document.createElement('button'); back.className = 'link'; back.textContent = '← How to play';
+  back.onclick = () => { SFX.tick(); showHelp(); };
+  card.appendChild(back);
 }
 function learnElements(body){
   body.innerHTML = `<p style="margin-top:0">Atoms bond to fill their outer shell — usually <b>8 electrons</b> (the <b>octet rule</b>; hydrogen only needs 2). Each bond shares 2 electrons, so <b>bonds = 8 − valence electrons</b>. Tap an element:</p>`;
@@ -942,7 +959,17 @@ function learnShapes(body){
 }
 function learnQuiz(body){
   const s = quizState;
-  if(!s.order.length || s.i >= s.order.length){ s.order = QUIZ.map((_,i) => i).sort(() => Math.random() - 0.5); s.i = 0; }
+  if(!s.order.length){ s.order = QUIZ.map((_,i) => i).sort(() => Math.random() - 0.5); s.i = 0; s.right = 0; }
+  if(s.i >= s.order.length){  // every question answered
+    const all = s.right === QUIZ.length;
+    body.innerHTML = `<div class="quizq" style="text-align:center">${all ? '🏆 Perfect!' : '🎉'} All questions answered</div>
+      <p style="text-align:center">You got <b>${s.right} of ${QUIZ.length}</b> right. Best streak: ${s.best}.</p>`;
+    const again = document.createElement('button'); again.textContent = 'Start the quiz again'; again.style.width = '100%';
+    again.onclick = () => { s.order = []; s.streak = 0; s.answered = -1; SFX.tick(); showLearn('quiz'); };
+    body.appendChild(again);
+    if(all){ SFX.chime(); buzz(30); }
+    return;
+  }
   const q = QUIZ[s.order[s.i]];
   body.innerHTML = `<div class="streak">🔥 Streak ${s.streak} · Best ${s.best} · Question ${s.i+1}/${QUIZ.length}</div><div class="quizq">${q.q}</div>`;
   const opts = document.createElement('div'); opts.className = 'quizopts'; body.appendChild(opts);
@@ -950,19 +977,20 @@ function learnQuiz(body){
     const b = document.createElement('button'); b.textContent = txt; opts.appendChild(b);
     b.onclick = () => {
       opts.querySelectorAll('button').forEach((x, j) => { x.disabled = true; if(j === q.c) x.classList.add('right'); });
-      const ok = k === q.c;
-      if(ok){ s.streak++; if(s.streak > s.best){ s.best = s.streak; LS.set('qm.quizBest', s.best); } SFX.chime(); buzz(30); }
-      else { b.classList.add('wrong'); s.streak = 0; SFX.err(); buzz([20,40,20]); }
+      const ok = k === q.c, first = s.answered !== s.i;  // switching tabs re-shows the question
+      s.answered = s.i;
+      if(first){ if(ok){ s.right++; s.streak++; if(s.streak > s.best){ s.best = s.streak; LS.set('qm.quizBest', s.best); } } else s.streak = 0; }
+      if(ok){ SFX.chime(); buzz(30); }
+      else { b.classList.add('wrong'); SFX.err(); buzz([20,40,20]); }
       const e = document.createElement('div'); e.className = 'qexp';
       e.innerHTML = `<b>${ok ? (s.streak >= 3 ? `🔥 ${s.streak} in a row!` : '✅ Correct!') : '❌ Not quite.'}</b> ${q.e}`;
-      const next = document.createElement('button'); next.textContent = 'Next question →'; next.style.marginTop = '10px'; next.style.width = '100%';
+      const next = document.createElement('button'); next.textContent = s.i + 1 < QUIZ.length ? 'Next question →' : 'See results →'; next.style.marginTop = '10px'; next.style.width = '100%';
       next.onclick = () => { s.i++; SFX.tick(); showLearn('quiz'); };
       body.append(e, next);
       body.querySelector('.streak').textContent = `🔥 Streak ${s.streak} · Best ${s.best} · Question ${s.i+1}/${QUIZ.length}`;
     };
   });
 }
-$('learn').onclick = () => { unlockAudio(); SFX.tick(); showLearn(); };
 
 /* ================= pointer input ================= */
 const pointers = new Map();
@@ -1177,11 +1205,8 @@ async function submit(){
       const nRad = freeHeavy();
       if(nRad) lines.push(['Radical', 0, `${nRad} unpaired electron${nRad > 1 ? 's' : ''}`]);
       if(scorable && valenceState().charge.some(q => q)) lines.push(['Formal charges', 50]);
-      if(pubNew === true) lines.push(['Not in PubChem', 1000, 'possibly new to science']);
-      if(scorable){
-        const n = atoms.length;
-        lines.push(['Size bonus', Math.max(0, 1000 - 50*(Math.max(2, n) - 2)), `${n} atoms: smaller scores more`]);
-      }
+      if(pubNew === true) lines.push(['Not in PubChem', Math.round(1000*10**(3/atoms.length)), `possibly new to science · 1000 × 10^(3/${atoms.length} atoms)`]);
+      if(scorable){ const t = bondTypes(); lines.push(['Bond types', 20*t.length, t.join(', ')]); }
     }
     const score = already ? 0 : lines.reduce((s,l) => s + l[1], 0);
 
@@ -1273,7 +1298,7 @@ function lineEl(label, pts, sub, cls='', link=null){
     } else s.textContent = sub;
     l.appendChild(s);
   }
-  const p = document.createElement('div'); p.className = 'pts' + (pts === 0 ? ' zero' : ''); p.textContent = typeof pts === 'number' ? `+${pts}` : pts;
+  const p = document.createElement('div'); p.className = 'pts' + (pts === 0 ? ' zero' : ''); p.textContent = typeof pts === 'number' ? `+${pts.toLocaleString()}` : pts;
   d.append(l, p); return d;
 }
 function openCard(){ const card = $('card'); card.innerHTML = ''; card.className = 'card'; $('ov').classList.remove('hidden'); return card; }
@@ -1312,7 +1337,7 @@ async function showScore({lines, score, discovery, name=null, formula:form=null,
   await new Promise(res => {
     (function step(){
       const k = Math.min(1, (performance.now()-t0)/dur);
-      t.textContent = `+${Math.round(score*(1-Math.pow(1-k,3)))}`;
+      t.textContent = `+${Math.round(score*(1-Math.pow(1-k,3))).toLocaleString()}`;
       if(k < 1) requestAnimationFrame(step); else res();
     })();
   });
@@ -1344,24 +1369,42 @@ function logEl(log, unitOf){
   }
   return d;
 }
+// First run: the essentials only. The ? button has the full guide and the tutorial.
+function showIntro(){
+  const card = openCard();
+  card.innerHTML = `<h2>How to play</h2>
+  <p>Pick an element at the bottom and tap to add atoms. Tap a bond to make it double or triple.</p>
+  <p>Hit <b>Build</b> (the flask): your molecule is optimized and scored. New molecules score big, and one that's <b>not in PubChem</b> scores huge.</p>
+  <p>One finger rotates, pinch zooms.</p>
+  <p style="opacity:.8">Tap <b>?</b> at the top any time for the full guide and the interactive tutorial.</p>`;
+  closeBtn(card, "Let's build!");
+  const more = document.createElement('button'); more.className = 'link'; more.textContent = 'Show the full guide';
+  more.onclick = () => { SFX.tick(); showHelp(); };
+  card.appendChild(more);
+}
 function showHelp(){
   const card = openCard();
   card.innerHTML = `<h2>How to play</h2>
-  <p>Build a molecule atom by atom, then hit <b>Build</b> (the flask). It gets optimized and scored.</p>
+  <p>Build a molecule atom by atom, then hit <b>Build</b> (the flask). It gets optimized and scored.</p>`;
+  const tut = document.createElement('button'); tut.className = 'try'; tut.style.margin = '4px 0 8px';
+  tut.textContent = '🏫 Interactive tutorial: elements, shapes and a quiz';
+  tut.onclick = () => { SFX.tick(); showLearn(); };
+  card.appendChild(tut);
+  card.insertAdjacentHTML('beforeend', `
   <p><b>➕ Add</b> — click an element button to drop an atom next to the molecule (it bonds automatically when close enough), or tap an atom to grow from it.</p>
   <p><b>Tap a bond</b> to change it: single → double → triple → single. On a computer, bonds light up when you hover.</p>
   <p><b>🔗 Bond</b> — tap two atoms to bond them. Tap the same pair again to cycle single → double → triple → none (great for rings).</p>
   <p><b>✋ Move</b> — drag atoms to perfect the geometry. The closer you are to the optimum, the more points.</p>
-  <p><b>🧩 Puzzles</b> — you get a molecule's name, formula and SMILES; build it as close to its experimental 3D structure as you can, against the clock. Five daily puzzles from easy to hard, plus random ones. Leaderboards rank by puzzles solved, then total time. After you solve one, the experimental structure appears as a green outline over yours.</p>
-  <p><b>📏 Measure</b> — shows bond lengths (Å) on the bonds and the angles (°) around the atom you tap or drag, live as you move it. Typical values: C–H 1.09, C–C 1.54, C=C 1.34, C=O 1.21 Å; 109.5° around a carbon with four bonds, 120° with a double bond.</p>
-  <p><b>Charges & radicals</b> — O can make a 3rd bond (N a 4th): QuMol gives it a + charge and a neighbor the −, like ⁻C≡O⁺. If bonds are left free when you Build, you can fill them with H or keep a radical (up to 2 unpaired electrons).</p>
   <p><b>Delete</b> — tap an atom to remove it, or a bond to break it. <b>Undo</b> steps back one change, <b>Reset</b> starts over.</p>
   <p><b>H+</b> — saturates your molecule: every atom with free bonds gets hydrogens until it has its full valence (C 4, N 3, O 2, S 2). Build does this for you too.</p>
-  <p><b>🏫 Learn</b> — how each element bonds, molecular shapes you can load in 3D, and a quiz. <b>XYZ</b> — shows the formula and coordinates as you build; edit the numbers to reshape the molecule directly.</p>
+  <p><b>📏 Measure</b> — shows bond lengths (Å) on the bonds and the angles (°) around the atom you tap or drag, live as you move it. Typical values: C–H 1.09, C–C 1.54, C=C 1.34, C=O 1.21 Å; 109.5° around a carbon with four bonds, 120° with a double bond.</p>
+  <p><b>Charges & radicals</b> — O can make a 3rd bond (N a 4th): QuMol gives it a + charge and a neighbor the −, like ⁻C≡O⁺. If bonds are left free when you Build, you can fill them with H or keep a radical (up to 2 unpaired electrons).</p>
+  <p><b>XYZ</b> — shows the formula and coordinates as you build; edit the numbers to reshape the molecule directly.</p>
+  <p><b>🧩 Puzzles</b> — you get a molecule's name, formula and SMILES; build it as close to its experimental 3D structure as you can, against the clock. Five daily puzzles from easy to hard, plus random ones. <b>Next puzzle</b> takes you straight to the next one you haven't solved. Leaderboards rank by puzzles solved, then total time. After you solve one, the experimental structure appears as a green outline over yours.</p>
+  <p><b>Points</b> — new QuMol formula +1000, new molecule (SMILES) +100, energy records, stable +50, hand-built +50, geometry skill up to +100, formal charges +50, <b>+20 for each bond type</b> in the molecule (C–H, C–C, C=C, C–O, …), and a huge bonus if it's <b>not in PubChem</b>: 1000 × 10^(3 / number of atoms), so the smaller the molecule, the bigger the prize (31,623 for 2 atoms, 10,000 for 3, 2,154 for 9). Molecules you already collected score 0.</p>
   <p style="opacity:.7">On a computer, hover over any button to see what it does. Loaded examples don't earn geometry or hand-built points; edited XYZ doesn't earn the hand-built bonus.</p>
   <p>One finger rotates, pinch zooms.</p>
-  <p><b>Points:</b> geometry skill, stability, hand-built bonus, new molecules, formula records — and a huge bonus if it's <b>not in PubChem</b>. Smaller molecules score more.</p>
-  <p style="opacity:.6;font-size:13px">Early prototype: energies come from a simple toy force field. A proper ML potential comes later.</p>`;
+  <p style="opacity:.6;font-size:13px">Early prototype: energies come from a simple toy force field. A proper ML potential comes later.</p>`);
   closeBtn(card, "Let's build!");
 }
 async function showCollection(){
@@ -1376,7 +1419,7 @@ async function showCollection(){
       items = mine.map(s => ({formula:s.formula, smiles:s.smiles, score:s.score, discovery: s.stable && s.in_pubchem === 0}));
     }catch(e){ if(e.status === 401){ setAccount(null, null); return showWelcome(); } toast(e.message); }
   }
-  const card = openCard();
+  const card = openCard(); card.classList.add('coll');
   const h = document.createElement('h2'); h.textContent = `${nick ? nick + ' · ' : 'Your collection · '}${total.toLocaleString()} ⭐`; card.appendChild(h);
   if(!items.length){ const p = document.createElement('p'); p.textContent = 'Nothing yet. Go build something!'; card.appendChild(p); }
   items.slice(0, 50).forEach(e => card.appendChild(lineEl((e.discovery ? '🤯 ' : '') + e.formula, e.score, e.smiles)));
@@ -1438,7 +1481,7 @@ function showRecoveryCode(code){
   card.querySelector('h2').textContent = `You're in, ${nick}! 🎉`;
   card.querySelector('.code').textContent = code;
   closeBtn(card, "Saved, let's build!");
-  if(!LS.get('qm.seenHelp', false)){ LS.set('qm.seenHelp', true); $('ovBtn').onclick = () => showHelp(); }
+  if(!LS.get('qm.seenHelp', false)){ LS.set('qm.seenHelp', true); $('ovBtn').onclick = () => showIntro(); }
 }
 function showRecover(){
   const card = openCard();
@@ -1509,13 +1552,15 @@ async function showPuzzles(){
   card.innerHTML = `<h2>🧩 Puzzles</h2>
     <p>You get the name, formula and SMILES. Build it by hand, as close to its <b>experimental 3D structure</b> as you can; the clock starts when you open the puzzle. Leaderboards rank by puzzles solved, then by total time. Your first solve of each puzzle counts.</p>
     <h3 class="pzday"></h3><div class="pzlist"></div>`;
-  card.querySelector('.pzday').textContent = `Today's puzzles · ${d.day}`;
+  const allDone = d.puzzles.length && d.puzzles.every(p => p.solved_score !== null && p.solved_score !== undefined);
+  card.querySelector('.pzday').textContent = `Today's puzzles · ${d.day}${allDone ? ' · 🎉 all solved!' : ''}`;
   const list = card.querySelector('.pzlist');
   for(const p of d.puzzles){
     const done = p.solved_score !== null && p.solved_score !== undefined;
     const row = lineEl(`${p.slot}. ${p.name}`, done ? '✓ solved' : `${p.heavy} heavy`, null, done ? 'me' : '');
     const f = document.createElement('small'); formulaInto(f, p.formula);
-    f.appendChild(document.createTextNode(`  ·  ${p.smiles}${p.note ? '  ·  ' + p.note : ''}`));
+    const smi = document.createElement('span'); smi.className = 'smi'; smi.textContent = p.smiles;
+    f.append('  ·  ', smi, p.note ? '  ·  ' + p.note : '');
     row.firstChild.appendChild(f);
     row.onclick = () => startPuzzle({puzzle_id: p.id, daily: true});
     list.appendChild(row);
@@ -1526,6 +1571,37 @@ async function showPuzzles(){
   lb.onclick = () => showLeaderboard('puzzle_daily');
   card.append(rnd, lb);
   closeBtn(card, 'Close');
+}
+
+// Straight to the next puzzle: the next unsolved daily one after this one (a random run
+// continues with random ones), or a card saying everything is solved.
+async function nextPuzzle(){
+  let d;
+  try{ d = await api('/api/puzzles/daily'); }catch(e){ return toast(e.message); }
+  if(puzzle && !puzzle.daily) return d.unsolved > 0 ? startPuzzle({}) : showAllSolved(d, true);
+  const list = d.puzzles, i = list.findIndex(p => puzzle && p.id === puzzle.info.id);
+  const p = [...list.slice(i + 1), ...list.slice(0, i + 1)].find(p => p.solved_score === null || p.solved_score === undefined);
+  if(p) return startPuzzle({puzzle_id: p.id, daily: true});
+  showAllSolved(d, false);
+}
+function showAllSolved(d, everything){
+  const card = openCard();
+  card.innerHTML = `<h2>🎉 All puzzles solved!</h2><p style="text-align:center"></p>`;
+  card.querySelector('p').textContent = everything
+    ? `You've solved all ${d.total_puzzles} puzzles in QuMol. Amazing!`
+    : `You've solved all ${d.puzzles.length} of today's puzzles. New ones arrive tomorrow.`;
+  SFX.chime(); buzz(30);
+  if(!everything && d.unsolved > 0){
+    const rnd = document.createElement('button'); rnd.id = 'ovBtn';
+    rnd.textContent = `🎲 Random puzzle (${d.unsolved} not solved yet)`;
+    rnd.onclick = () => startPuzzle({});
+    card.appendChild(rnd);
+  }
+  const lb = document.createElement('button'); lb.className = 'link'; lb.textContent = '🏆 Puzzle leaderboards';
+  lb.onclick = () => showLeaderboard('puzzle_daily');
+  const out = document.createElement('button'); out.className = 'link'; out.textContent = 'Back to free building';
+  out.onclick = () => { $('ov').classList.add('hidden'); exitPuzzle(); };
+  card.append(lb, out);
 }
 
 async function startPuzzle(req){
@@ -1611,7 +1687,7 @@ async function submitPuzzle(){
   const cmp = document.createElement('button'); cmp.id = 'ovBtn'; cmp.textContent = 'Compare in 3D';
   cmp.onclick = () => { $('ov').classList.add('hidden'); toast('Green outline: the experimental structure', 3000); };
   const next = document.createElement('button'); next.className = 'link'; next.textContent = '🧩 Next puzzle';
-  next.onclick = () => showPuzzles();
+  next.onclick = () => { SFX.tick(); nextPuzzle(); };
   const out = document.createElement('button'); out.className = 'link'; out.textContent = 'Back to free building';
   out.onclick = () => { $('ov').classList.add('hidden'); exitPuzzle(); };
   card.append(cmp, next, out);
@@ -1716,6 +1792,6 @@ function loop(now){
       try{ const me = await api('/api/me'); total = me.total; nick = me.nickname; LS.set('qm.total', total); updateInfo(); }
       catch(e){ if(e.status === 401){ setAccount(null, null); return showWelcome(); } }
     } else toast('Offline mode: scores stay on this device', 2500);
-    if(!LS.get('qm.seenHelp', false)){ LS.set('qm.seenHelp', true); showHelp(); }
+    if(!LS.get('qm.seenHelp', false)){ LS.set('qm.seenHelp', true); showIntro(); }
   });
 }

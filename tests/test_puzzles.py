@@ -29,7 +29,8 @@ def test_daily_set_and_solving(client):
 
     h, _ = player(client)
     daily = client.get("/api/puzzles/daily", headers=h).json()
-    assert len(daily["puzzles"]) == 5 and daily["total_puzzles"] == 80
+    assert len(daily["puzzles"]) == 5 and daily["total_puzzles"] == 80 and daily["unsolved"] == 80
+    assert "unsolved" not in client.get("/api/puzzles/daily").json()  # anonymous
     heavy = [p["heavy"] for p in daily["puzzles"]]
     assert heavy == sorted(heavy)  # easy to hard
     assert all(p["smiles"] and "coords" not in p for p in daily["puzzles"])  # name, formula, SMILES; no 3D
@@ -61,6 +62,7 @@ def test_daily_set_and_solving(client):
     assert ok["score"] == sum(l[1] for l in ok["lines"]) > 0
     assert len(ok["ghost"]) == 3 and ok["diffs"][0]["experiment"] == 0.957
     assert client.post("/api/puzzles/solve", headers=h, json={"attempt_id": aid, "atoms": atoms, "bonds": bonds}).status_code == 409
+    assert client.get("/api/puzzles/daily", headers=h).json()["unsolved"] == 79  # drives "all puzzles solved"
 
     # a second solve of the same puzzle is practice: no points
     again = client.post("/api/puzzles/start", json={"puzzle_id": "se100-water"}, headers=h).json()
