@@ -87,6 +87,12 @@ def test_formal_charges():
     m = validate(["C", "H", "H", "H"], rng.uniform(-1, 1, (4, 3)), [(0, 1, 1), (0, 2, 1), (0, 3, 1)])
     assert smiles_of(m) == "[CH3]" and m.radicals == 1 and m.multiplicity == 2
     assert smi(["N", "O"], [(0, 1, 2)]) == "[N]=O"
+    # tie-breaking: at equal bond distance from N+, O takes the − charge over C regardless of bond order
+    from qumol.chem import assign_charges, smiles_from_graph
+    for bonds in ([(0, 1, 1), (1, 2, 2), (1, 3, 1)], [(1, 3, 1), (1, 2, 2), (0, 1, 1)]):
+        charges, _ = assign_charges(["C", "N", "O", "O"], bonds, strict=True)
+        assert charges == [0, 1, 0, -1]
+        assert smiles_from_graph(["C", "N", "O", "O"], bonds) == "C[N+](=O)[O-]"
     with pytest.raises(ChemError):  # a bare carbon atom has 4 free bonds: too many
         smi(["C"], [])
     with pytest.raises(ChemError):  # O with 3 bonds but nothing to balance the charge
@@ -171,10 +177,14 @@ def test_optimizer_is_part_of_the_method_version(monkeypatch):
     pytest.importorskip("ase")
     from qumol.calculators.ase_calc import ASECalculator, _emt
 
-    assert ASECalculator("emt", "ase", _emt).version == "ase"  # BFGS, the default
-    monkeypatch.setenv("QUMOL_OPTIMIZER", "FIRE")
     calc = ASECalculator("emt", "ase", _emt)
+    assert calc.version == "ase"  # BFGS, the default
+    monkeypatch.setenv("QUMOL_OPTIMIZER", "FIRE")
     assert calc.version == "ase+FIRE" and calc.params()["optimizer"] == "FIRE"
+    res = calc.optimize(water())
+    # final step is recorded once, not duplicated
+    emt_steps = [step for stage, step, _, _ in res.frame_info if stage == "emt"]
+    assert len(emt_steps) == len(set(emt_steps))
 
 
 def test_toyff_subclass_overrides_are_used():

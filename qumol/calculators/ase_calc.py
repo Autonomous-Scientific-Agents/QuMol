@@ -53,14 +53,18 @@ class ASECalculator(Calculator):
 
     def __init__(self, name: str, version: str, factory, kind: str = "mlip", params: dict | None = None):
         self.name, self.kind = name, kind
-        # Methods are keyed by name + version, so results from another optimizer get their
-        # own method row (BFGS, the default, keeps the plain model version).
-        opt = _optimizer_name()
-        self.version = version if opt == "BFGS" else f"{version}+{opt}"
+        self._version = version
         self._factory = factory
         self._calc = None
         self._params = params or {}
         self._lock = threading.RLock()
+
+    @property
+    def version(self) -> str:
+        # Methods are keyed by name + version, so results from another optimizer get their
+        # own method row (BFGS, the default, keeps the plain model version).
+        opt = _optimizer_name()
+        return self._version if opt == "BFGS" else f"{self._version}+{opt}"
 
     def params(self):
         return {**self._params, "optimizer": _optimizer_name(), "fmax": self.fmax_target}
@@ -143,8 +147,9 @@ class ASECalculator(Calculator):
         stages.append({"name": self.name, "steps": int(n), "e_start": e_start, "e_end": float(E),
                        "unit": self.energy_unit, "converged": bool(conv)})
         x = at.get_positions().copy()
-        frames.append(x.copy())
-        info.append((self.name, int(n), float(E), float(fmax)))
+        if not info or info[-1][:2] != (self.name, int(n)):
+            frames.append(x.copy())
+            info.append((self.name, int(n), float(E), float(fmax)))
         rng = np.random.default_rng(seed)
         at2 = self._atoms(mol, x + rng.uniform(-0.03, 0.03, size=x.shape))
         E2, fmax2, conv2, n2 = self._relax(at2, self.nudge_steps)

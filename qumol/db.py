@@ -135,12 +135,12 @@ def connect(path: str | Path | None = None) -> sqlite3.Connection:
     con = sqlite3.connect(str(path or db_path()), timeout=30, check_same_thread=False)
     con.row_factory = sqlite3.Row
     con.execute("PRAGMA foreign_keys = ON")
-    con.execute("PRAGMA journal_mode = WAL")
     return con
 
 
 def init(path: str | Path | None = None) -> None:
     con = connect(path)
+    con.execute("PRAGMA journal_mode = WAL")
     with con:
         con.executescript(SCHEMA)
         # columns added after the first release

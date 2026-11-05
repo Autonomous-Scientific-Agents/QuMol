@@ -379,7 +379,7 @@ def puzzle_solve(body: PuzzleSolve, player=Depends(current_player), con=Depends(
     symbols = [a.el for a in body.atoms]
     coords = [[a.x, a.y, a.z] for a in body.atoms]
     try:
-        mol = validate(symbols, coords, body.bonds)
+        mol = validate(symbols, coords, body.bonds, max_radicals=len(symbols) * 4)
         smiles = smiles_of(mol)
     except ChemError as e:
         raise HTTPException(400, str(e))
@@ -387,7 +387,7 @@ def puzzle_solve(body: PuzzleSolve, player=Depends(current_player), con=Depends(
         with con:
             con.execute("UPDATE puzzle_attempts SET tries=tries+1 WHERE id=?", (row["id"],))
         tip = None
-        if mol.radicals and p["multiplicity"] == 1:
+        if mol.radicals > p["multiplicity"] - 1:
             tip = "Some atoms have free bonds. Did you forget hydrogens? (H+ fills them.)"
         elif len(symbols) != p["n_atoms"]:
             tip = f"The target has {p['n_atoms']} atoms; yours has {len(symbols)}."
@@ -487,8 +487,8 @@ def _leaderboard(con, category: str, limit: int):
                           "seconds": round(r["seconds"], 1),
                           "value": f"{r['solved']} solved · {_clock(r['seconds'])}"} for i, r in enumerate(rows)]}
     elif category == "records":
-        mid = db.method_id(con, get_calculator())
-        con.commit()
+        with db.write_lock(), con:
+            mid = db.method_id(con, get_calculator())
         rows = con.execute(
             """WITH ranked AS (
                  SELECT player_id, formula,
