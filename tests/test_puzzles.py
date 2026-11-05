@@ -45,15 +45,19 @@ def test_daily_set_and_solving(client):
         "bonds": [[0, 1, 1]]}).json()
     assert wrong["correct"] is False and wrong["tip"]
 
-    # bare carbon skeleton (> 2 free bonds, forgot H+) also gets the hydrogen tip instead of a 400
+    # the right skeleton without hydrogens gets the hydrogen tip
     no_h = client.post("/api/puzzles/solve", headers=h, json={
+        "attempt_id": aid, "atoms": [{"el": "O", "x": 0, "y": 0, "z": 0}], "bonds": []})
+    assert no_h.status_code == 200 and "forget hydrogens" in no_h.json()["tip"]
+    # a wrong skeleton with many free bonds (> 2) gets a tip about the atoms instead of a 400
+    cc = client.post("/api/puzzles/solve", headers=h, json={
         "attempt_id": aid, "atoms": [{"el": "C", "x": 0, "y": 0, "z": 0}, {"el": "C", "x": 1.5, "y": 0, "z": 0}],
         "bonds": [[0, 1, 1]]})
-    assert no_h.status_code == 200 and no_h.json()["correct"] is False and "forget hydrogens" in no_h.json()["tip"]
+    assert cc.status_code == 200 and cc.json()["tip"] == "The target has 3 atoms; yours has 2."
 
     atoms, bonds = _water(scale=1.05, shift=4.0)
     ok = client.post("/api/puzzles/solve", headers=h, json={"attempt_id": aid, "atoms": atoms, "bonds": bonds}).json()
-    assert ok["correct"] and 0.02 < ok["rmsd"] < 0.06 and ok["tries"] == 3
+    assert ok["correct"] and 0.02 < ok["rmsd"] < 0.06 and ok["tries"] == 4
     assert ok["score"] == sum(l[1] for l in ok["lines"]) > 0
     assert len(ok["ghost"]) == 3 and ok["diffs"][0]["experiment"] == 0.957
     assert client.post("/api/puzzles/solve", headers=h, json={"attempt_id": aid, "atoms": atoms, "bonds": bonds}).status_code == 409

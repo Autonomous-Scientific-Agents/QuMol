@@ -105,7 +105,7 @@ def validate(symbols, coords, bonds, max_radicals: int = MAX_RADICALS) -> Molecu
     radicals = sum(d for i, d in enumerate(deficit) if symbols[i] != "H")
     if radicals > max_radicals:
         raise ChemError(
-            f"{radicals} free bonds left. Add hydrogens with H+ (radicals may have at most {MAX_RADICALS} unpaired electrons)")
+            f"{radicals} free bonds left. Add hydrogens with H+ (radicals may have at most {max_radicals} unpaired electrons)")
     mol.charges = charges
     mol.radicals = radicals
     return mol

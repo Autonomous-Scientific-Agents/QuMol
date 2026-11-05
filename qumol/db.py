@@ -157,10 +157,11 @@ def write_lock():
         yield
 
 
-def method_id(con: sqlite3.Connection, calc) -> int:
+def method_id(con: sqlite3.Connection, calc, create: bool = True) -> int | None:
+    """Row id of the calculator's method; it is inserted (under the write lock) if ``create``."""
     row = con.execute("SELECT id FROM methods WHERE name=? AND version=?", (calc.name, calc.version)).fetchone()
-    if row:
-        return row["id"]
+    if row or not create:
+        return row["id"] if row else None
     cur = con.execute(
         "INSERT INTO methods(name, version, kind, energy_unit, params_json) VALUES (?,?,?,?,?)",
         (calc.name, calc.version, calc.kind, calc.energy_unit, json.dumps(calc.params())),
