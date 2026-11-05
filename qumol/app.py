@@ -95,8 +95,20 @@ async def _validation_error(_request: Request, exc: RequestValidationError):
     return JSONResponse({"detail": detail}, status_code=422)
 
 
+# Behind Cloudflare Tunnel every request reaches us from cloudflared on localhost, and the
+# player's address is in the CF-Connecting-IP header. QUMOL_CLIENT_IP_HEADER names that header.
+# Only set it when every way in sets the header: Cloudflare Tunnel, plus Tailscale Serve
+# (your own devices) at most. Not with a public Tailscale Funnel, whose visitors could forge it.
+CLIENT_IP_HEADER = os.environ.get("QUMOL_CLIENT_IP_HEADER", "").strip().lower()
+_IP_RE = re.compile(r"^[0-9A-Fa-f:.]{2,45}$")
+
+
 def client_ip(request: Request) -> str:
-    # uvicorn --proxy-headers fills this from X-Forwarded-For set by Tailscale (trusted: 127.0.0.1)
+    if CLIENT_IP_HEADER:
+        v = request.headers.get(CLIENT_IP_HEADER, "").split(",")[0].strip()
+        if _IP_RE.match(v):
+            return v
+    # otherwise uvicorn --proxy-headers fills this from X-Forwarded-For set by Tailscale (trusted: 127.0.0.1)
     return request.client.host if request.client else "unknown"
 
 

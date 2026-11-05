@@ -100,6 +100,7 @@ After deploying, check that `journalctl -u qumol` shows players' real IP address
 | `QUMOL_METHOD` | `toyff` | Energy method: `toyff`, `uma`, or `emt` (EMT is for testing only) |
 | `QUMOL_UMA_MODEL` | `uma-s-1p2p1` | UMA checkpoint, the newest and fastest small model (needs `fairchem-core` and accepted access to the gated weights) |
 | `QUMOL_DEVICE` | `cpu` | Device for ML potentials |
+| `QUMOL_CLIENT_IP_HEADER` | (none) | Header holding the player's address behind a proxy, e.g. `cf-connecting-ip` for Cloudflare Tunnel (set by `PROXY=cloudflare` in the installer) |
 | `QUMOL_PRERELAX` | `toyff` | Relax with the toy force field before the ML potential (faster, fewer blow-ups); `none` turns it off |
 | `QUMOL_OPTIMIZER` | `BFGS` | ASE optimizer for ML potentials: `BFGS`, `LBFGS` or `FIRE`. Anything but BFGS is recorded as its own method version (e.g. `uma-s-1p2p1+FIRE`) |
 | `QUMOL_UMA_SETTINGS` | `default` | fairchem inference settings (`default` or `batch`; benchmark with `scripts/bench_uma.py`) |

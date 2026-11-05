@@ -16,8 +16,15 @@
 #             so it won't replace anything you already serve on 443)
 #   REF       git tag or commit to deploy instead of the latest main (recommended once you tag releases)
 #   UMA_SETTINGS  fairchem inference settings for METHOD=uma: default | batch (default: default)
+#   PROXY     cloudflare = the site is served through a Cloudflare Tunnel (e.g. qumol.xyz): rate limits
+#             use the player's address from CF-Connecting-IP. Use with TAILSCALE=serve or off, not funnel.
 set -euo pipefail
 TAILSCALE="${TAILSCALE:-serve}"
+PROXY="${PROXY:-}"
+if [ "$PROXY" = "cloudflare" ] && [ "$TAILSCALE" = "funnel" ]; then
+  echo "!! PROXY=cloudflare trusts the CF-Connecting-IP header, which public Funnel visitors could forge."
+  echo "   Use TAILSCALE=serve (tailnet only) or TAILSCALE=off together with PROXY=cloudflare."; exit 1
+fi
 TS_PORT="${TS_PORT:-8443}"
 
 APP_DIR="${APP_DIR:-$HOME/qumol}"
@@ -101,6 +108,7 @@ WorkingDirectory=$APP_DIR
 Environment=QUMOL_DB=$APP_DIR/data/qumol.db
 Environment=QUMOL_METHOD=$METHOD
 Environment=QUMOL_UMA_SETTINGS=${UMA_SETTINGS:-default}
+Environment=QUMOL_CLIENT_IP_HEADER=$( [ "$PROXY" = "cloudflare" ] && echo cf-connecting-ip )
 Environment=HF_HOME=$APP_DIR/data/cache/huggingface
 Environment=XDG_CACHE_HOME=$APP_DIR/data/cache
 Environment=FAIRCHEM_CACHE_DIR=$APP_DIR/data/cache/fairchem
@@ -164,6 +172,10 @@ fi
 
 echo "QuMol is running on 127.0.0.1:$PORT (database: $APP_DIR/data/qumol.db)."
 
+if [ "$TAILSCALE" = "serve" ] && [ "$PROXY" = "cloudflare" ]; then
+  # switching from a public Funnel to tailnet-only: turn the old Funnel off
+  sudo tailscale funnel --https="$TS_PORT" off >/dev/null 2>&1 || true
+fi
 if [ "$TAILSCALE" != "off" ]; then
   if ! command -v tailscale >/dev/null; then
     echo "!! tailscale is not installed; skipping. Install it: https://tailscale.com/download"

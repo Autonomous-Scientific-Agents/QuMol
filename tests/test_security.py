@@ -124,3 +124,23 @@ def test_rate_limiter_memory_is_capped(monkeypatch):
         if i % 50 == 0:
             lim.hit("kept", 50, 86400)  # recently used keys survive
     assert len(lim._hits) == 100 and "kept" in lim._hits
+
+
+def test_client_ip_from_cloudflare_header(monkeypatch):
+    """Behind Cloudflare Tunnel, rate limits must key on the player's address, not cloudflared's."""
+    from starlette.requests import Request
+
+    from qumol import app as qapp
+
+    def req(headers):
+        scope = {"type": "http", "client": ("127.0.0.1", 5000),
+                 "headers": [(k.encode(), v.encode()) for k, v in headers.items()]}
+        return Request(scope)
+
+    monkeypatch.setattr(qapp, "CLIENT_IP_HEADER", "")
+    assert qapp.client_ip(req({"cf-connecting-ip": "203.0.113.7"})) == "127.0.0.1"  # off: header ignored
+    monkeypatch.setattr(qapp, "CLIENT_IP_HEADER", "cf-connecting-ip")
+    assert qapp.client_ip(req({"cf-connecting-ip": "203.0.113.7"})) == "203.0.113.7"
+    assert qapp.client_ip(req({"cf-connecting-ip": "2001:db8::1"})) == "2001:db8::1"
+    assert qapp.client_ip(req({"cf-connecting-ip": "<script>"})) == "127.0.0.1"  # junk: fall back
+    assert qapp.client_ip(req({})) == "127.0.0.1"
