@@ -1,6 +1,6 @@
 # QuMol
 
-> You played with building blocks as a kid. Now play with the universe's: **atoms**.
+> If you enjoy playing with building blocks, try playing with the building blocks of the universe in the quantum world.
 
 QuMol is a 3D molecule-building game that runs in the browser on phones and desktops. Players build molecules atom by atom and submit them. Each submission is optimized and checked for stability, then scored. The biggest rewards go to small, stable molecules that are new to QuMol and not found in PubChem. Every submission adds to a growing molecular dataset.
 
