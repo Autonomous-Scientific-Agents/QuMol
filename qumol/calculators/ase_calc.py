@@ -53,17 +53,21 @@ class ASECalculator(Calculator):
 
     def __init__(self, name: str, version: str, factory, kind: str = "mlip", params: dict | None = None):
         self.name, self.kind = name, kind
-        # Methods are keyed by name + version, so results from another optimizer get their
-        # own method row (BFGS, the default, keeps the plain model version).
-        opt = _optimizer_name()
-        self.version = version if opt == "BFGS" else f"{version}+{opt}"
+        self._version = version
+        self.optimizer = _optimizer_name()  # read once, so the version and the runs agree
         self._factory = factory
         self._calc = None
         self._params = params or {}
         self._lock = threading.RLock()
 
+    @property
+    def version(self) -> str:
+        # Methods are keyed by name + version, so results from another optimizer get their
+        # own method row (BFGS, the default, keeps the plain model version).
+        return self._version if self.optimizer == "BFGS" else f"{self._version}+{self.optimizer}"
+
     def params(self):
-        return {**self._params, "optimizer": _optimizer_name(), "fmax": self.fmax_target}
+        return {**self._params, "optimizer": self.optimizer, "fmax": self.fmax_target}
 
     @property
     def calc(self):
@@ -85,7 +89,7 @@ class ASECalculator(Calculator):
         # with an ML potential. BFGS needs far fewer steps than FIRE for small molecules.
         from ase import optimize
 
-        opt_cls = {"BFGS": optimize.BFGS, "LBFGS": optimize.LBFGS, "FIRE": optimize.FIRE}[_optimizer_name()]
+        opt_cls = {"BFGS": optimize.BFGS, "LBFGS": optimize.LBFGS, "FIRE": optimize.FIRE}[self.optimizer]
         opt = opt_cls(atoms, logfile=None, maxstep=0.2)
         if record is not None:
             def observe():  # runs after forces are computed, so energy and forces are cached
@@ -143,8 +147,9 @@ class ASECalculator(Calculator):
         stages.append({"name": self.name, "steps": int(n), "e_start": e_start, "e_end": float(E),
                        "unit": self.energy_unit, "converged": bool(conv)})
         x = at.get_positions().copy()
-        frames.append(x.copy())
-        info.append((self.name, int(n), float(E), float(fmax)))
+        if not np.array_equal(frames[-1], x):  # the observer usually recorded it already
+            frames.append(x.copy())
+            info.append((self.name, int(n), float(E), float(fmax)))
         rng = np.random.default_rng(seed)
         at2 = self._atoms(mol, x + rng.uniform(-0.03, 0.03, size=x.shape))
         E2, fmax2, conv2, n2 = self._relax(at2, self.nudge_steps)

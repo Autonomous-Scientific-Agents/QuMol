@@ -61,7 +61,7 @@ class Molecule:
         return [b if a == i else a for a, b, _ in self.bonds if a == i or b == i]
 
 
-def validate(symbols, coords, bonds) -> Molecule:
+def validate(symbols, coords, bonds, max_radicals: int = MAX_RADICALS) -> Molecule:
     """Check a submitted structure and return it as a Molecule."""
     if not symbols:
         raise ChemError("Empty molecule")
@@ -103,12 +103,15 @@ def validate(symbols, coords, bonds) -> Molecule:
             raise ChemError(f"Bond between atoms {a + 1} and {c + 1} is far too long (over {MAX_BOND_LENGTH:g} Å)")
     charges, deficit = assign_charges(mol.symbols, clean, strict=True)
     radicals = sum(d for i, d in enumerate(deficit) if symbols[i] != "H")
-    if radicals > MAX_RADICALS:
+    if radicals > max_radicals:
         raise ChemError(
-            f"{radicals} free bonds left. Add hydrogens with H+ (radicals may have at most {MAX_RADICALS} unpaired electrons)")
+            f"{radicals} free bonds left. Add hydrogens with H+ (radicals may have at most {max_radicals} unpaired electrons)")
     mol.charges = charges
     mol.radicals = radicals
     return mol
+
+
+MINUS_RANK = {"O": 0, "N": 1, "S": 2, "C": 3, "F": 4}
 
 
 def assign_charges(symbols, bonds, strict: bool = False):
@@ -138,21 +141,21 @@ def assign_charges(symbols, bonds, strict: bool = False):
         else:
             deficit[i] = min(v for v in e["neutral"] if v >= total[i]) - total[i]
     for i in plus:
-        # breadth-first: nearest heavy atom that is one bond short and not yet charged
+        # breadth-first: nearest heavy atom that is one bond short and not yet charged;
+        # ties at the same distance go to the more electronegative element
         seen, frontier, partner = {i}, [i], None
         while frontier and partner is None:
-            nxt = []
+            nxt, cands = [], []
             for u in frontier:
                 for v in nbrs[u]:
                     if v in seen:
                         continue
                     seen.add(v)
                     if symbols[v] != "H" and deficit[v] > 0 and charges[v] == 0:
-                        partner = v
-                        break
+                        cands.append(v)
                     nxt.append(v)
-                if partner is not None:
-                    break
+            if cands:
+                partner = min(cands, key=lambda v: (MINUS_RANK.get(symbols[v], 9), v))
             frontier = nxt
         if partner is None:
             if strict:

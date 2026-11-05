@@ -81,6 +81,11 @@ def test_rejects_bad_structures(client):
 
 
 def test_leaderboards(client):
+    from qumol.security import read_cache
+
+    # before any submission there is no method row: the records board is empty, not an error
+    assert client.get("/api/leaderboard/records").json()["rows"] == []
+    read_cache.clear()
     h1, _ = player(client, "alice")
     h2, _ = player(client, "bob")
     client.post("/api/submissions", json=ethanol(), headers=h1)
@@ -92,6 +97,7 @@ def test_leaderboards(client):
     overall = client.get("/api/leaderboard/overall").json()["rows"]
     assert overall[0]["nickname"] == "alice"
     assert client.get("/api/leaderboard/xyz").json()["rows"][0]["nickname"] == "bob"
+    assert client.get("/api/leaderboard/records").json()["rows"][0]["value"] == 1
     assert client.get("/api/leaderboard/nope").status_code == 404
     assert client.get("/").status_code == 200  # serves the game
 

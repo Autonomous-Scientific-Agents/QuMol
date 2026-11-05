@@ -391,20 +391,24 @@ def puzzle_solve(body: PuzzleSolve, player=Depends(current_player), con=Depends(
     symbols = [a.el for a in body.atoms]
     coords = [[a.x, a.y, a.z] for a in body.atoms]
     try:
-        mol = validate(symbols, coords, body.bonds)
+        mol = validate(symbols, coords, body.bonds, max_radicals=len(symbols) * 4)
         smiles = smiles_of(mol)
     except ChemError as e:
         raise HTTPException(400, str(e))
     if smiles != p["smiles"] or mol.multiplicity != p["multiplicity"]:
         with con:
             con.execute("UPDATE puzzle_attempts SET tries=tries+1 WHERE id=?", (row["id"],))
-        tip = None
-        if mol.radicals and p["multiplicity"] == 1:
-            tip = "Some atoms have free bonds. Did you forget hydrogens? (H+ fills them.)"
+        free_bonds = mol.radicals > p["multiplicity"] - 1
+        same_heavy = sorted(s for s in symbols if s != "H") == sorted(s for s in p["symbols"] if s != "H")
+        hydrogen_tip = "Some atoms have free bonds. Did you forget hydrogens? (H+ fills them.)"
+        if free_bonds and same_heavy:  # the skeleton is right, the hydrogens are missing
+            tip = hydrogen_tip
         elif len(symbols) != p["n_atoms"]:
             tip = f"The target has {p['n_atoms']} atoms; yours has {len(symbols)}."
         elif hill_formula(symbols) != p["formula"]:
             tip = f"Same number of atoms, but the target's formula is {p['formula']}."
+        elif free_bonds:
+            tip = hydrogen_tip
         else:
             tip = "Right atoms, but they're connected differently. Check the bonds and bond orders."
         return {"correct": False, "message": f"That isn't {p['name']} yet.", "tip": tip, "tries": row["tries"] + 1}
@@ -499,8 +503,7 @@ def _leaderboard(con, category: str, limit: int):
                           "seconds": round(r["seconds"], 1),
                           "value": f"{r['solved']} solved · {_clock(r['seconds'])}"} for i, r in enumerate(rows)]}
     elif category == "records":
-        mid = db.method_id(con, get_calculator())
-        con.commit()
+        mid = db.method_id(con, get_calculator(), create=False)  # no row yet: no records yet
         rows = con.execute(
             """WITH ranked AS (
                  SELECT player_id, formula,

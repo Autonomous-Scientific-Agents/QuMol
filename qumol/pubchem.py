@@ -114,7 +114,7 @@ def lookup_web(con, smiles: str | None) -> tuple[bool | None, int | None]:
         return None, None
     known, cids = lookup_live(smiles)
     if known is not None:
-        with con:
+        with db.write_lock(), con:
             con.execute(
                 "INSERT OR REPLACE INTO pubchem_cache(smiles, in_pubchem, cids_json) VALUES (?,?,?)",
                 (smiles, int(known), json.dumps(cids[:20])),

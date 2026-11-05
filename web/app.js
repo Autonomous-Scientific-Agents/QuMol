@@ -218,6 +218,7 @@ const maxBonds  = el => Math.max(...EL[el].neutral, EL[el].plus);
 // short becomes −, keeping the molecule neutral: ⁻C≡O⁺, nitro groups. 'deficit' is what's
 // left for hydrogens (or radicals).
 let _vsKey = '', _vs = null;
+const MINUS_RANK = {O:0, N:1, S:2, C:3, F:4};
 function valenceState(){
   const key = atoms.map(a => a.el).join('') + '|' + bonds.map(b => `${b.a},${b.b},${b.o}`).join(';');
   if(key === _vsKey && _vs) return _vs;
@@ -231,14 +232,17 @@ function valenceState(){
   for(const i of plus){
     const seen = new Set([i]); let frontier = [i], partner = -1;
     while(frontier.length && partner < 0){
-      const next = [];
+      const next = [], cands = [];
       for(const u of frontier){
         for(const v of nb[u]){
           if(seen.has(v)) continue; seen.add(v);
-          if(atoms[v].el !== 'H' && deficit[v] > 0 && charge[v] === 0){ partner = v; break; }
+          if(atoms[v].el !== 'H' && deficit[v] > 0 && charge[v] === 0) cands.push(v);
           next.push(v);
         }
-        if(partner >= 0) break;
+      }
+      if(cands.length){
+        cands.sort((a, b) => (MINUS_RANK[atoms[a].el] ?? 9) - (MINUS_RANK[atoms[b].el] ?? 9) || a - b);
+        partner = cands[0];
       }
       frontier = next;
     }

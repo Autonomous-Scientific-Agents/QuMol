@@ -87,8 +87,16 @@ def test_formal_charges():
     m = validate(["C", "H", "H", "H"], rng.uniform(-1, 1, (4, 3)), [(0, 1, 1), (0, 2, 1), (0, 3, 1)])
     assert smiles_of(m) == "[CH3]" and m.radicals == 1 and m.multiplicity == 2
     assert smi(["N", "O"], [(0, 1, 2)]) == "[N]=O"
+    # tie-breaking: at equal bond distance from N+, O takes the − charge over C regardless of bond order
+    from qumol.chem import assign_charges, smiles_from_graph
+    for bonds in ([(0, 1, 1), (1, 2, 2), (1, 3, 1)], [(1, 3, 1), (1, 2, 2), (0, 1, 1)]):
+        charges, _ = assign_charges(["C", "N", "O", "O"], bonds, strict=True)
+        assert charges == [0, 1, 0, -1]
+        assert smiles_from_graph(["C", "N", "O", "O"], bonds) == "C[N+](=O)[O-]"
     with pytest.raises(ChemError):  # a bare carbon atom has 4 free bonds: too many
         smi(["C"], [])
+    with pytest.raises(ChemError, match="at most 3 unpaired"):  # the message names the limit in use
+        validate(["C"], [[0, 0, 0]], [], max_radicals=3)
     with pytest.raises(ChemError):  # O with 3 bonds but nothing to balance the charge
         smi(["O", "H", "H", "H"], [(0, 1, 1), (0, 2, 1), (0, 3, 1)])
 
@@ -171,10 +179,23 @@ def test_optimizer_is_part_of_the_method_version(monkeypatch):
     pytest.importorskip("ase")
     from qumol.calculators.ase_calc import ASECalculator, _emt
 
-    assert ASECalculator("emt", "ase", _emt).version == "ase"  # BFGS, the default
-    monkeypatch.setenv("QUMOL_OPTIMIZER", "FIRE")
     calc = ASECalculator("emt", "ase", _emt)
-    assert calc.version == "ase+FIRE" and calc.params()["optimizer"] == "FIRE"
+    assert calc.version == "ase"  # BFGS, the default
+    monkeypatch.setenv("QUMOL_OPTIMIZER", "FIRE")
+    # read once: a running calculator keeps filing results under the optimizer it runs
+    assert calc.version == "ase" and calc.params()["optimizer"] == calc.optimizer == "BFGS"
+    fire = ASECalculator("emt", "ase", _emt)
+    assert fire.version == "ase+FIRE" and fire.params()["optimizer"] == fire.optimizer == "FIRE"
+
+
+def test_ase_final_frame_is_recorded_once():
+    pytest.importorskip("ase")
+    from qumol.calculators.ase_calc import ASECalculator, _emt
+
+    res = ASECalculator("emt", "ase", _emt).optimize(water())
+    emt_steps = [step for stage, step, _, _ in res.frame_info if stage == "emt"]
+    assert len(emt_steps) == len(set(emt_steps))
+    assert len(res.frames) == len(res.frame_info)
 
 
 def test_toyff_subclass_overrides_are_used():
@@ -189,3 +210,15 @@ def test_toyff_subclass_overrides_are_used():
 
     Stiff().optimize(water())
     assert Stiff.calls > 0
+
+
+def test_charge_tie_break_matches_the_editor():
+    """The editor (web/app.js) places charges with the same element ranking as the server."""
+    import re
+    from pathlib import Path
+
+    from qumol.chem import MINUS_RANK
+
+    js = (Path(__file__).resolve().parent.parent / "web" / "app.js").read_text()
+    table = re.search(r"const MINUS_RANK = \{([^}]*)\}", js).group(1)
+    assert {k.strip(): int(v) for k, v in (kv.split(":") for kv in table.split(","))} == MINUS_RANK
