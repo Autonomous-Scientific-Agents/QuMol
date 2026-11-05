@@ -26,7 +26,7 @@ def test_submission_scoring_and_storage(client):
     labels = [l[0] for l in j["lines"]]
     assert "Hand-built" in labels and "New QuMol SMILES" in labels and "New QuMol formula" in labels
     assert labels[:3] == ["New QuMol formula", "New QuMol SMILES", "Stable"]  # card order
-    assert ["Size bonus", 650, "9 atoms: smaller scores more"] in j["lines"]
+    assert ["Bond types", 80, "C–C, C–O, C–H, O–H"] in j["lines"]
     assert j["score"] == j["total"] == sum(l[1] for l in j["lines"])
     assert j["optimized_geometry_id"].startswith("hm3d_") and "_C2H6O_q0m1_" in j["optimized_geometry_id"]
     assert len(j["frames"]) > 1 and len(j["coords_opt"]) == 9
@@ -118,7 +118,7 @@ def test_charges_and_radicals_scoring(client):
     j = client.post("/api/submissions", json=co, headers=h).json()
     labels = [l[0] for l in j["lines"]]
     assert j["smiles"] == "[C-]#[O+]" and "Formal charges" in labels and ["New QuMol formula", 1000, None] in j["lines"]
-    assert ["Size bonus", 1000, "2 atoms: smaller scores more"] in j["lines"]
+    assert ["Bond types", 20, "C≡O"] in j["lines"]
     assert "_q0m1_" in j["optimized_geometry_id"]
     methyl = {"atoms": [{"el": "C", "x": 0, "y": 0, "z": 0}, {"el": "H", "x": 1.08, "y": 0, "z": 0},
                         {"el": "H", "x": -0.54, "y": 0.94, "z": 0}, {"el": "H", "x": -0.54, "y": -0.94, "z": 0}],
@@ -150,7 +150,7 @@ def test_local_pubchem_table(client, tmp_path, monkeypatch):
     # not in the table (and the web check is off in tests): counts as new
     co = {"atoms": [{"el": "C", "x": 0, "y": 0, "z": 0}, {"el": "O", "x": 1.13, "y": 0, "z": 0}], "bonds": [[0, 1, 3]]}
     j = client.post("/api/submissions", json=co, headers=h).json()
-    assert ["Not in PubChem", 1000, "possibly new to science"] in j["lines"] and j["discovery"]
+    assert ["Not in PubChem", 31623, "possibly new to science · 1000 × 10^(3/2 atoms)"] in j["lines"] and j["discovery"]
     # stereo variant only in the table: matched on the connectivity block of the InChIKey
     from qumol import pubchem
     assert pubchem.lookup_local("JVTAAEKCZFNVCJ-UHFFFAOYSA-N")[:2] == (True, 107689)
@@ -196,7 +196,7 @@ def test_broken_optimization_is_reported(client, monkeypatch):
     assert j["opt_status"] == "broken" and not j["stable"] and "too far from a stable minimum" in j["warning"]
     labels = [l[0] for l in j["lines"]]
     assert "Optimization failed" in labels and "New QuMol SMILES" not in labels and "New QuMol formula" not in labels
-    assert "Size bonus" not in labels
+    assert "Bond types" not in labels
     assert any("stretched" in e for e in j["log"]["events"])  # says which bond broke
     # a failed build earns nothing, so resubmitting it can't farm points
     assert j["score"] == 0
@@ -222,9 +222,19 @@ def test_formula_novelty_is_across_methods(client, monkeypatch):
     assert "New QuMol formula" not in labels and "Formula record" not in labels
 
 
-def test_size_bonus():
-    from qumol.scoring import size_bonus
-    assert [size_bonus(n) for n in (1, 2, 3, 9, 21, 22, 60)] == [1000, 1000, 950, 650, 50, 0, 0]
+def test_not_in_pubchem_bonus():
+    from qumol.scoring import not_in_pubchem_bonus
+    assert [not_in_pubchem_bonus(n) for n in (1, 2, 3, 9, 100)] == [1000000, 31623, 10000, 2154, 1072]
+
+
+def test_bond_types():
+    from qumol.scoring import bond_types
+    # acrolein-like: C=C, C–C, C=O, C–H; repeated types count once
+    syms = ["C", "C", "C", "O", "H", "H", "H", "H"]
+    bonds = [(0, 1, 2), (1, 2, 1), (2, 3, 2), (0, 4, 1), (0, 5, 1), (1, 6, 1), (2, 7, 1)]
+    assert bond_types(syms, bonds) == ["C–C", "C=C", "C=O", "C–H"]
+    assert bond_types(["N", "H", "O"], [(1, 0, 1), (0, 2, 2)]) == ["N=O", "N–H"]
+    assert bond_types(["Cl", "C"], [(0, 1, 1)]) == ["C–Cl"]
 
 
 def test_discovery_claimed_after_pubchem_outage(client, monkeypatch):
@@ -241,7 +251,7 @@ def test_discovery_claimed_after_pubchem_outage(client, monkeypatch):
     state["known"] = False  # PubChem is back: not found
     late = client.post("/api/submissions", json=ethanol(), headers=h).json()
     assert late["already"] and late["discovery"]
-    assert [l[0] for l in late["lines"]] == ["Already collected", "Not in PubChem"] and late["score"] == 1000
+    assert [l[0] for l in late["lines"]] == ["Already collected", "Not in PubChem"] and late["score"] == 2154  # ethanol: 9 atoms
 
     again = client.post("/api/submissions", json=ethanol(), headers=h).json()
     assert again["already"] and not again["discovery"] and again["score"] == 0

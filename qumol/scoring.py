@@ -27,8 +27,9 @@ POINTS = {
     "new_formula": 1000,  # 10x a new SMILES
     "formula_record": 300,
     "smiles_record": 100,
-    "not_in_pubchem": 1000,
+    "not_in_pubchem": 1000,  # times 10^(3/atoms): see not_in_pubchem_bonus
     "formal_charges": 50,  # small bonus for zwitterionic bonding like ⁻C≡O⁺
+    "bond_type": 20,  # per distinct bond type (C–H, C–C, C=C, C–O, ...)
 }
 INPUT_METHODS = ("hand", "xyz", "smiles", "2d", "example")
 GEOMETRY_SCORED = ("hand", "xyz")  # 2D and SMILES inputs get auto-generated geometry
@@ -39,10 +40,22 @@ NO_GEOMETRY_NOTE = {
 }
 
 
-def size_bonus(n_atoms: int) -> int:
-    """Smaller molecules are harder to find new: 1000 points for 2 atoms (hydrogens count),
-    50 fewer for each extra atom, nothing from 22 atoms up."""
-    return max(0, 1000 - 50 * (max(2, n_atoms) - 2))
+def not_in_pubchem_bonus(n_atoms: int) -> int:
+    """New-to-science small molecules are rarer: the base bonus times 10^(3/atoms)
+    (hydrogens count), so 31,623 for 2 atoms, 10,000 for 3, 2,154 for 9, approaching 1,000."""
+    return round(POINTS["not_in_pubchem"] * 10 ** (3 / max(1, n_atoms)))
+
+
+BOND_SYMBOL = {1: "–", 2: "=", 3: "≡"}
+
+
+def bond_types(symbols, bonds) -> list[str]:
+    """Distinct bond types in a molecule, as labels like "C–H", "C=C" or "O–H": element pair
+    plus bond order. Carbon is written first and hydrogen last, the rest alphabetically."""
+    def rank(el):
+        return (0 if el == "C" else 2 if el == "H" else 1, el)
+    out = {(*sorted((symbols[a], symbols[b]), key=rank), o) for a, b, o in bonds}
+    return [f"{x}{BOND_SYMBOL[o]}{y}" for x, y, o in sorted(out, key=lambda t: (rank(t[0]), rank(t[1]), t[2]))]
 
 
 def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "hand",
@@ -136,7 +149,7 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
         # keyed on the SMILES of stable submissions, so anything else could be resubmitted
         # for the same points again and again.
         scorable = stable and bool(smiles)
-        # Only real chemical species earn the discovery and size bonuses: stable minima, and
+        # Only real chemical species earn the discovery and bond-type bonuses: stable minima, and
         # later verified transition states (needs a frequency check: exactly one imaginary mode).
         transition_state = False
         bonus_ok = scorable or transition_state
@@ -145,10 +158,13 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
         # compound is in PubChem is shown in the card header (name and link), not as a line,
         # unless it earns the discovery bonus.
         late_discovery = already and not claimed and bonus_ok and known is False
+        n_atoms = len(mol.symbols)
+        pubchem_line = ["Not in PubChem", not_in_pubchem_bonus(n_atoms),
+                        f"possibly new to science · 1000 × 10^(3/{n_atoms} atoms)"]
         if already:
             lines.append(["Already collected", 0, None])
             if late_discovery:
-                lines.append(["Not in PubChem", POINTS["not_in_pubchem"], "possibly new to science"])
+                lines.append(pubchem_line)
         else:
             if stable and smiles:
                 # Novelty is across all methods (switching potentials doesn't make a formula new
@@ -198,10 +214,10 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
             if scorable and any(mol.charges or []):
                 lines.append(["Formal charges", POINTS["formal_charges"], None])
             if bonus_ok and smiles and known is False:
-                lines.append(["Not in PubChem", POINTS["not_in_pubchem"], "possibly new to science"])
+                lines.append(pubchem_line)
             if bonus_ok:
-                n_atoms = len(mol.symbols)
-                lines.append(["Size bonus", size_bonus(n_atoms), f"{n_atoms} atoms: smaller scores more"])
+                types = bond_types(mol.symbols, mol.bonds)
+                lines.append(["Bond types", POINTS["bond_type"] * len(types), ", ".join(types)])
 
         score = sum(line[1] for line in lines) if late_discovery or not already else 0
         discovery = (known is False) and bonus_ok and (not already or late_discovery)

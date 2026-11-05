@@ -327,7 +327,16 @@ def puzzles_daily(request: Request, authorization: str | None = Header(default=N
         if pid:
             item["solved_score"] = _puzzle_status(con, pid, p["id"], day)
         out.append(item)
-    return {"day": day, "puzzles": out, "total_puzzles": len(puzzles.load())}
+    pool = puzzles.load()
+    res = {"day": day, "puzzles": out, "total_puzzles": len(pool)}
+    if pid:  # how many a random puzzle can still draw from (same rule as /api/puzzles/start)
+        res["unsolved"] = len(pool.keys() - _solved_ids(con, pid))
+    return res
+
+
+def _solved_ids(con, pid: int) -> set[str]:
+    return {r["puzzle_id"] for r in con.execute(
+        "SELECT DISTINCT puzzle_id FROM puzzle_attempts WHERE player_id=? AND counted=1", (pid,))}
 
 
 class PuzzleStart(BaseModel):
@@ -352,8 +361,7 @@ def puzzle_start(body: PuzzleStart, player=Depends(current_player), con=Depends(
             raise HTTPException(404, "No such puzzle")
         p = pool[body.puzzle_id]
     else:  # random: prefer puzzles this player hasn't solved yet
-        done = {r["puzzle_id"] for r in con.execute(
-            "SELECT DISTINCT puzzle_id FROM puzzle_attempts WHERE player_id=? AND counted=1", (pid,))}
+        done = _solved_ids(con, pid)
         fresh = [q for q in pool.values() if q["id"] not in done] or list(pool.values())
         p = secrets.choice(fresh)
     with con:
