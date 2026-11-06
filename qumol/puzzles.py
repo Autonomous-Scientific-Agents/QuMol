@@ -241,16 +241,28 @@ def _mappings(puzzle: dict, symbols, bonds, P):
         yield list(idx)
 
 
-def best_alignment(ref: dict, symbols, coords, bonds):
+def _keeps_bonding(ref: dict, idx, orders: dict, charges) -> bool:
+    """True if mapping ``idx`` carries every reference bond order (and formal charge) over."""
+    if any(orders.get(frozenset((idx[a], idx[b]))) != o for a, b, o in ref["bonds"]):
+        return False
+    rc = ref.get("charges")
+    return rc is None or charges is None or all(rc[i] == charges[j] for i, j in enumerate(idx))
+
+
+def best_alignment(ref: dict, symbols, coords, bonds, exact: bool = False, charges=None):
     """Best symmetry-equivalent match of a structure to a reference ``{symbols, bonds, coords}``.
 
     Returns ``(rmsd, idx, R, pc, qc)``: reference atom i is atom ``idx[i]`` of the structure,
-    and ``(ref_coords - qc) @ R + pc`` puts the reference in the structure's frame. Raises
-    ValueError if the bonding graphs don't match."""
+    and ``(ref_coords - qc) @ R + pc`` puts the reference in the structure's frame. Graphs are
+    matched by connectivity; with ``exact``, only mappings that also keep every bond order and
+    (if both sides give them) formal charge count. Raises ValueError if nothing matches."""
     P = np.asarray(coords, dtype=float)
     Q = np.asarray(ref["coords"], dtype=float)
+    orders = {frozenset((a, b)): o for a, b, o in bonds}
     best = None
     for idx in _mappings({**ref, "coords": Q}, symbols, bonds, P):
+        if exact and not _keeps_bonding(ref, idx, orders, charges):
+            continue
         r, R, pc, qc = _fit(P[idx], Q)
         if best is None or r < best[0]:
             best = (r, idx, R, pc, qc)

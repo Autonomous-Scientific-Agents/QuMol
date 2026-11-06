@@ -20,7 +20,7 @@ from .chem import ELEMENTS
 from .puzzles import best_alignment
 
 PRECISION = 0.1  # Å grid of the cache key
-MAX_RMSD = 0.3  # Å; a stored start further than this from the new one is not reused
+MAX_RMSD = 0.2  # Å; a stored start further than this from the new one is not reused
 MAX_FRAMES = 400  # stored per trajectory (the score card and plots use at most this many)
 
 
@@ -46,7 +46,8 @@ def store(con, key: str, smiles: str, method_id: int, mol, res: OptResult, elaps
     idx = subsample_idx(len(res.frames), MAX_FRAMES)
     aligned = len(res.frame_info) == len(res.frames)
     data = {
-        "symbols": list(mol.symbols), "bonds": [list(b) for b in mol.bonds], "coords": _r(mol.coords),
+        "symbols": list(mol.symbols), "bonds": [list(b) for b in mol.bonds],
+        "charges": [int(c) for c in (mol.charges or [0] * len(mol.symbols))], "coords": _r(mol.coords),
         "e_input": res.e_input, "e_opt": res.e_opt, "fmax": res.fmax, "converged": bool(res.converged),
         "saddle": bool(res.saddle), "n_steps": int(res.n_steps), "prerelax_steps": int(res.prerelax_steps),
         "coords_input": _r(res.coords_input), "coords_opt": _r(res.coords_opt),
@@ -67,8 +68,12 @@ def lookup(con, key: str, smiles: str, method_id: int, mol) -> tuple[OptResult, 
         return None
     try:
         d = json.loads(zlib.decompress(row[0]))
-        ref = {"symbols": d["symbols"], "bonds": [tuple(b) for b in d["bonds"]], "coords": d["coords"]}
-        rmsd, idx, R, pc, qc = best_alignment(ref, mol.symbols, mol.coords, mol.bonds)
+        ref = {"symbols": d["symbols"], "bonds": [tuple(b) for b in d["bonds"]], "coords": d["coords"],
+               "charges": d.get("charges")}
+        # Atoms must map with their bond orders and charges: the hash and canonical SMILES
+        # can't tell O=O-O from O-O=O on the same coordinates, but the energies differ.
+        rmsd, idx, R, pc, qc = best_alignment(ref, mol.symbols, mol.coords, mol.bonds, exact=True,
+                                              charges=mol.charges or [0] * len(mol.symbols))
     except (ValueError, KeyError, zlib.error):
         return None
     if rmsd > MAX_RMSD or len(idx) != len(mol.symbols):

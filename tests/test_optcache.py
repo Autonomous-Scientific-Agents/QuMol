@@ -101,3 +101,16 @@ def test_streamed_errors(client):
     # authentication and validation still fail as plain HTTP errors, before any streaming
     assert client.post("/api/submissions/stream", json=ethanol()).status_code == 401
     assert client.post("/api/submissions/stream", json={"atoms": []}, headers=h).status_code == 422
+
+
+def test_swapped_bond_orders_are_not_reused(client, monkeypatch):
+    """O=O-O and O-O=O on the same coordinates hash alike and share a SMILES, but the stored
+    atoms must not be mapped onto the new ones with the double bond on the wrong side."""
+    calls = _count_optimizations(monkeypatch)
+    h, _ = player(client)
+    atoms = [{"el": "O", "x": -1.05, "y": 0.1, "z": 0.0}, {"el": "O", "x": 0.0, "y": 0.6, "z": 0.0},
+             {"el": "O", "x": 1.45, "y": -0.1, "z": 0.0}]  # lopsided: reversed, it fits 0.23 Å off
+    first = client.post("/api/submissions", json={"atoms": atoms, "bonds": [[0, 1, 2], [1, 2, 1]]}, headers=h).json()
+    j = client.post("/api/submissions", json={"atoms": atoms, "bonds": [[0, 1, 1], [1, 2, 2]]}, headers=h).json()
+    assert first["smiles"] == j["smiles"]
+    assert not j["reused"] and len(calls) == 2

@@ -92,12 +92,12 @@ button.disabled{opacity:.35}
   .brand{display:none}
   #top .right button{min-width:38px;padding:0 8px}
   #xyzPanel{left:8px;right:8px;width:auto;max-height:34vh}
-  #plotPanel{left:8px;right:8px;width:auto;max-height:42vh}
   #xyzText{min-height:90px}
 }
 /* optimization plots panel */
 #plotPanel{position:fixed;top:64px;left:8px;width:340px;max-height:calc(100vh - 260px);overflow:auto;display:flex;flex-direction:column;gap:6px;
   background:var(--panel);border:1px solid #2c3a66;border-radius:16px;padding:10px;z-index:5;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);touch-action:pan-y}
+@media (max-width:640px){#plotPanel{left:8px;right:8px;width:auto;max-height:42vh}}  /* after the base rule */
 #plotPanel h3{margin:0;font-size:16px}
 #plotMeta{font-size:12px;opacity:.75;line-height:1.35}
 .ctitle{font-size:12px;opacity:.85;margin-top:2px}
