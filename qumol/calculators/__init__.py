@@ -48,7 +48,9 @@ class Calculator:
     def params(self) -> dict:
         return {}
 
-    def optimize(self, mol: Molecule, seed: int = 0) -> OptResult:  # pragma: no cover
+    def optimize(self, mol: Molecule, seed: int = 0, on_step=None) -> OptResult:  # pragma: no cover
+        """``on_step(coords, (stage, step, energy, max_force))``, if given, is called for each
+        recorded frame as the optimization runs (for live streaming)."""
         raise NotImplementedError
 
 

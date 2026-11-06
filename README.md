@@ -19,6 +19,9 @@ QuMol is a 3D molecule-building game that runs in the browser on phones and desk
   - **Bonds & shapes**: tetrahedral, pyramidal, bent, trigonal planar, linear, single/double/triple bonds and rings. Each has a *Show me* button that loads an example into the 3D view.
   - **Quiz**: 12 questions with explanations and a streak counter.
 - **XYZ panel**: the live formula, SMILES and XYZ coordinates as you build. Editing the coordinates changes the molecule. Adding or removing lines adds or removes atoms, and bonds are then guessed from distances (within 1.25× the covalent radii). It can be turned off and remembers your choice.
+- **Live optimization:** when you Build, the atoms move as the server optimizes, frame by frame (streamed, up to 10 frames a second).
+- **📈 Optimization plots**: a panel with the energy and the max force at every optimization step of your last build, filling in live while it runs. A dashed line marks each new stage (e.g. the saddle check). With UMA, the toy force field pre-relaxation is summarized in words, since it uses other units.
+- **Reused calculations:** if anyone already built the same starting geometry (within 0.1 Å) with the same bonds and energy method, its stored result and trajectory are replayed instead of optimizing again. The result is scored as usual.
 - **Fair scoring by input method**: a molecule loaded from Learn is `example` (no geometry or hand-built points). Coordinates edited in the XYZ panel make it `xyz` (geometry points, but no hand-built bonus). Clear resets it to `hand`.
 
 ## Quick start (game + server)
@@ -140,6 +143,7 @@ Players choose a nickname and get a secret login token, kept in their browser, p
 - **methods** has one row per energy method and version. Adding a new potential means adding a row; old results stay.
 - **calculations** holds results of a method on a geometry: a single point on the input, and an optimization pointing to the optimized geometry. They are unique per geometry, method and kind, so rescoring with a better potential just adds rows.
 - **submissions** has one row per player submission. It stores the raw XYZ and bonds exactly as sent, the input and optimized geometry ids, the SMILES and InChIKey, energies, stability, PubChem status, score and score breakdown.
+- **opt_cache** stores finished optimizations for reuse, keyed by a HashMol3D hash of the raw submitted geometry on a 0.1 Å grid, the submitter's SMILES (bonding, charges and radicals) and the method. Where an optimization ends up depends on where it starts, so the key is the start, not the molecule. Each row keeps the start, the result and up to 400 trajectory frames with their energies and forces (zlib-compressed JSON), plus a hit counter. On a hit, the stored atoms are matched to the new submission's (graph mapping plus best rotation, as in puzzles) and the trajectory is moved into the new player's atom order and frame. A stored start more than 0.3 Å RMSD away is not reused. The first result for a start is kept.
 - **pubchem_cache** remembers PubChem lookups.
 
 The server is authoritative: it recomputes every energy itself, so scores can't be faked from the browser.
@@ -156,6 +160,7 @@ The server is authoritative: it recomputes every energy itself, so scores can't 
 | POST | `/api/puzzles/solve` | `{attempt_id, atoms, bonds}` → not the target (with a tip), or the score, RMSD, outline and biggest differences |
 | GET | `/api/me` | totals for the signed-in player |
 | POST | `/api/submissions` | `{atoms:[{el,x,y,z}], bonds:[[i,j,order]], input_method (hand\|xyz\|example\|smiles\|2d), mode}` |
+| POST | `/api/submissions/stream` | the same body, streamed as newline-delimited JSON: `start` (method, atom count, `reused`), then `frame` events (`coords` plus the `points` [stage, step, energy, max force] since the last frame), keep-alive `ping`s, and finally `result` (the usual response) or `error` (`status`, `detail`). The calculation finishes and is stored even if the client disconnects |
 | GET | `/api/submissions/mine` | the player's history |
 | GET | `/api/leaderboards` | the available categories |
 | GET | `/api/leaderboard/{category}` | overall, hand, xyz, weekly, small, discoveries, molecules, records, puzzle_daily, puzzles |

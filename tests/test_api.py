@@ -183,7 +183,7 @@ def test_broken_optimization_is_reported(client, monkeypatch):
         def params(self):
             return real.params()
 
-        def optimize(self, mol, seed=0):
+        def optimize(self, mol, seed=0, on_step=None):
             x = np.array(mol.coords, dtype=float)
             y = x.copy()
             y[0] += 6.0  # fling the first atom away

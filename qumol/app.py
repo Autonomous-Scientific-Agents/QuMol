@@ -6,7 +6,9 @@ Run:  uvicorn qumol.app:app --host 0.0.0.0 --port 8000
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
+import queue
 import os
 import threading
 import re
@@ -19,7 +21,7 @@ from typing import Annotated, Literal
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi import Path as PathParam
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import JSONResponse, PlainTextResponse
+from fastapi.responses import JSONResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -237,19 +239,22 @@ class Submission(BaseModel):
     mode: Literal["stable"] = "stable"
 
 
-@app.post("/api/submissions")
-def create_submission(body: Submission, request: Request, player=Depends(current_player), con=Depends(get_con)):
-    ip, pid = client_ip(request), player["id"]
+def _submission_limits(request: Request, pid: int) -> None:
+    ip = client_ip(request)
     limiter.hit(f"submit:{pid}", SUBMITS_PER_PLAYER_MIN, 60)
     limiter.hit(f"submit-day:{pid}", SUBMITS_PER_PLAYER_DAY, 86400)
     limiter.hit(f"submit-ip:{ip}", SUBMITS_PER_IP_MIN, 60)
     limiter.hit(f"submit-ip-day:{ip}", SUBMITS_PER_IP_DAY, 86400)
     ensure_disk_space(db.db_path())
+
+
+def _run_submission(con, pid: int, body: Submission, on_event=None) -> dict:
+    """Score a submission; every failure comes out as an HTTPException."""
     try:
         with one_at_a_time(f"player:{pid}"):
             return scoring.submit(
                 con, pid, [a.el for a in body.atoms], [[a.x, a.y, a.z] for a in body.atoms],
-                body.bonds, body.input_method, body.mode, compute=compute_slot,
+                body.bonds, body.input_method, body.mode, compute=compute_slot, on_event=on_event,
             )
     except (ChemError, ValueError) as e:
         raise HTTPException(400, str(e))
@@ -258,6 +263,60 @@ def create_submission(body: Submission, request: Request, player=Depends(current
     except Exception as e:
         log.exception("Submission failed in the energy calculation")
         raise HTTPException(503, f"The energy model failed ({type(e).__name__}). The server log has details.")
+
+
+@app.post("/api/submissions")
+def create_submission(body: Submission, request: Request, player=Depends(current_player), con=Depends(get_con)):
+    _submission_limits(request, player["id"])
+    return _run_submission(con, player["id"], body)
+
+
+def _plain(o):
+    """numpy scalars and arrays as plain JSON values."""
+    return o.tolist() if hasattr(o, "tolist") else str(o)
+
+
+STREAM_PING_S = 15  # keep-alive while nothing else is sent (e.g. the model compiling)
+
+
+@app.post("/api/submissions/stream")
+def stream_submission(body: Submission, request: Request, player=Depends(current_player)):
+    """The same as POST /api/submissions, streamed live as newline-delimited JSON: ``start``,
+    then ``frame`` events (coords plus the plot points since the last frame) while it
+    optimizes, then ``result`` (the usual response) or ``error`` (status and detail).
+    The calculation runs to the end even if the client disconnects, so it is stored."""
+    pid = player["id"]
+    _submission_limits(request, pid)  # these still fail as plain HTTP errors
+    events: queue.Queue = queue.Queue()
+
+    def work():
+        con = db.connect()
+        try:
+            events.put({"type": "result", "result": _run_submission(con, pid, body, on_event=events.put)})
+        except HTTPException as e:
+            events.put({"type": "error", "status": e.status_code, "detail": e.detail})
+        except Exception:  # never leave the stream hanging
+            log.exception("Streamed submission failed")
+            events.put({"type": "error", "status": 500, "detail": "Unexpected server error"})
+        finally:
+            con.close()
+            events.put(None)
+
+    threading.Thread(target=work, name=f"submit-{pid}", daemon=True).start()
+
+    def lines():
+        while True:
+            try:
+                ev = events.get(timeout=STREAM_PING_S)
+            except queue.Empty:
+                ev = {"type": "ping"}
+            if ev is None:
+                return
+            yield json.dumps(ev, separators=(",", ":"), default=_plain) + "\n"
+
+    # No buffering or transforming on the way (Cloudflare, proxies), or frames arrive in one lump.
+    return StreamingResponse(lines(), media_type="application/x-ndjson",
+                             headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"})
 
 
 class GraphAtom(BaseModel):

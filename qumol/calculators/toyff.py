@@ -113,7 +113,8 @@ class ToyFF(Calculator):
         return E, g
 
     # ------------------------------------------------------------- FIRE
-    def fire(self, x, mask=None, max_steps=4000, ftol=0.02, record=None, info=None, stage="force field"):
+    def fire(self, x, mask=None, max_steps=4000, ftol=0.02, record=None, info=None, stage="force field",
+             on_step=None):
         v = np.zeros_like(x)
         dt, alpha, npos = 0.02, 0.1, 0
         E, fmax, steps = 0.0, 0.0, 0
@@ -126,6 +127,8 @@ class ToyFF(Calculator):
                 record.append(x.copy())
                 if info is not None:
                     info.append((stage, steps, float(E), fmax))
+                if on_step:
+                    on_step(x, (stage, steps, float(E), fmax))
             if fmax < ftol:
                 break
             P = -np.sum(g * v)
@@ -153,17 +156,19 @@ class ToyFF(Calculator):
             record.append(x.copy())
             if info is not None:
                 info.append((stage, steps, float(E), fmax))
+            if on_step:
+                on_step(x, (stage, steps, float(E), fmax))
         return E, fmax, fmax < ftol, steps
 
     # ------------------------------------------------------------- API
-    def optimize(self, mol: Molecule, seed: int = 0) -> OptResult:
+    def optimize(self, mol: Molecule, seed: int = 0, on_step=None) -> OptResult:
         # The registered instance is shared by concurrent requests, and build() stores the
         # molecule's terms on the instance, so each optimization gets its own copy.
         ff = copy.copy(self)
         ff.build(mol)
-        return ff._optimize(mol, seed)
+        return ff._optimize(mol, seed, on_step)
 
-    def _optimize(self, mol: Molecule, seed: int) -> OptResult:
+    def _optimize(self, mol: Molecule, seed: int, on_step=None) -> OptResult:
         x = np.array(mol.coords, dtype=float)
         is_h = np.array([s == "H" for s in mol.symbols])
         # Tidy hydrogens only, so the player is judged on the skeleton they built.
@@ -173,7 +178,9 @@ class ToyFF(Calculator):
         e_input, g0 = self.energy_grad(x)
         frames = [x.copy()]
         info = [("input", 0, float(e_input), float(np.linalg.norm(g0, axis=1).max()))]
-        E, fmax, conv, n = self.fire(x, record=frames, info=info, stage="toy force field")
+        if on_step:
+            on_step(x, info[0])
+        E, fmax, conv, n = self.fire(x, record=frames, info=info, stage="toy force field", on_step=on_step)
         stages = [{"name": "toy force field", "steps": int(n), "e_start": float(e_input), "e_end": float(E),
                    "unit": self.energy_unit, "converged": bool(conv)}]
         # Nudge test: if a small kick lowers the energy, it was stuck on a saddle.
@@ -187,6 +194,8 @@ class ToyFF(Calculator):
             x, E, fmax, conv = y, E2, fmax2, conv2
             frames.append(x.copy())
             info.append(("saddle check", int(n2), float(E), float(fmax)))
+            if on_step:
+                on_step(x, info[-1])
         return OptResult(
             e_input=float(e_input), e_opt=float(E), coords_input=coords_input, coords_opt=x,
             fmax=fmax, converged=bool(conv), saddle=bool(saddle),

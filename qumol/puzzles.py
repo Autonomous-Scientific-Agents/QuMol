@@ -241,18 +241,29 @@ def _mappings(puzzle: dict, symbols, bonds, P):
         yield list(idx)
 
 
-def compare(puzzle: dict, symbols, coords, bonds) -> dict:
-    """Best symmetry-equivalent match of the player's structure to the reference."""
+def best_alignment(ref: dict, symbols, coords, bonds):
+    """Best symmetry-equivalent match of a structure to a reference ``{symbols, bonds, coords}``.
+
+    Returns ``(rmsd, idx, R, pc, qc)``: reference atom i is atom ``idx[i]`` of the structure,
+    and ``(ref_coords - qc) @ R + pc`` puts the reference in the structure's frame. Raises
+    ValueError if the bonding graphs don't match."""
     P = np.asarray(coords, dtype=float)
-    Q = puzzle["coords"]
+    Q = np.asarray(ref["coords"], dtype=float)
     best = None
-    for idx in _mappings(puzzle, symbols, bonds, P):
+    for idx in _mappings({**ref, "coords": Q}, symbols, bonds, P):
         r, R, pc, qc = _fit(P[idx], Q)
         if best is None or r < best[0]:
             best = (r, idx, R, pc, qc)
     if best is None:
         raise ValueError("structure does not match the reference graph")
-    rmsd, idx, R, pc, qc = best
+    return best
+
+
+def compare(puzzle: dict, symbols, coords, bonds) -> dict:
+    """Best symmetry-equivalent match of the player's structure to the reference."""
+    P = np.asarray(coords, dtype=float)
+    Q = puzzle["coords"]
+    rmsd, idx, R, pc, qc = best_alignment(puzzle, symbols, P, bonds)
     aligned = (Q - qc) @ R + pc  # reference atoms in the player's frame
     ghost = [None] * len(P)
     for i, j in enumerate(idx):

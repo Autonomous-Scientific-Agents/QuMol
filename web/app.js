@@ -38,12 +38,37 @@ async function api(path, {method='GET', body} = {}){
   if(token) headers.Authorization = 'Bearer ' + token;
   const r = await fetch(path, {method, headers, body: body ? JSON.stringify(body) : undefined});
   let j = null; try{ j = await r.json(); }catch{}
-  if(!r.ok){
-    let msg = j && j.detail;
-    if(Array.isArray(msg)) msg = msg.map(d => d.msg).join('; ');
-    const e = new Error(msg || `Server error ${r.status}`); e.status = r.status; throw e;
-  }
+  if(!r.ok) throw apiError(r, j);
   return j;
+}
+function apiError(r, j){
+  let msg = j && j.detail;
+  if(Array.isArray(msg)) msg = msg.map(d => d.msg).join('; ');
+  const e = new Error(msg || `Server error ${r.status}`); e.status = r.status; return e;
+}
+// POST that streams newline-delimited JSON events; onEvent gets each one until the result.
+async function apiStream(path, body, onEvent){
+  const headers = {'Content-Type': 'application/json'};
+  if(token) headers.Authorization = 'Bearer ' + token;
+  const r = await fetch(path, {method: 'POST', headers, body: JSON.stringify(body)});
+  if(!r.ok){ let j = null; try{ j = await r.json(); }catch{} throw apiError(r, j); }
+  const reader = r.body.getReader(), dec = new TextDecoder();
+  let buf = '';
+  for(;;){
+    const {value, done} = await reader.read();
+    if(done) break;
+    buf += dec.decode(value, {stream: true});
+    let k;
+    while((k = buf.indexOf('\n')) >= 0){
+      const line = buf.slice(0, k); buf = buf.slice(k + 1);
+      if(!line.trim()) continue;
+      const ev = JSON.parse(line);
+      if(ev.type === 'result') return ev.result;
+      if(ev.type === 'error'){ const e = new Error(ev.detail || `Server error ${ev.status}`); e.status = ev.status; throw e; }
+      onEvent(ev);
+    }
+  }
+  throw new Error('The connection closed before the result arrived. Try Build again.');
 }
 async function detectServer(){
   try{
@@ -715,6 +740,7 @@ function setXYZOpen(open, remember = true){
   xyzOpen = open; if(remember) LS.set('qm.xyzOpen', open);
   $('xyzPanel').classList.toggle('hidden', !open);
   $('xyzBtn').classList.toggle('on', open);
+  if(open && innerWidth <= 640 && plotOpen) setPlotOpen(false);  // one panel at a time on a phone
   if(open) refreshXYZ(true);
 }
 function toXYZ(){
@@ -790,6 +816,86 @@ function applyXYZ(){
 }
 $('xyzBtn').onclick = () => { unlockAudio(); setXYZOpen(!xyzOpen); SFX.tick(); };
 $('xyzClose').onclick = () => { setXYZOpen(false); SFX.tick(); };
+
+/* ================= optimization plots panel ================= */
+// Energy and max force at every optimization step of the last build: filled live from the
+// streamed frames, then replaced by the full list of steps when the result arrives.
+const plot = {method: null, points: [], reused: false, running: false, elapsed: null};
+let plotOpen = false;
+function setPlotOpen(open){
+  plotOpen = open;
+  $('plotPanel').classList.toggle('hidden', !open);
+  $('plotBtn').classList.toggle('on', open);
+  if(open && innerWidth <= 640 && xyzOpen) setXYZOpen(false);  // one panel at a time on a phone
+  if(open) drawPlots();
+}
+$('plotBtn').onclick = () => { unlockAudio(); setPlotOpen(!plotOpen); SFX.tick(); };
+$('plotClose').onclick = () => { setPlotOpen(false); SFX.tick(); };
+// The toy force field (also the pre-relaxation before an ML potential) works in kcal/mol.
+const plotUnit = stage => stage === 'toy force field' ? 'kcal/mol' : (plot.method && plot.method.energy_unit) || '';
+function plotStart(method, reused){
+  Object.assign(plot, {method, points: [], reused, running: true, elapsed: null});
+  drawPlots();
+}
+function plotAdd(points){ plot.points.push(...points); if(plotOpen) drawPlots(); }
+function plotDone(r){
+  Object.assign(plot, {method: r.method, points: (r.log && r.log.steps) || plot.points, reused: !!r.reused,
+                       running: false, elapsed: r.log ? r.log.elapsed_s : null});
+  drawPlots();
+}
+const fmtNum = v => Math.abs(v) >= 1000 || (Math.abs(v) < 0.01 && v !== 0) ? v.toExponential(1) : +v.toPrecision(3) + '';
+// A line chart as inline SVG. pts: [[x, y]]; marks: [[x, label]] (stage boundaries).
+function chartSVG(pts, cls, {log = false, marks = []} = {}){
+  const W = 320, H = 130, L = 46, R = 8, T = 8, B = 20;
+  const ys = pts.map(p => log ? Math.log10(Math.max(p[1], 1e-6)) : p[1]);
+  let lo = Math.min(...ys), hi = Math.max(...ys);
+  if(hi - lo < 1e-9){ lo -= 1; hi += 1; }
+  const x0 = pts[0][0], x1 = Math.max(pts[pts.length-1][0], x0 + 1);
+  const X = x => L + (x - x0) / (x1 - x0) * (W - L - R), Y = y => T + (hi - y) / (hi - lo) * (H - T - B);
+  let g = '';
+  for(const t of [lo, (lo + hi) / 2, hi]){
+    g += `<line class="grid" x1="${L}" x2="${W - R}" y1="${Y(t)}" y2="${Y(t)}"/>`;
+    g += `<text x="${L - 4}" y="${Y(t) + 3}" text-anchor="end">${fmtNum(log ? 10 ** t : t)}</text>`;
+  }
+  for(const [x, label] of marks)
+    g += `<line class="stage" x1="${X(x)}" x2="${X(x)}" y1="${T}" y2="${H - B}"/><text x="${X(x) + 3}" y="${T + 9}">${label}</text>`;
+  g += `<text x="${L}" y="${H - 5}">${x0}</text><text x="${W - R}" y="${H - 5}" text-anchor="end">step ${x1}</text>`;
+  const d = pts.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(ys[i]).toFixed(1)}`).join('');
+  const last = pts[pts.length-1];
+  return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">${g}<path class="ln ${cls}" d="${d}"/>` +
+         `<circle class="${cls} dot" cx="${X(last[0])}" cy="${Y(ys[ys.length-1])}" r="3"/></svg>`;
+}
+function drawPlots(){
+  if(!plotOpen) return;
+  const meta = $('plotMeta'), charts = $('plotCharts');
+  if(!ONLINE){ meta.textContent = 'Plots need the QuMol server: offline builds use a quick local force field.'; charts.innerHTML = ''; return; }
+  if(!plot.method){ charts.innerHTML = ''; return; }
+  // One energy scale per chart: plot the steps in the method's own units. A pre-relaxation with
+  // the toy force field (different units) is summarized in words instead.
+  const unit = plot.method.energy_unit;
+  const main = plot.points.filter(p => plotUnit(p[0]) === unit);
+  const pre = plot.points.filter(p => plotUnit(p[0]) !== unit);
+  const preSteps = pre.length ? Math.max(...pre.map(p => p[1])) : 0;
+  const status = plot.running ? (plot.reused ? 'replaying an earlier calculation…' : 'optimizing…')
+    : plot.reused ? 'reused from an earlier calculation of the same start'
+    : plot.elapsed !== null ? `took ${plot.elapsed} s` : '';
+  meta.textContent = [`${plot.method.name} ${plot.method.version}`, status,
+    preSteps ? `after ${preSteps} toy force field steps (not plotted: kcal/mol)` : ''].filter(Boolean).join(' · ');
+  if(main.length < 2){ charts.innerHTML = `<div class="ctitle">${plot.running ? 'Waiting for the first steps…' : 'Not enough steps to plot.'}</div>`; return; }
+  // x: running step count across stages; a dashed line where a new stage starts.
+  const xs = [], marks = [];
+  let off = 0, prev = null, last = 0;
+  for(const [stage, n] of main){
+    if(prev !== null && stage !== prev){ off = last + 1; if(prev !== 'input') marks.push([off, stage]); }
+    last = off + n; xs.push(last); prev = stage;
+  }
+  const eEnd = main[main.length-1][2];
+  charts.innerHTML =
+    `<div class="ctitle">Energy relative to the last step (${unit})</div>` +
+    chartSVG(main.map((p, i) => [xs[i], p[2] - eEnd]), 'e', {marks}) +
+    `<div class="ctitle">Max force (${unit}/Å, log scale)</div>` +
+    chartSVG(main.map((p, i) => [xs[i], p[3]]), 'f', {log: true, marks});
+}
 $('xyzText').addEventListener('input', () => { clearTimeout(xyzTimer); xyzTimer = setTimeout(applyXYZ, 700); });
 $('xyzText').addEventListener('blur', () => {
   clearTimeout(xyzTimer);
@@ -1256,22 +1362,38 @@ async function submitOnline(){
   SFX.whoosh();
   const before = serialize();
   const tStart = performance.now();
-  const tick = () => toast(`Optimizing on the server… ${((performance.now() - tStart)/1000).toFixed(1)} s`, 60000);
+  let reused = false, live = 0, method = null;
+  const tick = () => toast(`${reused ? 'Same start as an earlier build: replaying it' : 'Optimizing on the server'}… ${((performance.now() - tStart)/1000).toFixed(1)} s`, 60000);
   tick(); const timer = setInterval(tick, 200);
+  const unitOf = stage => stage === 'toy force field' ? 'kcal/mol' : (method && method.energy_unit) || '';
+  const box = $('optInfo');
+  // Live: atoms move as the server optimizes, and the plots fill in.
+  const onEvent = ev => {
+    if(ev.type === 'start'){ method = ev.method; reused = ev.reused; live = 0; plotStart(ev.method, ev.reused); }
+    else if(ev.type === 'frame'){
+      if(ev.coords.length !== atoms.length) return;
+      live++; setCoords(ev.coords.flat()); rebuild(); plotAdd(ev.points);
+      const p = ev.points[ev.points.length - 1];
+      if(p){ box.classList.remove('hidden'); box.textContent = `${p[0]} · step ${p[1]} · E ${p[2].toFixed(4)} ${unitOf(p[0])} · max force ${p[3].toFixed(3)}`; }
+    }
+  };
   let r;
   try{
   for(let attempt = 0; ; attempt++){
-    try{ r = await api('/api/submissions', {method:'POST', body}); break; }
+    try{ r = await apiStream('/api/submissions/stream', body, onEvent); break; }
     catch(e){
       if(e.status === 401){ setAccount(null, null); showWelcome(); return; }
+      if(live) restore(before), rebuild();  // put the player's start back before retrying or bailing
       if(e.status === 503 && attempt < 4){ toast('Server busy, retrying…', 3000); await sleep(1500 * (attempt + 1)); continue; }
       fail(e.message || 'Could not reach the server'); return;
     }
   }
-  } finally { clearInterval(timer); }  // error toasts from fail() stay visible
+  } finally { clearInterval(timer); setTimeout(() => box.classList.add('hidden'), 1200); }  // error toasts from fail() stay visible
   $('toast').classList.remove('show');
-  const unitOf = stage => stage === 'toy force field' ? 'kcal/mol' : (r.method && r.method.energy_unit) || '';
-  await animateFrames(r.frames.map(f => f.flat()), Math.min(4000, 1300 + 25 * r.frames.length), r.frame_info, unitOf);
+  method = r.method;
+  plotDone(r);
+  // Quick optimizations finish before many frames stream: play the movie from the result.
+  if(live < 10) await animateFrames(r.frames.map(f => f.flat()), Math.min(4000, 1300 + 25 * r.frames.length), r.frame_info, unitOf);
   if(r.opt_status === 'broken'){
     restore(before); rebuild(); changed();  // give the player their structure back to fix
     shake = 0.25; buzz([20,40,20]);
@@ -1633,7 +1755,8 @@ function setPuzzleUI(on){
   $('submitLabel').textContent = on ? 'Check' : 'Build';
   if(on){ measureBefore = measureOn; measureOn = false; xyzBefore = xyzOpen; setXYZOpen(false, false); }
   else { measureOn = measureBefore; setXYZOpen(xyzBefore); }
-  for(const id of ['measure', 'xyzBtn']){ $(id).classList.toggle('disabled', on); $(id).disabled = on; }
+  if(on) setPlotOpen(false);
+  for(const id of ['measure', 'xyzBtn', 'plotBtn']){ $(id).classList.toggle('disabled', on); $(id).disabled = on; }
   $('measure').classList.toggle('on', measureOn);
 }
 function exitPuzzle(){

@@ -14,7 +14,7 @@ from contextlib import nullcontext
 
 import numpy as np
 
-from . import db, pubchem
+from . import db, optcache, pubchem
 from .calculators import get_calculator, subsample_idx
 from .chem import hash_geometry, inchikey_of, smiles_of, structure_problem, to_xyz, validate
 
@@ -58,19 +58,62 @@ def bond_types(symbols, bonds) -> list[str]:
     return [f"{x}{BOND_SYMBOL[o]}{y}" for x, y, o in sorted(out, key=lambda t: (rank(t[0]), rank(t[1]), t[2]))]
 
 
+FRAMES_PER_S = 10  # live frames streamed per second at most
+REPLAY_S = 1.5  # a reused trajectory is replayed over about this long
+
+
+def _live(emit):
+    """on_step callback for the optimizer: sends a frame at most FRAMES_PER_S times a second,
+    with every (stage, step, energy, max force) point since the last frame, for the plots."""
+    state = {"t": 0.0, "points": []}
+
+    def on_step(x, info):
+        stage, n, e, f = info
+        state["points"].append([stage, int(n), round(float(e), 6), round(float(f), 5)])
+        now = time.perf_counter()
+        if now - state["t"] >= 1 / FRAMES_PER_S:
+            state["t"] = now
+            emit({"type": "frame", "coords": np.round(x, 3).tolist(), "points": state["points"]})
+            state["points"] = []
+
+    return on_step
+
+
 def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "hand",
-           mode: str = "stable", method: str | None = None, compute=nullcontext) -> dict:
-    """``compute`` is a context manager held only around the CPU-heavy part."""
+           mode: str = "stable", method: str | None = None, compute=nullcontext, on_event=None) -> dict:
+    """``compute`` is a context manager held only around the CPU-heavy part. ``on_event``, if
+    given, receives live progress: a ``start`` event, then ``frame`` events while optimizing
+    (or replaying a reused result). The returned dict is the final result either way."""
     if input_method not in INPUT_METHODS:
         raise ValueError(f"input_method must be one of {INPUT_METHODS}")
     mol = validate(symbols, coords, bonds)
     calc = get_calculator(method)
     raw_xyz = to_xyz(mol.symbols, mol.coords, "raw submission")
     seed = zlib.crc32(raw_xyz.encode())
+    smiles = smiles_of(mol)
 
-    with compute():
+    # Same start (0.1 Å), same bonding, same method as an earlier submission: reuse its result.
+    key = optcache.cache_key(mol) if smiles else None
+    mid_known = db.method_id(con, calc, create=False)
+    hit = optcache.lookup(con, key, smiles, mid_known, mol) if key and mid_known else None
+    if on_event:
+        on_event({"type": "start", "method": {"name": calc.name, "version": calc.version,
+                                              "energy_unit": calc.energy_unit},
+                  "n_atoms": len(mol.symbols), "reused": hit is not None})
+
+    with (nullcontext() if hit else compute()):
         t0 = time.perf_counter()
-        res = calc.optimize(mol, seed=seed)
+        if hit:
+            res, saved_s = hit
+            if on_event:  # replay the stored trajectory through the same events, quickly
+                step = _live(on_event)
+                pause = REPLAY_S / max(1, len(res.frames))
+                for x, info in zip(res.frames, res.frame_info):
+                    step(x, info)
+                    time.sleep(pause)
+        else:
+            saved_s = 0.0
+            res = calc.optimize(mol, seed=seed, on_step=_live(on_event) if on_event else None)
         elapsed = time.perf_counter() - t0
         problem = structure_problem(mol, res.coords_opt)
         intact = problem is None
@@ -106,7 +149,9 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
             "The optimization didn't converge, so the structure may still be far from a minimum.")
     else:
         opt_status, warning = "ok", None
-    smiles = smiles_of(mol)
+    if hit:
+        events.insert(0, f"reused an earlier calculation of this starting geometry (within "
+                         f"{optcache.PRECISION:g} Å), saving {saved_s:.1f} s")
     inchikey = inchikey_of(smiles)
     n_heavy = mol.n_heavy
     d_e_per_atom = max(0.0, res.e_input - res.e_opt) / len(mol.symbols)
@@ -130,6 +175,10 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
             extra={"stable": stable, "saddle": res.saddle, "n_steps": res.n_steps,
                    "prerelax_steps": res.prerelax_steps, "intact": intact},
         )
+        if key and hit:
+            optcache.count_hit(con, key, smiles, mid)
+        elif key:
+            optcache.store(con, key, smiles, mid, mol, res, elapsed)
 
         def scalar(sql, *args):
             row = con.execute(sql, args).fetchone()
@@ -259,9 +308,11 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
         "frames": [np.round(res.frames[i], 3).tolist() for i in idx],
         # Per frame: [stage, step, energy, max force], for the readout during the movie.
         "frame_info": [list(res.frame_info[i]) for i in idx] if len(res.frame_info) == len(res.frames) else [],
+        "reused": hit is not None,
         "log": {
             "method": f"{calc.name} {calc.version}",
             "elapsed_s": round(elapsed, 2),
+            "reused": hit is not None,
             "events": events,
             "steps": [[st, n, round(e, 5), round(f, 4)] for st, n, e, f in
                       (res.frame_info[i] for i in subsample_idx(len(res.frame_info), 400))],
