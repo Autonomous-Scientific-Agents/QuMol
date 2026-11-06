@@ -116,6 +116,17 @@ CREATE TABLE IF NOT EXISTS puzzle_attempts (
 CREATE INDEX IF NOT EXISTS puzzle_attempts_player ON puzzle_attempts(player_id, puzzle_id);
 CREATE INDEX IF NOT EXISTS puzzle_attempts_day ON puzzle_attempts(day);
 
+-- Finished optimizations, reused when someone submits the same start (see optcache.py).
+CREATE TABLE IF NOT EXISTS opt_cache (
+    input_key   TEXT NOT NULL,               -- HashMol3D of the raw submitted geometry, 0.1 Å grid
+    smiles      TEXT NOT NULL,               -- the submitter's bonding (charges, radicals)
+    method_id   INTEGER NOT NULL REFERENCES methods(id),
+    data        BLOB NOT NULL,               -- zlib JSON: start, bonds, result, trajectory, stages
+    hits        INTEGER NOT NULL DEFAULT 0,  -- times it was reused
+    created_at  TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    PRIMARY KEY (input_key, smiles, method_id)
+);
+
 CREATE TABLE IF NOT EXISTS pubchem_cache (
     smiles     TEXT PRIMARY KEY,
     in_pubchem INTEGER NOT NULL,

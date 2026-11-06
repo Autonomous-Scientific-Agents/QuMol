@@ -33,7 +33,7 @@ button.on{background:var(--acc);box-shadow:0 0 14px var(--acc)}
 }
 @keyframes tipIn{from{opacity:0}}
 #xyzBtn{font-size:13px;letter-spacing:.5px}
-#xyzBtn.on,#measure.on{background:var(--acc)}
+#xyzBtn.on,#measure.on,#plotBtn.on{background:var(--acc)}
 /* measurement labels (bond lengths, angles) drawn over the 3D view */
 #measures{position:fixed;inset:0;pointer-events:none;z-index:2;overflow:hidden}
 .ml{position:absolute;transform:translate(-50%,-50%);font:600 11.5px/1 ui-monospace,Menlo,monospace;color:#eef2ff;
@@ -94,6 +94,23 @@ button.disabled{opacity:.35}
   #xyzPanel{left:8px;right:8px;width:auto;max-height:34vh}
   #xyzText{min-height:90px}
 }
+/* optimization plots panel */
+#plotPanel{position:fixed;top:64px;left:8px;width:340px;max-height:calc(100vh - 260px);overflow:auto;display:flex;flex-direction:column;gap:6px;
+  background:var(--panel);border:1px solid #2c3a66;border-radius:16px;padding:10px;z-index:5;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);touch-action:pan-y}
+@media (max-width:640px){#plotPanel{left:8px;right:8px;width:auto;max-height:42vh}}  /* after the base rule */
+#plotPanel h3{margin:0;font-size:16px}
+#plotMeta{font-size:12px;opacity:.75;line-height:1.35}
+.ctitle{font-size:12px;opacity:.85;margin-top:2px}
+.chart{width:100%;height:auto;display:block;background:#0e1530;border:1px solid #2c3a66;border-radius:10px}
+.chart .grid{stroke:#22305a;stroke-width:1}
+.chart text{fill:#8090b8;font:10px ui-monospace,Menlo,monospace}
+.chart .ln{fill:none;stroke-width:2;stroke-linejoin:round}
+.chart .e{stroke:var(--acc2)}
+.chart .f{stroke:#ffd166}
+.chart .stage{stroke:#7c5cff;stroke-dasharray:3 3}
+.chart .dot{stroke:none}
+.chart .e.dot{fill:var(--acc2)}
+.chart .f.dot{fill:#ffd166}
 /* learn panel */
 .card.wide{width:min(94vw,520px)}
 .lgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:8px 0}
@@ -182,6 +199,7 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
   <div class="left"><span class="brand">QuMol</span><span id="info" class="pill">Loading…</span></div>
   <div class="right">
     <button id="puzzleBtn" class="tip-below hidden" data-tip="Puzzles: build a named molecule as close to its experimental 3D structure as you can. Five new daily puzzles, plus random ones" aria-label="Puzzles">🧩</button>
+    <button id="plotBtn" class="tip-below" data-tip="Optimization plots: energy and max force at every step of your last build, live while it runs" aria-label="Optimization plots">📈</button>
     <button id="xyzBtn" class="tip-below" data-tip="Formula and XYZ coordinates panel. Edit the coordinates to change the molecule directly" aria-label="Formula and XYZ panel">XYZ</button>
     <button id="mute" class="tip-below" data-tip="Sound on/off" aria-label="Sound on/off">🔊</button>
     <button id="help" class="tip-below" data-tip="How to play, and the interactive tutorial" aria-label="How to play">?</button>
@@ -218,6 +236,14 @@ input{width:100%;height:46px;border-radius:12px;border:1px solid #2c3a66;backgro
   </div>
   <textarea id="xyzText" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="XYZ coordinates"></textarea>
   <div id="xyzMsg" class="pmsg">Edit coordinates (Å) to change the molecule. Add or remove lines to add or remove atoms.</div>
+</aside>
+
+<aside id="plotPanel" class="hidden" aria-label="Optimization plots">
+  <div class="phead">
+    <div><h3>📈 Optimization</h3><div id="plotMeta">Build a molecule to see how its energy and forces change at every optimization step.</div></div>
+    <button id="plotClose" class="tip-below" data-tip="Hide panel" aria-label="Hide panel">✕</button>
+  </div>
+  <div id="plotCharts"></div>
 </aside>
 
 <div id="puzzleBar" class="hidden" role="status">

@@ -87,7 +87,7 @@ class ASECalculator(Calculator):
         at.calc = self.calc
         return at
 
-    def _relax(self, atoms, max_steps, record=None, info=None, stage=None):
+    def _relax(self, atoms, max_steps, record=None, info=None, stage=None, on_step=None):
         # Each optimizer step is one model call, so the optimizer choice dominates the cost
         # with an ML potential. BFGS needs far fewer steps than FIRE for small molecules.
         from ase import optimize
@@ -101,12 +101,14 @@ class ASECalculator(Calculator):
                     f = atoms.get_forces()
                     info.append((stage or self.name, opt.nsteps, float(atoms.get_potential_energy()),
                                  float(np.linalg.norm(f, axis=1).max())))
+                    if on_step:
+                        on_step(record[-1], info[-1])
             opt.attach(observe, interval=1)
         conv = opt.run(fmax=self.fmax_target, steps=max_steps)
         f = atoms.get_forces()
         return float(atoms.get_potential_energy()), float(np.linalg.norm(f, axis=1).max()), bool(conv), opt.nsteps
 
-    def optimize(self, mol: Molecule, seed: int = 0) -> OptResult:
+    def optimize(self, mol: Molecule, seed: int = 0, on_step=None) -> OptResult:
         from ase.constraints import FixAtoms
 
         at = self._atoms(mol, mol.coords)
@@ -119,6 +121,8 @@ class ASECalculator(Calculator):
         e_input = float(at.get_potential_energy())
         frames = [coords_input.copy()]
         info = [("input", 0, e_input, float(np.linalg.norm(at.get_forces(), axis=1).max()))]
+        if on_step:
+            on_step(coords_input, info[0])
         stages = []
         # Cheap head start: relax with the toy force field first, then let the ML potential
         # finish. Saves model calls and keeps a rough hand-built structure from flying apart
@@ -134,7 +138,7 @@ class ASECalculator(Calculator):
             ff_frames, ff_info = [], []
             e0_ff, _ = ff.energy_grad(y)
             e1_ff, _, ff_conv, ff_steps = ff.fire(y, max_steps=1500, record=ff_frames, info=ff_info,
-                                                  stage="toy force field")
+                                                  stage="toy force field", on_step=on_step)
             used = structure_intact(mol, y)
             stages.append({"name": "toy force field", "steps": int(ff_steps), "e_start": float(e0_ff),
                            "e_end": float(e1_ff), "unit": ff.energy_unit, "converged": bool(ff_conv),
@@ -146,7 +150,8 @@ class ASECalculator(Calculator):
             else:
                 ff_steps = 0
         e_start = float(at.get_potential_energy())
-        E, fmax, conv, n = self._relax(at, self.max_steps, record=frames, info=info, stage=self.name)
+        E, fmax, conv, n = self._relax(at, self.max_steps, record=frames, info=info, stage=self.name,
+                                       on_step=on_step)
         stages.append({"name": self.name, "steps": int(n), "e_start": e_start, "e_end": float(E),
                        "unit": self.energy_unit, "converged": bool(conv)})
         x = at.get_positions().copy()
@@ -163,6 +168,8 @@ class ASECalculator(Calculator):
             x, E, fmax, conv = at2.get_positions().copy(), E2, fmax2, conv2
             frames.append(x.copy())
             info.append(("saddle check", int(n2), float(E), float(fmax)))
+            if on_step:
+                on_step(x, info[-1])
         return OptResult(
             e_input=e_input, e_opt=E, coords_input=coords_input, coords_opt=x,
             fmax=fmax, converged=conv, saddle=bool(saddle), n_steps=int(n), frames=frames,
