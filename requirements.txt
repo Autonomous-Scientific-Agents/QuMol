@@ -6,6 +6,9 @@ rdkit>=2023.9
 # Optional: real potentials through ASE (QUMOL_METHOD=uma or emt)
 # ase>=3.23
 # fairchem-core      # for UMA
+# Optional: cooking-mode tests (scripts/cook_md.py)
+# torchani           # ANI-1xnr, reactive C/H/N/O potential (MIT)
+# tblite             # GFN2-xTB (LGPL-3); don't import with torch in one process
 # Tests
 # pytest
 # httpx
