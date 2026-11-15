@@ -76,7 +76,7 @@ CREATE TABLE IF NOT EXISTS submissions (
     id            INTEGER PRIMARY KEY,
     player_id     INTEGER NOT NULL REFERENCES players(id),
     method_id     INTEGER NOT NULL REFERENCES methods(id),
-    input_method  TEXT NOT NULL,             -- 'hand' | 'xyz' | 'smiles' | '2d' | 'example'
+    input_method  TEXT NOT NULL,             -- 'hand' | 'xyz' | 'smiles' | '2d' | 'example' | 'cook'
     mode          TEXT NOT NULL DEFAULT 'stable',
     raw_xyz       TEXT NOT NULL,             -- exactly what the player sent
     bonds_json    TEXT NOT NULL,             -- the player's bonding [[i, j, order], ...]
@@ -166,6 +166,21 @@ def write_lock():
     """Serialise multi-step writes (records and novelty must not race)."""
     with _lock:
         yield
+
+
+# Every point a player has earned, one row each: scored submissions plus counted puzzle
+# solves (only a player's first solve of a puzzle is counted and carries a score).
+POINTS_SQL = """
+    SELECT player_id, score, created_at, input_method, n_heavy FROM submissions
+    UNION ALL
+    SELECT player_id, score, strftime('%Y-%m-%dT%H:%M:%fZ', solved_at, 'unixepoch'), 'puzzle', NULL
+    FROM puzzle_attempts WHERE counted=1"""
+
+
+def player_total(con: sqlite3.Connection, player_id: int) -> int:
+    """A player's ⭐ total: build scores plus puzzle scores."""
+    return con.execute(f"SELECT COALESCE(SUM(score),0) FROM ({POINTS_SQL}) WHERE player_id=?",
+                       (player_id,)).fetchone()[0]
 
 
 def method_id(con: sqlite3.Connection, calc, create: bool = True) -> int | None:

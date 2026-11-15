@@ -31,11 +31,13 @@ from ase import Atoms, units  # noqa: E402
 from ase.calculators.calculator import Calculator, all_changes  # noqa: E402
 from ase.md.langevin import Langevin  # noqa: E402
 from ase.md.velocitydistribution import MaxwellBoltzmannDistribution  # noqa: E402
-from ase.neighborlist import natural_cutoffs, neighbor_list  # noqa: E402
 from ase.io import write  # noqa: E402
 from ase.optimize import BFGS  # noqa: E402
 
 from qumol.chem import hill_formula  # noqa: E402
+from qumol.cook import fragments as _fragments  # noqa: E402
+from qumol.cook import saturate as _saturate  # noqa: E402
+from qumol.cook import scatter  # noqa: E402
 
 
 class Beaker(Calculator):
@@ -76,37 +78,9 @@ def parse_recipe(text: str) -> list[str]:
     return syms
 
 
-def scatter(symbols, radius, min_dist, rng):
-    pos = []
-    for _ in symbols:
-        for _try in range(10000):
-            p = rng.uniform(-radius, radius, 3)
-            if np.linalg.norm(p) <= radius and all(np.linalg.norm(p - q) >= min_dist for q in pos):
-                pos.append(p)
-                break
-        else:
-            raise SystemExit("Beaker too small for these atoms; raise --radius or lower --min-dist")
-    return np.array(pos)
-
-
 def fragments(atoms, scale=1.2):
-    """Connected components from distances (covalent radii x scale)."""
-    n = len(atoms)
-    i, j = neighbor_list("ij", atoms, [c * scale for c in natural_cutoffs(atoms)])
-    parent = list(range(n))
-
-    def find(a):
-        while parent[a] != a:
-            parent[a] = parent[parent[a]]
-            a = parent[a]
-        return a
-
-    for a, b in zip(i, j):
-        parent[find(a)] = find(b)
-    groups = {}
-    for a in range(n):
-        groups.setdefault(find(a), []).append(a)
-    return sorted(groups.values(), key=len, reverse=True)
+    """Connected components of an ASE Atoms, largest first (see qumol.cook.fragments)."""
+    return _fragments(atoms.get_chemical_symbols(), atoms.get_positions(), scale)
 
 
 def smiles(atoms, idx):
@@ -244,65 +218,10 @@ def cook(base, symbols, temp=2000.0, heat=0.1, hold=0.3, cool=0.1, dt=None, fric
                    "quenched": bool(quenched), "t_kin_max": t_max}
 
 
-# Bond length / (sum of covalent radii) below which a bond is read as triple or double.
-TRIPLE, DOUBLE = 0.82, 0.91
-
-
 def saturate(atoms, idx):
-    """Bond orders from the cooked bond lengths, then H on every free valence (like H+).
-
-    Returns (symbols, coords, bonds) ready for qumol.chem.validate."""
-    from qumol.chem import ELEMENTS, assign_charges, max_bonds
-
+    """H on every free valence of a fragment of the pot (see qumol.cook.saturate)."""
     sub = atoms[idx]
-    syms = sub.get_chemical_symbols()
-    x = sub.get_positions()
-    r = [ELEMENTS[s]["r"] for s in syms]
-    n = len(syms)
-    pairs = []
-    for i in range(n):
-        for j in range(i + 1, n):
-            d = np.linalg.norm(x[i] - x[j])
-            if d < 1.2 * (r[i] + r[j]):
-                pairs.append((d / (r[i] + r[j]), i, j))
-    pairs.sort()  # shortest (relative) first
-    cap = [max_bonds(s) for s in syms]
-    used = [0] * n
-    bonds = []
-    for ratio, i, j in pairs:  # every bond gets order 1 first, shortest bonds win if crowded
-        if used[i] < cap[i] and used[j] < cap[j]:
-            bonds.append([i, j, 1])
-            used[i] += 1
-            used[j] += 1
-    for b in bonds:  # then upgrade short bonds while both atoms have valence to spare
-        i, j = b[0], b[1]
-        ratio = np.linalg.norm(x[i] - x[j]) / (r[i] + r[j])
-        want = 3 if ratio < TRIPLE else 2 if ratio < DOUBLE else 1
-        val = [ELEMENTS[syms[k]]["val"] for k in (i, j)]
-        while b[2] < want and used[i] < val[0] and used[j] < val[1]:
-            b[2] += 1
-            used[i] += 1
-            used[j] += 1
-    _, deficit = assign_charges(syms, [tuple(b) for b in bonds])
-    syms, x = list(syms), [p for p in x]
-    rng = np.random.default_rng(0)
-    for i in range(n):
-        for _ in range(max(0, deficit[i])):
-            nb = [x[b[1] if b[0] == i else b[0]] - x[i] for b in bonds if i in b[:2]]
-            best, gap = None, -1.0
-            for _try in range(200):  # the direction farthest from everything already there
-                d = rng.normal(size=3)
-                d /= np.linalg.norm(d)
-                if nb and np.dot(d, sum(v / np.linalg.norm(v) for v in nb)) > 0:
-                    continue
-                p = x[i] + d * (ELEMENTS[syms[i]]["r"] + ELEMENTS["H"]["r"]) * 1.05
-                g = min((np.linalg.norm(p - q) for k, q in enumerate(x) if k != i), default=9.9)
-                if g > gap:
-                    best, gap = p, g
-            x.append(best)
-            syms.append("H")
-            bonds.append([i, len(syms) - 1, 1])
-    return syms, np.array(x), [tuple(b) for b in bonds]
+    return _saturate(sub.get_chemical_symbols(), sub.get_positions())
 
 
 def finish(qcalc, atoms, idx):

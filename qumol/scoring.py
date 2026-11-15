@@ -31,10 +31,11 @@ POINTS = {
     "formal_charges": 50,  # small bonus for zwitterionic bonding like ⁻C≡O⁺
     "bond_type": 20,  # per distinct bond type (C–H, C–C, C=C, C–O, ...)
 }
-INPUT_METHODS = ("hand", "xyz", "smiles", "2d", "example")
+INPUT_METHODS = ("hand", "xyz", "smiles", "2d", "example", "cook")
 GEOMETRY_SCORED = ("hand", "xyz")  # 2D and SMILES inputs get auto-generated geometry
 NO_GEOMETRY_NOTE = {
     "example": "example molecule",
+    "cook": "cooked in the beaker",
     "smiles": "auto-generated geometry",
     "2d": "auto-generated geometry",
 }
@@ -283,7 +284,7 @@ def submit(con, player_id: int, symbols, coords, bonds, input_method: str = "han
              json.dumps({"lines": lines})),
         )
         sub_id = cur.lastrowid
-        total = scalar("SELECT COALESCE(SUM(score),0) FROM submissions WHERE player_id=?", player_id)
+        total = db.player_total(con, player_id)
 
     idx = subsample_idx(len(res.frames))
     return {

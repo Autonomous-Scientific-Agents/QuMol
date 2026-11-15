@@ -60,6 +60,10 @@ def test_daily_set_and_solving(client):
     ok = client.post("/api/puzzles/solve", headers=h, json={"attempt_id": aid, "atoms": atoms, "bonds": bonds}).json()
     assert ok["correct"] and 0.02 < ok["rmsd"] < 0.06 and ok["tries"] == 4
     assert ok["score"] == sum(l[1] for l in ok["lines"]) > 0
+    # puzzle points count toward the ⭐ total and the overall and weekly boards
+    assert ok["total"] == ok["score"] == client.get("/api/me", headers=h).json()["total"]
+    for board in ("overall", "weekly"):
+        assert client.get(f"/api/leaderboard/{board}").json()["rows"][0]["value"] == ok["score"]
     assert len(ok["ghost"]) == 3 and ok["diffs"][0]["experiment"] == 0.957
     assert client.post("/api/puzzles/solve", headers=h, json={"attempt_id": aid, "atoms": atoms, "bonds": bonds}).status_code == 409
     assert client.get("/api/puzzles/daily", headers=h).json()["unsolved"] == 79  # drives "all puzzles solved"
@@ -68,7 +72,7 @@ def test_daily_set_and_solving(client):
     again = client.post("/api/puzzles/start", json={"puzzle_id": "se100-water"}, headers=h).json()
     assert again["practice"]
     r2 = client.post("/api/puzzles/solve", headers=h, json={"attempt_id": again["attempt_id"], "atoms": atoms, "bonds": bonds}).json()
-    assert r2["correct"] and r2["score"] == 0 and r2["practice"]
+    assert r2["correct"] and r2["score"] == 0 and r2["practice"] and r2["total"] == ok["score"]
 
     # other players can't use your attempt
     other, _ = player(client, "eve")

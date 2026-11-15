@@ -11,6 +11,22 @@ const EL = {
   S: {c:0xe040fb, r:1.05, val:2, vis:0.42, name:'Sulfur',   neutral:[2,4,6], plus:0},
   F: {c:0x7ee06a, r:0.57, val:1, vis:0.30, name:'Fluorine', neutral:[1], plus:0},
 };
+// The cooking icon: a witch's cauldron with a bubbling green brew over a fire.
+const POT_SVG = `<svg class="pot" viewBox="0 0 32 32" aria-hidden="true">
+<path d="M9.5 31c-1.6-1.4-1.4-3.4.2-4.8.1 1.3.9 1.9 1.6 2-.4-1.6.4-3 1.9-3.9-.3 1.6.6 2.6 1.4 2.9.1-1.5 1-2.8 2.4-3.4-.5 1.7.3 2.9 1.2 3.4.4-1.1 1.2-1.8 2.2-2 .1 1.3-.3 2.2.6 3.1.6-.6 1-1.4 1-2.3 1.3 1.4 1.6 3.4.2 5z" fill="#ff7a1a"/>
+<path d="M12.5 31c-.8-.9-.6-2 .3-2.8.2.8.7 1.1 1.2 1.2 0-1 .6-1.9 1.6-2.4-.1 1 .5 1.6 1.1 1.8.3-.6.8-1 1.4-1.1-.1.9.6 1.4.9 2.1.3-.3.5-.7.5-1.1.8.8.8 1.7.2 2.3z" fill="#ffd166"/>
+<path d="M8 26.5l-1.6 3M24 26.5l1.6 3" stroke="#1a1d24" stroke-width="1.8" stroke-linecap="round"/>
+<path d="M4.6 13.5h22.8c1.1 3 1.2 6.1-.2 8.6-1.9 3.4-6 5.4-11.2 5.4S6.7 25.5 4.8 22.1c-1.4-2.5-1.3-5.6-.2-8.6z" fill="#2a2e38" stroke="#14161c" stroke-width=".8"/>
+<path d="M7 16c-.6 2.2-.3 4.4 1 6" stroke="#5a6273" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+<rect x="2.6" y="11.2" width="26.8" height="3.6" rx="1.8" fill="#4a5163" stroke="#14161c" stroke-width=".8"/>
+<ellipse cx="16" cy="11.7" rx="11.6" ry="1.9" fill="#3dff8f"/>
+<path d="M8 11.6c1.8-.9 3.3.6 5 0s3.3-.9 5 0 3.3.5 5.5-.2" stroke="#b6ffd2" stroke-width=".9" fill="none" stroke-linecap="round"/>
+<circle cx="12.4" cy="7.6" r="2.1" fill="#5dffa3" stroke="#b6ffd2" stroke-width=".6"/>
+<circle cx="18.6" cy="5" r="1.5" fill="#5dffa3" stroke="#b6ffd2" stroke-width=".5"/>
+<circle cx="21.6" cy="8.6" r="1.1" fill="#5dffa3" stroke="#b6ffd2" stroke-width=".5"/>
+<circle cx="15.5" cy="2.2" r=".8" fill="#9dffd0"/>
+<circle cx="11.8" cy="7" r=".6" fill="#eafff3"/>
+</svg>`;
 const ORDER = [0, 1, 0.87, 0.78];   // bond-length factor for single/double/triple
 const MAX_HEAVY = 10;
 const MAX_RADICALS = 2;  // unpaired electrons allowed per molecule
@@ -30,7 +46,7 @@ const pcCache = LS.get('qm.pubchem', {});       // smiles -> true(new)/false(kno
 /* ================= server (online mode) ================= */
 // When the page is served by the QuMol backend, scoring happens on the server and
 // everything is saved there. Opened as a plain file, the game falls back to local play.
-let ONLINE = false;
+let ONLINE = false, SERVER = {};  // SERVER: the /api/health answer (method, whether cooking is set up)
 let token = LS.get('qm.token', null), nick = LS.get('qm.nick', null);
 async function api(path, {method='GET', body} = {}){
   const headers = {};
@@ -74,7 +90,8 @@ async function detectServer(){
   try{
     const ctl = new AbortController(); setTimeout(() => ctl.abort(), 8000);
     const r = await fetch('/api/health', {signal: ctl.signal});
-    ONLINE = r.ok && !!(await r.json()).ok;
+    SERVER = r.ok ? await r.json() : {};
+    ONLINE = !!SERVER.ok;
   }catch{ ONLINE = false; }
 }
 function setAccount(t, n){ token = t; nick = n; LS.set('qm.token', t); LS.set('qm.nick', n); }
@@ -88,7 +105,7 @@ const $ = id => document.getElementById(id);
 
 /* ================= three.js setup ================= */
 const canvas = $('c');
-const renderer = new THREE.WebGLRenderer({canvas, antialias:true});
+const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
 renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x0b1020);
@@ -468,7 +485,7 @@ function formula(){
 // How the current molecule was made decides which points it can earn:
 // 'hand' (built in 3D) > 'xyz' (coordinates edited) > 'example' (loaded from Learn).
 let inputMethod = 'hand';
-const METHOD_RANK = {hand:0, xyz:1, example:2};
+const METHOD_RANK = {hand:0, xyz:1, cook:2, example:3};
 function taint(m){ if(METHOD_RANK[m] > METHOD_RANK[inputMethod]) inputMethod = m; }
 const serialize = () => JSON.stringify({a:atoms.map(a => [a.el, a.p.x, a.p.y, a.p.z]), b:bonds.map(b => [b.a, b.b, b.o]), m:inputMethod});
 function restore(s){
@@ -731,6 +748,8 @@ $('help').onclick = () => { unlockAudio(); showHelp(); };
 $('total').onclick = () => { unlockAudio(); showCollection(); };
 $('lb').onclick = () => { unlockAudio(); showLeaderboard(); };
 $('puzzleBtn').onclick = () => { unlockAudio(); SFX.tick(); showPuzzles(); };
+$('cookBtn').innerHTML = POT_SVG;
+$('cookBtn').onclick = () => { unlockAudio(); SFX.tick(); showCook(); };
 $('pzExit').onclick = () => { unlockAudio(); exitPuzzle(); };
 
 /* ================= formula / XYZ panel ================= */
@@ -1146,11 +1165,19 @@ function rayTo(cx, cy){
 canvas.addEventListener('pointerdown', e => {
   unlockAudio();
   pointers.set(e.pointerId, {x:e.clientX, y:e.clientY});
-  if(pointers.size > 1){ gesture = null; if(dragging !== null){ dragging = null; controls.enabled = true; rebuild(); } return; }
-  const pk = busy ? {atom:-1, bond:-1} : pickAll(e.clientX, e.clientY);
+  if(pointers.size > 1){ gesture = null; if(dragging !== null){ dragging = null; controls.enabled = !cooking || canOrbitPot(); rebuild(); } return; }
+  const pk = busy && !canEditPot() ? {atom:-1, bond:-1} : pickAll(e.clientX, e.clientY);
   const hit = mode === 'move' && !busy ? pick(e.clientX, e.clientY) : pk.atom;
   gesture = {x:e.clientX, y:e.clientY, t:performance.now(), hit, bond: pk.bond, moved:false};
   if(hit >= 0) focusAtom = hit;
+  if(canEditPot() && hit >= 0){  // in the kitchen any atom can be dragged around the pot
+    const a = atoms[hit]; if(a.drop){ a.p.copy(a.drop.to); delete a.drop; }
+    dragging = hit;
+    camera.getWorldDirection(tmpV);
+    dragPlane.setFromNormalAndCoplanarPoint(tmpV.clone(), a.p.clone().add(world.position));
+    try{ canvas.setPointerCapture(e.pointerId); }catch{}
+    CSFX.grab(); rebuild(); return;
+  }
   if(mode === 'move' && hit >= 0 && !busy){
     dragging = hit; dragSnap = serialize(); controls.enabled = false;
     camera.getWorldDirection(tmpV);
@@ -1173,11 +1200,16 @@ canvas.addEventListener('pointermove', e => {
   if(gesture && Math.hypot(e.clientX-gesture.x, e.clientY-gesture.y) > 10) gesture.moved = true;
   if(dragging !== null && pointers.size === 1){
     const pt = rayTo(e.clientX, e.clientY).intersectPlane(dragPlane, new THREE.Vector3());
-    if(pt){ atoms[dragging].p.copy(pt.sub(world.position)); rebuild(); }
+    if(pt){ atoms[dragging].p.copy(pt.sub(world.position)); if(cooking) settleInPot(dragging); rebuild(); }
   }
 });
 function endPointer(e){
   pointers.delete(e.pointerId);
+  if(dragging !== null && cooking){  // kitchen: a tap scoops the atom out, a drag puts it down
+    const i = dragging, moved = gesture && gesture.moved; dragging = null; gesture = null;
+    if(moved){ settleInPot(i); CSFX.place(atoms[i].el); rebuild(); } else removeIngredient(i);
+    return;
+  }
   if(dragging !== null){
     if(gesture && gesture.moved){ undoStack.push(dragSnap); changed(); }
     dragging = null; controls.enabled = true; gesture = null; rebuild(); return;
@@ -1189,6 +1221,7 @@ canvas.addEventListener('pointerup', endPointer);
 canvas.addEventListener('pointercancel', endPointer);
 
 function onTap(hit, bondHit = -1){
+  if(cooking){ if(hit >= 0) removeIngredient(hit); return; }  // in the kitchen a tap scoops an atom out
   if(busy) return;
   if(bondHit >= 0 && (mode === 'add' || (mode === 'bond' && bondFirst === null))){
     act(() => cycleOrder(bondHit)); return;
@@ -1523,6 +1556,7 @@ function showHelp(){
   <p><b>Charges & radicals</b> — O can make a 3rd bond (N a 4th): QuMol gives it a + charge and a neighbor the −, like ⁻C≡O⁺. If bonds are left free when you Build, you can fill them with H or keep a radical (up to 2 unpaired electrons).</p>
   <p><b>XYZ</b> — shows the formula and coordinates as you build; edit the numbers to reshape the molecule directly.</p>
   <p><b>🧩 Puzzles</b> — you get a molecule's name, formula and SMILES; build it as close to its experimental 3D structure as you can, against the clock. Five daily puzzles from easy to hard, plus random ones. <b>Next puzzle</b> takes you straight to the next one you haven't solved. Leaderboards rank by puzzles solved, then total time. After you solve one, the experimental structure appears as a green outline over yours.</p>
+  <p><b>🧙 Cauldron</b> — in the alchemy lab, tap C, N, O or H to drop atoms into the cauldron, one at a time (drag an atom to move it, tap it to scoop it out), set the temperature and the cooking time (15 fs to 1 ps), then press Cook. When it's done, sprinkle hydrogens on the free bonds and add the molecules to your collection. The atoms fly around, collide and bond on their own, simulated live with a reactive machine-learned potential. Pick a molecule from the pot: it gets hydrogens on every free bond, and you Build it like any other. Cooked molecules don't earn hand-built or geometry points, and have their own Chefs leaderboard.</p>
   <p><b>Points</b> — new QuMol formula +1000, new molecule (SMILES) +100, energy records, stable +50, hand-built +50, geometry skill up to +100, formal charges +50, <b>+20 for each bond type</b> in the molecule (C–H, C–C, C=C, C–O, …), and a huge bonus if it's <b>not in PubChem</b>: 1000 × 10^(3 / number of atoms), so the smaller the molecule, the bigger the prize (31,623 for 2 atoms, 10,000 for 3, 2,154 for 9). Molecules you already collected score 0.</p>
   <p style="opacity:.7">On a computer, hover over any button to see what it does. Loaded examples don't earn geometry or hand-built points; edited XYZ doesn't earn the hand-built bonus.</p>
   <p>One finger rotates, pinch zooms.</p>
@@ -1672,7 +1706,7 @@ async function showPuzzles(){
   try{ d = await api('/api/puzzles/daily'); }catch(e){ return toast(e.message); }
   const card = openCard();
   card.innerHTML = `<h2>🧩 Puzzles</h2>
-    <p>You get the name, formula and SMILES. Build it by hand, as close to its <b>experimental 3D structure</b> as you can; the clock starts when you open the puzzle. Leaderboards rank by puzzles solved, then by total time. Your first solve of each puzzle counts.</p>
+    <p>You get the name, formula and SMILES. Build it by hand, as close to its <b>experimental 3D structure</b> as you can; the clock starts when you open the puzzle. Use 📏 Measure to check bond lengths and angles. Leaderboards rank by puzzles solved, then by total time. Your first solve of each puzzle counts.</p>
     <h3 class="pzday"></h3><div class="pzlist"></div>`;
   const allDone = d.puzzles.length && d.puzzles.every(p => p.solved_score !== null && p.solved_score !== undefined);
   card.querySelector('.pzday').textContent = `Today's puzzles · ${d.day}${allDone ? ' · 🎉 all solved!' : ''}`;
@@ -1748,16 +1782,15 @@ async function startPuzzle(req){
   toast(`Clock started: build ${r.puzzle.name}, then Check`, 2600);
   SFX.chime();
 }
-let puzzleSaved = null, measureBefore = false, xyzBefore = false;
+let puzzleSaved = null, xyzBefore = false;
 function setPuzzleUI(on){
   $('puzzleBar').classList.toggle('hidden', !on);
   document.body.classList.toggle('puzzling', on);
   $('submitLabel').textContent = on ? 'Check' : 'Build';
-  if(on){ measureBefore = measureOn; measureOn = false; xyzBefore = xyzOpen; setXYZOpen(false, false); }
-  else { measureOn = measureBefore; setXYZOpen(xyzBefore); }
+  if(on){ xyzBefore = xyzOpen; setXYZOpen(false, false); }  // 📏 Measure stays available: it helps get lengths and angles right
+  else setXYZOpen(xyzBefore);
   if(on) setPlotOpen(false);
-  for(const id of ['measure', 'xyzBtn', 'plotBtn']){ $(id).classList.toggle('disabled', on); $(id).disabled = on; }
-  $('measure').classList.toggle('on', measureOn);
+  for(const id of ['xyzBtn', 'plotBtn']){ $(id).classList.toggle('disabled', on); $(id).disabled = on; }
 }
 function exitPuzzle(){
   if(!puzzle) return;
@@ -1803,6 +1836,7 @@ async function submitPuzzle(){
     card.appendChild(d);
   }
   const tot = document.createElement('div'); tot.id = 'ovTotal'; tot.textContent = `+${r.score}`; card.appendChild(tot);
+  if(typeof r.total === 'number'){ total = r.total; LS.set('qm.total', total); $('total').textContent = `${total.toLocaleString()} ⭐`; }  // puzzle points count toward the total
   if(r.score > 0){ SFX.chime(); buzz(30); burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 50, 4, 0.9, 0.3); }
   const src = document.createElement('div'); src.className = 'src';
   src.textContent = `Reference structure: ${(r.source && r.source.text) || ''}${r.source && r.source.doi ? ', doi:' + r.source.doi : ''}`;
@@ -1834,6 +1868,601 @@ function showGhost(pos){
   ghostShown = true;
 }
 function clearGhost(){ ghostGroup.clear(); ghostShown = false; }
+
+/* ================= cooking mode ================= */
+// The kitchen: drop C, N and O atoms into a cauldron one by one (each lands at a random
+// spot), drag them around, set the heat, then Cook. The server runs reactive molecular dynamics from exactly
+// those positions while the atoms move here live, and bonds form on their own. Each
+// molecule in the pot comes back saturated with H; the player picks one and builds it like
+// any other (input method 'cook': no hand-built or geometry points).
+const COOK_ELS = ['C', 'N', 'O', 'H'], COOK_MAX = 10, COOK_MIN = 2;  // COOK_MAX counts heavy atoms
+const COOK_MASS = {C:12.011, N:14.007, O:15.999, H:1.008};
+let cooking = false, simmering = false, cookSaved = null, cookXYZ = false;
+let cookTemp = Math.min(3000, Math.max(300, Number(LS.get('qm.cookTemp', 1500)) || 1500));
+let potHeat = 300;  // what the glow and the bubbles show right now
+const potR = n => Math.max(3, Math.cbrt(3 * 12 * Math.max(1, n) / (4 * Math.PI)));  // = beaker_radius on the server
+const POT_S = 4.0;  // the cauldron's size in Å (the beaker wall is at ~3 Å)
+const POT_VIEW = new THREE.Vector3(0, -0.42 * POT_S, 0);  // look a bit low so the pot sits above the kitchen tray
+const heatColor = (T, cool, hot) => new THREE.Color(cool).lerp(new THREE.Color(hot), Math.min(1, Math.max(0, (T - 300) / 2700)));
+const heat01 = T => Math.min(1, Math.max(0, (T - 300) / 2700));
+const tempWord = T => T < 700 ? 'simmer' : T < 1300 ? 'boil' : T < 2200 ? 'roaring' : 'dragon fire';
+
+// --- the cauldron: see-through iron so the atoms stay visible, glowing from inside as it heats
+const pot = new THREE.Group(); pot.visible = false; world.add(pot);
+const ironMat = new THREE.MeshStandardMaterial({color:0x3a3f4d, metalness:0.75, roughness:0.45,
+  transparent:true, opacity:0.42, side:THREE.DoubleSide, depthWrite:false});
+const ironSolid = new THREE.MeshStandardMaterial({color:0x2c303b, metalness:0.8, roughness:0.4, emissive:0x000000});
+{
+  const prof = [[0.001,-0.95],[0.5,-0.92],[0.88,-0.75],[1.1,-0.45],[1.17,-0.1],[1.12,0.25],[0.98,0.55],[0.87,0.72],[0.85,0.8]]
+    .map(([r, y]) => new THREE.Vector2(r, y));
+  pot.add(new THREE.Mesh(new THREE.LatheGeometry(prof, 48), ironMat));
+  const rimG = new THREE.TorusGeometry(0.88, 0.07, 12, 48); rimG.rotateX(Math.PI / 2);
+  const rimM = new THREE.Mesh(rimG, ironSolid); rimM.position.y = 0.82; pot.add(rimM);
+  for(const s of [-1, 1]){  // handles
+    const h = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.035, 8, 20), ironSolid);
+    h.position.set(s * 1.06, 0.4, 0); h.rotation.y = Math.PI / 2; pot.add(h);
+  }
+  for(let k = 0; k < 3; k++){  // stubby legs
+    const a = k * 2 * Math.PI / 3 + 0.4, leg = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.04, 0.32, 8), ironSolid);
+    leg.position.set(0.62 * Math.cos(a), -0.98, 0.62 * Math.sin(a)); leg.rotation.z = 0.25 * Math.cos(a); leg.rotation.x = -0.25 * Math.sin(a);
+    pot.add(leg);
+  }
+}
+const potLight = new THREE.PointLight(0x37ff9a, 1.2, 14, 1.5); potLight.position.set(0, 0.2, 0); pot.add(potLight);
+// bubbles rising through the brew while it cooks (pot units)
+function pool(n, size){
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  g.setAttribute('color', new THREE.BufferAttribute(new Float32Array(n * 3), 3));
+  const pts = new THREE.Points(g, new THREE.PointsMaterial({size, map:dotTex, vertexColors:true, transparent:true,
+    depthWrite:false, blending:THREE.AdditiveBlending}));
+  pts.userData.p = Array.from({length:n}, () => ({life:0, age:1, x:0, y:0, z:0, vx:0, vy:0, vz:0}));
+  pot.add(pts); return pts;
+}
+const bubbles = pool(60, 0.4);
+const _c = new THREE.Color();
+function stepPool(pts, dt, spawnRate, spawn, color){
+  const P = pts.userData.p, pos = pts.geometry.attributes.position.array, col = pts.geometry.attributes.color.array;
+  let want = spawnRate * dt;
+  P.forEach((q, i) => {
+    q.age += dt;
+    if(q.age >= q.life && (want >= 1 || Math.random() < want)){ want--; spawn(q); q.age = 0; }
+    const alive = q.age < q.life, f = alive ? q.age / q.life : 1;
+    q.x += q.vx * dt; q.y += q.vy * dt; q.z += q.vz * dt;
+    pos[3*i] = q.x; pos[3*i+1] = alive ? q.y : -99; pos[3*i+2] = q.z;
+    color(f, _c); const fade = alive ? 1 - f : 0;
+    col[3*i] = _c.r * fade; col[3*i+1] = _c.g * fade; col[3*i+2] = _c.b * fade;
+  });
+  pts.geometry.attributes.position.needsUpdate = true; pts.geometry.attributes.color.needsUpdate = true;
+}
+function updatePot(dt, now){
+  if(!pot.visible) return;
+  const h = heat01(potHeat);
+  const bubCol = heatColor(potHeat, 0x7dffb8, 0xffb36b);
+  stepPool(bubbles, dt, simmering ? 4 + 30 * h : 0, q => {
+    const a = Math.random() * 2 * Math.PI, r = Math.random() * 0.75;
+    q.x = r * Math.cos(a); q.z = r * Math.sin(a); q.y = -0.6 + Math.random() * 0.4;
+    q.vx = (Math.random() - 0.5) * 0.1; q.vz = (Math.random() - 0.5) * 0.1; q.vy = 0.5 + 0.8 * h + Math.random() * 0.3;
+    q.life = 1.4 + Math.random();
+  }, (f, c) => c.copy(bubCol));
+  potLight.color.copy(heatColor(potHeat, 0x37ff9a, 0xff7a2e)); potLight.intensity = 0.8 + 1.6 * h;
+  ironSolid.emissive.copy(heatColor(potHeat, 0x000000, 0x5a1500)).multiplyScalar(h);
+  // atoms dropping in: fall through the mouth, splash where they land
+  let moving = false;
+  atoms.forEach(a => {
+    if(!a.drop) return;
+    const t = Math.min(1, Math.max(0, (now - a.drop.t0) / a.drop.ms));
+    a.p.lerpVectors(a.drop.from, a.drop.to, t * t);
+    moving = true;
+    if(t >= 1){
+      const land = a.drop.onLand; a.p.copy(a.drop.to); delete a.drop;
+      if(land) land();
+      else { burst(a.p.clone(), [0x9dffd0, 0x37ff9a, 0xffffff], 16, 2.2, 0.45, 0.16, 3); CSFX.splash(a.el); }
+    }
+  });
+  if(moving) rebuild();
+}
+
+// A fixed view of the cauldron from the front, a little above, far enough back that it all
+// fits whichever way the screen is turned. The camera stays put while you fill the pot and
+// cook; once the brew is done you can drag to turn it around (see potOrbit).
+let cookCam = null;
+function kitchenCamera(R){
+  if(!cookCam) cookCam = {p:camera.position.clone(), t:controls.target.clone()};
+  const v = THREE.MathUtils.degToRad(camera.fov) / 2, half = Math.min(v, Math.atan(Math.tan(v) * camera.aspect));
+  controls.enableDamping = false; controls.update(); controls.enableDamping = true;  // drop any spin left over from orbiting
+  controls.target.copy(POT_VIEW); controls.enabled = false; potOrbitOff();
+  camera.position.copy(POT_VIEW).add(new THREE.Vector3(0, 0.3, 1).setLength(1.15 * R / Math.sin(half)));
+  camera.lookAt(POT_VIEW);
+}
+const canOrbitPot = () => cooking && !simmering && phase !== 'prep';
+// Spin all the way round, but tilt only so far, so the pot doesn't swing up under the top bar.
+function potOrbit(){ controls.target.copy(POT_VIEW); controls.minPolarAngle = 0.8; controls.maxPolarAngle = 1.8; controls.enabled = true; }
+function potOrbitOff(){ controls.minPolarAngle = 0; controls.maxPolarAngle = Math.PI; }
+// Keep a dragged atom inside the beaker and not on top of another atom.
+function settleInPot(i){
+  const a = atoms[i], R = potR(atoms.length) - 0.2;
+  for(let pass = 0; pass < 4; pass++){
+    for(let j = 0; j < atoms.length; j++){
+      if(j === i) continue;
+      const d = a.p.clone().sub(atoms[j].p), L = d.length();
+      if(L < 1.2) a.p.add((L > 1e-6 ? d : randUnit()).setLength(1.2 - L + 1e-3));
+    }
+    if(a.p.length() > R) a.p.setLength(R);
+  }
+}
+// Bonds in the pot are just "close enough" (1.2 × covalent radii), drawn as single bonds.
+function potBonds(){
+  const out = [];
+  for(let i=0;i<atoms.length;i++) for(let j=i+1;j<atoms.length;j++)
+    if(atoms[i].p.distanceTo(atoms[j].p) < 1.2 * (EL[atoms[i].el].r + EL[atoms[j].el].r)) out.push({a:i, b:j, o:1});
+  return out;
+}
+
+/* --- cauldron sounds: all synthesized, on their own bus with a soft compressor --- */
+let cbus = null, noiseBuf = null;
+function bus(){
+  if(!ac) return null;
+  if(!cbus){
+    const comp = ac.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 4;
+    cbus = ac.createGain(); cbus.gain.value = 0.9; cbus.connect(comp).connect(ac.destination);
+    const len = ac.sampleRate * 2; noiseBuf = ac.createBuffer(1, len, ac.sampleRate);
+    const d = noiseBuf.getChannelData(0); for(let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+  }
+  return cbus;
+}
+function env(g, t, a, peak, d){ g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(0.0001, t + a + d); }
+function osc(type, f, t, dur, peak, f2 = null, a = 0.005, dest = null){
+  const o = ac.createOscillator(), g = ac.createGain(); o.type = type;
+  o.frequency.setValueAtTime(f, t); if(f2) o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+  env(g, t, a, peak, dur); o.connect(g).connect(dest || cbus); o.start(t); o.stop(t + a + dur + 0.05); return o;
+}
+function noise(t, dur, peak, type, f, f2 = null, q = 1, a = 0.005){
+  const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+  const fl = ac.createBiquadFilter(); fl.type = type; fl.Q.value = q;
+  fl.frequency.setValueAtTime(f, t); if(f2) fl.frequency.exponentialRampToValueAtTime(f2, t + dur);
+  const g = ac.createGain(); env(g, t, a, peak, dur);
+  s.connect(fl).connect(g).connect(cbus); s.start(t, Math.random()); s.stop(t + a + dur + 0.05);
+}
+const PENTA = [0, 2, 4, 7, 9, 12, 14, 16, 19, 21, 24];
+const note = k => 392 * Math.pow(2, PENTA[Math.min(PENTA.length - 1, k)] / 12);
+const ELPITCH = {C:1, N:1.19, O:1.41, H:1.78};
+const CSFX = {
+  ok(){ return !muted && bus(); },
+  // a cartoon whistle as the atom falls in
+  drop(el){ if(!this.ok()) return; const t = ac.currentTime, k = ELPITCH[el] || 1;
+    osc('sine', 1500 * k, t, 0.36, 0.05, 520 * k, 0.02); },
+  // the splash: a low thump, a water "bloop" with rising pitch, and a spray of noise
+  splash(el){ if(!this.ok()) return; const t = ac.currentTime, k = ELPITCH[el] || 1;
+    osc('sine', 150, t, 0.16, 0.35, 55);
+    osc('sine', 260 * k, t + 0.01, 0.12, 0.3, 900 * k, 0.004);
+    osc('sine', 390 * k, t + 0.09, 0.09, 0.14, 1200 * k, 0.004);
+    noise(t, 0.22, 0.12, 'bandpass', 1800, 600, 0.8);
+    for(let i = 0; i < 3; i++) osc('sine', 900 + 900 * Math.random(), t + 0.12 + 0.05 * i + 0.04 * Math.random(), 0.05, 0.05, 2400, 0.003); },
+  // scooping an atom back out: a rising slurp
+  scoop(){ if(!this.ok()) return; const t = ac.currentTime;
+    osc('triangle', 220, t, 0.28, 0.16, 880, 0.03); noise(t, 0.25, 0.06, 'bandpass', 500, 2500, 3); },
+  // the salt shaker: three quick rattles
+  shake(){ if(!this.ok()) return; const t = ac.currentTime;
+    for(let i = 0; i < 4; i++) noise(t + 0.11 * i, 0.07, 0.16, 'bandpass', 4200, 2600, 2, 0.004); },
+  // a hydrogen lands: a bright tink, climbing a scale, with a few grains
+  salt(k){ if(!this.ok()) return; const t = ac.currentTime, f = note((k % 8) + 3) * 2;
+    osc('sine', f, t, 0.16, 0.09, null, 0.003); osc('sine', f * 2.4, t, 0.07, 0.025, null, 0.003);
+    noise(t, 0.03, 0.04, 'highpass', 6000); },
+  grab(){ if(!this.ok()) return; const t = ac.currentTime; osc('sine', 500, t, 0.08, 0.1, 800, 0.004); },
+  place(el){ if(!this.ok()) return; const t = ac.currentTime, k = ELPITCH[el] || 1;
+    osc('sine', 240 * k, t, 0.09, 0.2, 700 * k, 0.004); noise(t, 0.08, 0.04, 'bandpass', 1500, 700, 1); },
+  empty(){ if(!this.ok()) return; const t = ac.currentTime;
+    noise(t, 0.6, 0.18, 'lowpass', 3000, 200, 1, 0.02); osc('sine', 300, t, 0.5, 0.12, 60); },
+  full(){ if(!this.ok()) return; const t = ac.currentTime; osc('square', 180, t, 0.09, 0.06); osc('square', 140, t + 0.11, 0.12, 0.06); },
+  // lighting the fire for the cook: a big whoosh up into a roar, and a magical chord
+  ignite(){ if(!this.ok()) return; const t = ac.currentTime;
+    noise(t, 1.1, 0.4, 'bandpass', 180, 2600, 1.2, 0.25); osc('sawtooth', 70, t, 1.0, 0.1, 40, 0.1);
+    [0, 4, 7, 12].forEach((s, i) => osc('triangle', 196 * Math.pow(2, s / 12), t + 0.25 + 0.07 * i, 0.9, 0.05, null, 0.05)); },
+  // a new bond: bubble pop plus a bell, climbing a pentatonic scale bond by bond
+  bond(k){ if(!this.ok()) return; const t = ac.currentTime, f = note(k);
+    osc('sine', 300, t, 0.07, 0.18, 1100, 0.003);
+    osc('sine', f, t + 0.03, 0.55, 0.14, null, 0.004); osc('sine', 2.76 * f, t + 0.03, 0.25, 0.04, null, 0.004);
+    noise(t, 0.05, 0.05, 'highpass', 4000); },
+  unbond(){ if(!this.ok()) return; const t = ac.currentTime; osc('triangle', 500, t, 0.18, 0.06, 160); noise(t, 0.15, 0.04, 'highpass', 2500); },
+  // the potion is ready: a puff of steam and a sparkling arpeggio
+  done(){ if(!this.ok()) return; const t = ac.currentTime;
+    noise(t, 0.7, 0.2, 'lowpass', 900, 300, 1, 0.03);
+    [0, 2, 4, 5, 7, 8, 9, 10].forEach((k, i) => { osc('sine', note(k), t + 0.2 + 0.07 * i, 0.5, 0.11); osc('sine', 2 * note(k), t + 0.2 + 0.07 * i, 0.3, 0.03); });
+    osc('triangle', note(10), t + 0.85, 1.2, 0.1); osc('triangle', note(7), t + 0.85, 1.2, 0.07); osc('triangle', note(5), t + 0.85, 1.2, 0.06); },
+};
+// The cook's ambient sound: a low rumble, bubbles and a drone, all following the heat.
+// Starts when the player presses Cook and stops when the brew is done.
+const ambience = {
+  on:false, fire:null, fireF:null, drone:null, droneF:null, timer:null, level:1,
+  start(){
+    if(this.on || !bus()) return; this.on = true;
+    const t = ac.currentTime;
+    const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+    this.fireF = ac.createBiquadFilter(); this.fireF.type = 'lowpass'; this.fireF.frequency.value = 500;
+    this.fire = ac.createGain(); this.fire.gain.setValueAtTime(0.0001, t);
+    s.connect(this.fireF).connect(this.fire).connect(cbus); s.start(); this.src = s;
+    this.droneF = ac.createBiquadFilter(); this.droneF.type = 'lowpass'; this.droneF.frequency.value = 200; this.droneF.Q.value = 6;
+    this.drone = ac.createGain(); this.drone.gain.setValueAtTime(0.0001, t);
+    this.oscs = [55, 55.4, 82.4].map(f => { const o = ac.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.connect(this.droneF); o.start(); return o; });
+    this.droneF.connect(this.drone).connect(cbus);
+    this.timer = setInterval(() => this.tick(), 60);
+    this.update();
+  },
+  update(){
+    if(!this.on) return;
+    const h = heat01(potHeat), t = ac.currentTime, m = muted ? 0.0001 : 1, L = this.level;
+    this.fire.gain.setTargetAtTime(Math.max(0.0001, m * L * (0.05 + 0.16 * h)), t, 0.15);
+    this.fireF.frequency.setTargetAtTime(350 + 1500 * h, t, 0.2);
+    this.drone.gain.setTargetAtTime(Math.max(0.0001, m * L * (0.04 + 0.05 * h)), t, 0.3);
+    this.droneF.frequency.setTargetAtTime(140 + 500 * h, t, 0.3);
+  },
+  tick(){
+    if(muted || !ac) return;
+    const h = heat01(potHeat), t = ac.currentTime, L = this.level;
+    if(Math.random() < (0.25 + 1.2 * h) * L){  // a bubble blips
+      const f = 180 + 420 * Math.random();
+      osc('sine', f, t, 0.05 + 0.05 * Math.random(), (0.04 + 0.06 * Math.random()) * L, f * (2 + Math.random()), 0.003);
+    }
+  },
+  stop(){
+    if(!this.on) return; this.on = false; clearInterval(this.timer);
+    const t = ac.currentTime, f = this.fire, d = this.drone, src = this.src, oscs = this.oscs;
+    f.gain.setTargetAtTime(0.0001, t, 0.2); d.gain.setTargetAtTime(0.0001, t, 0.2);
+    setTimeout(() => { try{ src.stop(); oscs.forEach(o => o.stop()); f.disconnect(); d.disconnect(); }catch{} }, 1200);
+  },
+};
+
+/* --- the kitchen tray --- */
+// Phases: 'prep' (fill the pot, set temperature and time, Cook; 'simmering' while it runs),
+// 'salt' (the brew is done: sprinkle H on the free bonds?), 'serve' (add the molecules?).
+const kitchen = $('kitchen');
+const COOK_TIMES = [15, 25, 50, 100, 200, 300, 500, 750, 1000];  // fs
+let cookFs = COOK_TIMES.includes(+LS.get('qm.cookFs', 500)) ? +LS.get('qm.cookFs', 500) : 500;
+let phase = 'prep', lastCook = null;
+const COOK_MAX_H = 10;
+const canEditPot = () => cooking && !simmering && phase === 'prep';
+const heavyIn = () => atoms.filter(a => a.el !== 'H').length;
+const hIn = () => atoms.length - heavyIn();
+function kitchenTray(){
+  if(cooking && phase !== 'prep') kitchenCamera(POT_S * 1.75);  // back to the front view for filling
+  kitchen.innerHTML = ''; kitchen.dataset.phase = phase = 'prep';
+  const jars = document.createElement('div'); jars.className = 'kjars kprep';
+  for(const el of COOK_ELS){
+    const b = document.createElement('button'); b.className = 'kjar'; b.dataset.el = el;
+    b.style.setProperty('--ec', '#' + EL[el].c.toString(16).padStart(6, '0'));
+    b.setAttribute('aria-label', `Drop a ${EL[el].name.toLowerCase()} atom in the cauldron`);
+    b.innerHTML = `<span class="kball">${el}</span><span class="kname">${EL[el].name}</span><span class="kcnt"></span>`;
+    b.onclick = () => { unlockAudio(); addIngredient(el); };
+    jars.appendChild(b);
+  }
+  const heat = document.createElement('div'); heat.className = 'kfire kprep';
+  heat.innerHTML = `<label for="cookT">🌡️ Temperature</label><input type="range" id="cookT" min="300" max="3000" step="100" aria-label="Temperature in kelvin"><b id="cookTval"></b>`;
+  const time = document.createElement('div'); time.className = 'kfire kprep';
+  time.innerHTML = `<label for="cookFs">⏳ Time</label><input type="range" id="cookFs" min="0" max="${COOK_TIMES.length - 1}" step="1" aria-label="Cooking time in femtoseconds"><b id="cookFsval"></b>`;
+  const timer = document.createElement('div'); timer.className = 'ktimer';
+  timer.innerHTML = `<span class="hg">⏳</span><div class="kbar"><i id="kbarFill"></i></div><b id="ktime">0 fs</b>`;
+  const acts = document.createElement('div'); acts.className = 'kacts kprep';
+  const mk = (id, html, tip, fn) => { const b = document.createElement('button'); b.id = id; b.innerHTML = html; b.dataset.tip = tip; b.onclick = () => { unlockAudio(); fn(); }; acts.appendChild(b); return b; };
+  mk('kLeave', '✕', 'Leave the kitchen and go back to your molecule', leaveKitchen).setAttribute('aria-label', 'Leave the kitchen');
+  mk('kOut', '↶<span class="kt"> Take out</span>', 'Scoop out the last atom you dropped in (or tap any atom in the pot; drag one to move it)', () => removeIngredient(atoms.length - 1));
+  mk('kEmpty', 'Empty', 'Pour everything out', emptyPot);
+  mk('kCook', `${POT_SVG}<span>Cook!</span>`, 'Heat the cauldron: the atoms fly around, collide and bond on their own', cookNow).className = 'ico';
+  mk('kLb', '🏆', 'Chefs leaderboard', () => showLeaderboard('cook')).setAttribute('aria-label', 'Chefs leaderboard');
+  const done = document.createElement('div'); done.id = 'kdone';
+  kitchen.append(jars, heat, time, timer, acts, done);
+  const slider = $('cookT'); slider.value = cookTemp;
+  let lastTick = 0;
+  slider.oninput = () => {
+    cookTemp = +slider.value; potHeat = cookTemp; LS.set('qm.cookTemp', cookTemp); showTemp();
+    const now = performance.now();
+    if(now - lastTick > 70 && CSFX.ok()){ lastTick = now; osc('sine', 300 + 900 * heat01(cookTemp), ac.currentTime, 0.05, 0.06); }
+  };
+  const ts = $('cookFs'); ts.value = COOK_TIMES.indexOf(cookFs);
+  ts.oninput = () => {
+    cookFs = COOK_TIMES[+ts.value]; LS.set('qm.cookFs', cookFs); showTemp();
+    if(CSFX.ok()) osc('triangle', 1400 - 50 * +ts.value, ac.currentTime, 0.04, 0.07);  // a clock tick
+  };
+  showTemp(); refreshKitchen();
+}
+function showTemp(){
+  const v = $('cookTval'); if(!v) return;
+  v.textContent = `${cookTemp} K · ${tempWord(cookTemp)}`;
+  v.style.color = '#' + heatColor(cookTemp, 0x9fffd0, 0xff8a3d).getHexString();
+  $('cookFsval').textContent = cookFs >= 1000 ? '1 ps' : `${cookFs} fs`;
+}
+function refreshKitchen(){
+  if(phase !== 'prep') return;
+  const n = atoms.length, nh = heavyIn(), nH = n - nh;
+  kitchen.querySelectorAll('.kjar').forEach(b => {
+    const k = atoms.filter(a => a.el === b.dataset.el).length;
+    b.querySelector('.kcnt').textContent = k ? `×${k}` : '';
+    b.disabled = simmering || (b.dataset.el === 'H' ? nH >= COOK_MAX_H : nh >= COOK_MAX);
+  });
+  for(const id of ['kOut', 'kEmpty']) $(id).disabled = !n || simmering;
+  $('kCook').disabled = n < COOK_MIN || !nh || simmering;
+  $('kLeave').disabled = $('kLb').disabled = $('cookT').disabled = $('cookFs').disabled = simmering;
+  if(!simmering){
+    $('info').textContent = n < COOK_MIN || !nh
+      ? `🧙 Cauldron · drop in at least ${COOK_MIN} atoms (C, N or O, plus H if you like)`
+      : `🧙 ${formula()} in the cauldron · drag atoms to move them, tap to scoop one out`;
+  }
+}
+
+// A random spot inside the beaker, away from the atoms already in it.
+function potSpot(){
+  const R = potR(heavyIn() + 1) - 0.35;
+  for(const md of [2.0, 1.7, 1.4, 1.1]){
+    for(let k = 0; k < 400; k++){
+      const p = new THREE.Vector3(Math.random() * 2 - 1, Math.random() * 2 - 1, Math.random() * 2 - 1).multiplyScalar(R);
+      if(p.length() <= R && atoms.every(a => (a.drop ? a.drop.to : a.p).distanceTo(p) >= md)) return p;
+    }
+  }
+  return null;
+}
+function addIngredient(el){
+  if(!canEditPot()) return;
+  if(el === 'H' ? hIn() >= COOK_MAX_H : heavyIn() >= COOK_MAX){
+    CSFX.full(); return toast(el === 'H' ? `At most ${COOK_MAX_H} hydrogens` : `The cauldron is full (${COOK_MAX} heavy atoms)`);
+  }
+  const to = potSpot(); if(!to){ CSFX.full(); return toast('No room left in the cauldron'); }
+  const from = new THREE.Vector3(to.x * 0.25, POT_S * 1.7, to.z * 0.25);
+  atoms.push({el, p:from.clone(), born:performance.now(), drop:{from, to, t0:performance.now(), ms:420}});
+  CSFX.drop(el); buzz(8); rebuild(); refreshKitchen();
+}
+function removeIngredient(i){
+  if(!canEditPot() || i < 0 || i >= atoms.length) return;
+  const a = atoms[i];
+  burst((a.drop ? a.drop.to : a.p).clone(), [0x9dffd0, 0xffffff], 12, 2, 0.4, 0.14);
+  atoms.splice(i, 1); bonds = []; CSFX.scoop(); rebuild(); refreshKitchen();
+}
+function emptyPot(){
+  if(!cooking || simmering || !atoms.length){ if(cooking && phase !== 'prep') kitchenTray(); return; }
+  atoms.forEach(a => burst(a.p.clone(), [0x9dffd0, 0x37ff9a], 6, 2.5, 0.5, 0.14, 2));
+  atoms = []; bonds = []; CSFX.empty(); rebuild();
+  if(phase !== 'prep') kitchenTray(); else refreshKitchen();
+}
+
+function showCook(){
+  if(!ONLINE) return toast('Cooking needs the QuMol server');
+  if(!token) return showWelcome();
+  if(puzzle) return toast('Leave the puzzle first (✕ at the top)');
+  if(cooking) return simmering || addingMols ? null : leaveKitchen();
+  if(busy) return;
+  cookSaved = serialize();  // the player's own molecule comes back when they leave
+  busy = true; cooking = true; bondFirst = null; document.body.classList.add('cooking');
+  atoms = []; bonds = []; clearGhost(); setPlotOpen(false); rebuild();
+  cookXYZ = xyzOpen; setXYZOpen(false, false);
+  potHeat = cookTemp; pot.scale.setScalar(POT_S); pot.visible = true;
+  scene.background = null; scene.getObjectByName('stars').visible = false;  // the alchemy lab shows through
+  kitchenCamera(POT_S * 1.75);
+  kitchenTray(); kitchen.classList.remove('hidden');
+  if(!LS.get('qm.seenKitchen', false)){ LS.set('qm.seenKitchen', true); toast('Tap C, N, O or H to drop atoms in, drag them where you like, set the temperature and time, then Cook!', 5000); }
+}
+// Put the same ingredients back in, each at a new random spot, one after another.
+function refill(els){
+  if(phase !== 'prep') kitchenTray();
+  atoms = []; bonds = []; rebuild(); refreshKitchen();
+  els.forEach((el, i) => setTimeout(() => { if(canEditPot()) addIngredient(el); }, 140 * i));
+}
+
+async function cookNow(){
+  if(!canEditPot() || atoms.length < COOK_MIN || !heavyIn()) return;
+  atoms.forEach(a => { if(a.drop){ a.p.copy(a.drop.to); delete a.drop; } });
+  const start = atoms.map(a => ({el:a.el, x:+a.p.x.toFixed(3), y:+a.p.y.toFixed(3), z:+a.p.z.toFixed(3)}));
+  const els = atoms.map(a => a.el);
+  simmering = true; document.body.classList.add('busy', 'simmer'); refreshKitchen();
+  $('info').textContent = `🧪 Cooking ${formula()} at ${cookTemp} K for ${cookFs} fs`;
+  $('kbarFill').style.width = '0%'; $('ktime').textContent = `0 / ${cookFs} fs`;
+  const box = $('optInfo'); box.classList.remove('hidden'); box.textContent = 'Heating the cauldron…';
+  CSFX.ignite(); potHeat = 300; ambience.start();  // the bubbling starts with the cook
+  let lastBonds = 0, lastPop = 0, chain = 0;
+  const onEvent = ev => {
+    if(ev.type === 'start'){
+      // the server keeps the wall on the centre of mass, so draw the pot around it
+      const x = ev.coords, m = ev.symbols.map(e => COOK_MASS[e] || 12), M = m.reduce((s, v) => s + v, 0);
+      const c = [0, 1, 2].map(d => x.reduce((s, p, i) => s + m[i] * p[d], 0) / M);
+      setCoords(x.map(p => p.map((v, d) => v - c[d])).flat()); rebuild();
+      box.textContent = `${ev.symbols.length} atoms · heating to ${ev.temp} K`;
+    } else if(ev.type === 'frame'){
+      if(ev.coords.length !== atoms.length) return;
+      setCoords(ev.coords.flat()); bonds = potBonds(); rebuild();
+      potHeat = ev.quench ? 300 : Math.max(300, ev.temp_set); ambience.update();
+      const tf = ev.t_fs ?? ev.t_ps * 1000;
+      $('kbarFill').style.width = `${Math.min(100, 100 * tf / cookFs)}%`;
+      $('ktime').textContent = ev.quench ? 'cooling…' : `${Math.round(tf)} / ${cookFs} fs`;
+      const now = performance.now();
+      if(bonds.length > lastBonds && now - lastPop > 160){
+        const b = bonds[bonds.length - 1];
+        burst(atoms[b.a].p.clone().add(atoms[b.b].p).multiplyScalar(0.5), [0xffd166, 0xff8a3d, 0xffffff], 16, 2.2, 0.45, 0.18);
+        CSFX.bond(chain++); lastPop = now; buzz(10);
+      } else if(bonds.length < lastBonds && now - lastPop > 250){ CSFX.unbond(); lastPop = now; }
+      lastBonds = bonds.length;
+      box.textContent = ev.quench ? `Cooling down · ${ev.pot}`
+        : `${Math.round(tf)} fs · target ${ev.temp_set} K · atoms at ${ev.temp_kin} K · ${ev.pot}`;
+    }
+  };
+  let r = null;
+  try{
+    for(let attempt = 0; ; attempt++){
+      try{ r = await apiStream('/api/cook/stream', {atoms:start, temp:cookTemp, duration_fs:cookFs}, onEvent); break; }
+      catch(e){
+        if(e.status === 401){ simmerOff(); leaveKitchen(); setAccount(null, null); showWelcome(); return; }
+        if(e.status === 503 && attempt < 4 && !/set up/.test(e.message)){ toast('Server busy, retrying…', 3000); await sleep(1500 * (attempt + 1)); continue; }
+        simmerOff(); fail(e.message || 'Could not reach the server'); refill(els); return;
+      }
+    }
+  } finally { setTimeout(() => box.classList.add('hidden'), 1500); }
+  simmerOff(); potHeat = cookTemp;
+  burst(new THREE.Vector3(0, POT_S * 0.9, 0), [0xffffff, 0x9dffd0, 0xffd166], 50, 3, 1.2, 0.3, -1.5); CSFX.done();
+  lastCook = {r, els};
+  saltPhase(r);
+}
+function simmerOff(){ simmering = false; document.body.classList.remove('busy', 'simmer'); ambience.stop(); if(cooking) refreshKitchen(); }
+
+// The done panel replaces the prep rows in the tray; the pot stays in view.
+function donePanel(html, buttons){
+  phase = kitchen.dataset.phase = buttons.phase;
+  potOrbit();  // the brew is done: drag to turn it around
+  const d = $('kdone'); d.innerHTML = '';
+  const msg = document.createElement('div'); msg.className = 'kmsg'; msg.innerHTML = html; d.appendChild(msg);
+  const row = document.createElement('div'); row.className = 'kacts';
+  for(const [label, fn, cls] of buttons.list){
+    const b = document.createElement('button'); b.innerHTML = label; if(cls) b.className = cls;
+    b.onclick = () => { unlockAudio(); fn(b); }; row.appendChild(b);
+  }
+  d.appendChild(row); return d;
+}
+const againBtns = () => [['🔁 Cook again', () => refill(lastCook.els)], ['Pour out', emptyPot], ['✕', () => leaveKitchen()]];
+
+// Step 1: the brew is done. Show real bond orders, then offer to salt it with hydrogens.
+function saltPhase(r){
+  const copies = r.products.flatMap(p => p.copies);
+  // the pot as cooked, with the bond orders the server read from the bond lengths
+  bonds = [];
+  for(const c of copies) for(const [a, b, o] of c.bonds) if(a < c.idx.length && b < c.idx.length) bonds.push({a:c.idx[a], b:c.idx[b], o});
+  rebuild();
+  const free = copies.reduce((s, c) => s + c.atoms.length - c.idx.length, 0);
+  const pot = escapeHTML(r.pot);
+  if(!r.products.length){
+    $('info').textContent = '🧙 Nothing bonded this time';
+    donePanel(`The brew: <b>${pot}</b>. Nothing bonded this time: try more atoms, a higher temperature or a longer cook.`, {phase:'salt', list:againBtns()});
+    return;
+  }
+  $('info').textContent = `✨ The brew is done: ${r.pot}`;
+  if(!free) return servePhase(r);
+  donePanel(`✨ The brew is done: <b>${pot}</b>${r.first_bond_fs ? ` · first bond after ${r.first_bond_fs} fs` : ''}.<br>
+    There ${free === 1 ? 'is 1 free bond' : `are ${free} free bonds`}. Sprinkle hydrogens on ${free === 1 ? 'it' : 'them'}?`,
+    {phase:'salt', list:[['🧂 Sprinkle hydrogens', () => sprinkle(r), 'kgo'], ...againBtns()]});
+}
+
+// Step 2: a salt-shaker flourish from up high; each H falls onto its free bond with a tink.
+function sprinkle(r){
+  const copies = r.products.flatMap(p => p.copies);
+  phase = kitchen.dataset.phase = 'salting'; $('kdone').querySelectorAll('button').forEach(b => b.disabled = true);
+  const top = new THREE.Vector3(0, POT_S * 1.55, 0), t0 = performance.now() + 450;
+  const sh = $('shaker'), v = top.clone().add(world.position).project(camera), rc = canvas.getBoundingClientRect();
+  sh.style.left = `${rc.left + (v.x + 1) / 2 * rc.width}px`; sh.style.top = `${Math.max(150, rc.top + (1 - v.y) / 2 * rc.height)}px`;
+  sh.classList.remove('hidden', 'go'); void sh.offsetWidth; sh.classList.add('go');
+  CSFX.shake();
+  let k = 0, landed = 0;
+  const jobs = [];
+  for(const c of copies){
+    const map = c.idx.slice();
+    for(let l = c.idx.length; l < c.atoms.length; l++){
+      const a = c.atoms[l], to = new THREE.Vector3(a.x, a.y, a.z), parent = c.bonds.find(b => b[0] === l || b[1] === l);
+      const heavy = parent ? map[parent[0] === l ? parent[1] : parent[0]] : null;
+      const from = top.clone().add(new THREE.Vector3((Math.random() - 0.5) * 0.8, Math.random() * 0.5, (Math.random() - 0.5) * 0.8));
+      const i = atoms.length; map.push(i); const kk = k++;
+      atoms.push({el:'H', p:from.clone(), born:t0 + 85 * kk, drop:{from, to, t0:t0 + 85 * kk, ms:520, onLand: () => {
+        if(heavy !== null) bonds.push({a:heavy, b:i, o:1});
+        burst(to.clone(), [0xffffff, 0xfff7d6], 8, 1.4, 0.35, 0.1, 2); CSFX.salt(kk);
+        if(++landed === k) setTimeout(() => servePhase(r), 450);
+      }}});
+      jobs.push(kk);
+    }
+  }
+  // salt grains trickling from the shaker while the hydrogens fall
+  const grains = setInterval(() => burst(top.clone(), [0xffffff, 0xf3f0e6], 6, 0.6, 0.9, 0.08, 7), 70);
+  setTimeout(() => clearInterval(grains), 450 + 85 * k + 300);
+  sh.style.animationDuration = `${(450 + 85 * k + 700) / 1000}s`;
+  setTimeout(() => sh.classList.add('hidden'), 450 + 85 * k + 700);
+  rebuild();
+}
+
+// Step 3: what's in the pot, ready to add. Atoms that didn't make a molecule puff away.
+let addingMols = false;
+function servePhase(r){
+  const copies = r.products.flatMap(p => p.copies);
+  const keep = new Set(copies.flatMap(c => c.idx));
+  const heavyN = r.symbols.length;
+  atoms.forEach((a, i) => { if(i < heavyN && !keep.has(i)) burst(a.p.clone(), [0x9dffd0, 0xffffff], 10, 1.5, 0.5, 0.12, -1); });
+  // rebuild the pot from the saturated pieces, in place
+  const na = [], nb = [];
+  for(const c of copies){
+    const off = na.length;
+    c.atoms.forEach(a => na.push({el:a.el, p:new THREE.Vector3(a.x, a.y, a.z)}));
+    c.bonds.forEach(([a, b, o]) => nb.push({a:off + a, b:off + b, o}));
+  }
+  atoms = na; bonds = nb; rebuild();
+  const n = r.products.length;
+  const d = donePanel(`${n > 1 ? `${n} molecules` : 'A molecule'} in the pot. Add ${n > 1 ? 'them' : 'it'} to your collection?<br><small class="khint">Drag to turn the pot around, pinch or scroll to zoom.</small>`,
+    {phase:'serve', list:[[`⭐ Add ${n > 1 ? `${n} molecules` : 'it'}`, b => addMolecules(r, b), 'kgo'], ...againBtns()]});
+  const list = document.createElement('div'); list.className = 'kmols';
+  r.products.forEach((p, i) => {
+    const row = document.createElement('label'); row.className = 'kmol';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = true; cb.dataset.i = i;
+    cb.onchange = () => { SFX.tick(); const k = list.querySelectorAll('input:checked').length; const go = d.querySelector('.kgo'); if(go && !go.dataset.done){ go.disabled = !k; go.innerHTML = `⭐ Add ${k === 1 ? 'it' : `${k} molecules`}`; } };
+    const f = document.createElement('b'); formulaInto(f, p.formula);
+    const s = document.createElement('small'); s.textContent = `${p.smiles || ''}${p.copies.length > 1 ? ` · ×${p.copies.length} in the pot` : ''}`;
+    const res = document.createElement('span'); res.className = 'kres';
+    const edit = document.createElement('button'); edit.className = 'link ico';
+    edit.innerHTML = `${$('submit').querySelector('svg').outerHTML}<span>Build</span>`;  // the builder's flask
+    edit.title = 'Open it in the builder to change it and Build it there';
+    edit.onclick = e => { e.preventDefault(); useCookProduct(p); };
+    row.append(cb, f, s, res, edit); list.appendChild(row);
+  });
+  d.insertBefore(list, d.lastChild);
+  $('info').textContent = `🍽️ Served: ${r.products.map(p => p.formula).join(' + ')}`;
+  SFX.chime();
+}
+
+async function addMolecules(r, btn){
+  const picks = [...kitchen.querySelectorAll('.kmol input')].filter(c => c.checked).map(c => +c.dataset.i);
+  if(!picks.length || addingMols) return;
+  addingMols = true; btn.disabled = true; btn.dataset.done = '1';
+  kitchen.querySelectorAll('.kmol input, .kmol .link, #kdone .kacts button').forEach(b => b.disabled = true);
+  let got = 0;
+  for(const i of picks){
+    const p = r.products[i], res = kitchen.querySelectorAll('.kmol .kres')[i];
+    res.textContent = '…'; res.className = 'kres busy';
+    try{
+      const j = await api('/api/submissions', {method:'POST', body:{atoms:p.atoms, bonds:p.bonds, input_method:'cook', mode:'stable'}});
+      total = j.total; LS.set('qm.total', total); $('total').textContent = `${total.toLocaleString()} ⭐`;
+      res.textContent = j.score > 0 ? `+${j.score.toLocaleString()}` : '+0'; res.className = 'kres ' + (j.score > 0 ? 'ok' : 'zero');
+      res.title = (j.pubchem && j.pubchem.name) || j.warning || '';
+      got += j.score;
+      if(j.score > 0){ SFX.chime(); burst(new THREE.Vector3(0, POT_S * 0.6, 0), [0xffd166, 0x7c5cff, 0x20d3a7], 24, 3, 0.7, 0.2); }
+    }catch(e){
+      res.textContent = '✕'; res.className = 'kres zero'; res.title = e.message || 'Failed';
+      if(e.status === 401){ addingMols = false; leaveKitchen(); setAccount(null, null); showWelcome(); return; }
+    }
+  }
+  addingMols = false;
+  if(got > 0){ SFX.fanfare(); toast(`+${got.toLocaleString()} ⭐ from the cauldron`, 3000); } else toast('No new points this time');
+  const d = $('kdone');
+  d.querySelector('.kmsg').textContent = got > 0 ? `Added! +${got.toLocaleString()} ⭐` : 'Added, but no new points this time (already in your collection, or not stable).';
+  d.querySelectorAll('.kacts button, .kmol .link').forEach(b => { if(!b.classList.contains('kgo')) b.disabled = false; });
+  btn.remove();
+}
+
+// Leave the kitchen: back to the player's own molecule (restore) or keep what's on screen.
+function leaveKitchen(restoreWork = true){
+  if(!cooking || addingMols) return;
+  cooking = false; simmering = false; busy = false; pot.visible = false; ambience.stop(); phase = 'prep';
+  document.body.classList.remove('busy', 'cooking', 'simmer');
+  kitchen.classList.add('hidden'); $('optInfo').classList.add('hidden'); $('shaker').classList.add('hidden');
+  scene.background = new THREE.Color(0x0b1020); scene.getObjectByName('stars').visible = true;
+  setXYZOpen(cookXYZ, false);
+  controls.enableDamping = false; controls.update(); controls.enableDamping = true;
+  if(cookCam){ camera.position.copy(cookCam.p); controls.target.copy(cookCam.t); cookCam = null; }
+  potOrbitOff();
+  controls.enabled = true;
+  atoms = []; bonds = [];
+  if(restoreWork && cookSaved) restore(cookSaved);
+  cookSaved = null; changed();
+}
+
+function useCookProduct(prod){
+  const saved = cookSaved;
+  leaveKitchen(false);
+  atoms = prod.atoms.map(a => ({el:a.el, p:new THREE.Vector3(a.x, a.y, a.z), born:performance.now()}));
+  bonds = prod.bonds.map(([a, b, o]) => ({a, b, o}));
+  inputMethod = 'cook';
+  if(saved){ undoStack.push(saved); if(undoStack.length > 60) undoStack.shift(); }  // Undo brings back the old molecule
+  changed(); SFX.chime();
+  toast(`${prod.formula} is in the builder: press Build to score it`, 3200);
+}
 
 /* ================= measure tool ================= */
 // Bond lengths sit on the bonds; angles fan out around the focus atom (the last atom
@@ -1889,11 +2518,12 @@ let last = performance.now();
 function loop(now){
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, (now - last)/1000); last = now;
-  updateBursts(dt);
+  updateBursts(dt); updatePot(dt, now);
   if(atoms.some(a => a.born && now - a.born < 360)) rebuild();
   if(shake > 0.001){ world.position.set((Math.random()-0.5)*shake, (Math.random()-0.5)*shake, 0); shake *= 0.9; }
   else world.position.set(0,0,0);
-  if(atoms.length && dragging === null) controls.target.lerp(centroid(), 0.06);
+  if(cooking) controls.target.lerp(POT_VIEW, 0.1);  // the cauldron stays in the middle
+  else if(atoms.length && dragging === null) controls.target.lerp(centroid(), 0.06);
   scene.getObjectByName('stars').rotation.y += dt*0.01;
   controls.update();
   renderer.render(scene, camera);
@@ -1901,6 +2531,8 @@ function loop(now){
 }
 
 /* ================= start ================= */
+// ?debug exposes a few internals to the console and the browser tests.
+if(new URLSearchParams(location.search).has('debug')) window.qm = {get camera(){ return camera; }, get controls(){ return controls; }, get atoms(){ return atoms; }, get bubbles(){ return bubbles; }, get canvas(){ return canvas; }};
 {
   let w = null; try{ w = localStorage.getItem('qm.work'); }catch{}
   if(w) restore(w);
@@ -1909,6 +2541,7 @@ function loop(now){
   detectServer().then(async () => {
     $('lb').classList.toggle('hidden', !ONLINE);
     $('puzzleBtn').classList.toggle('hidden', !ONLINE);
+    $('cookBtn').classList.toggle('hidden', !(ONLINE && SERVER.cook));
     if(!ONLINE) loadRDKit(); else updateInfo();
     if(ONLINE && !token) return showWelcome();
     if(ONLINE){
