@@ -94,6 +94,12 @@ async function detectServer(){
     SERVER = r.ok ? await r.json() : {};
     ONLINE = !!SERVER.ok;
   }catch{ ONLINE = false; }
+  $('ver').textContent = versionText();
+}
+// "QuMol v0.3.0 · f51439a": the server's version and the commit it runs.
+function versionText(){
+  if(!ONLINE || !SERVER.version) return 'QuMol · offline mode';
+  return `QuMol v${SERVER.version}${SERVER.commit ? ' · ' + SERVER.commit : ''}`;
 }
 function setAccount(t, n){ token = t; nick = n; LS.set('qm.token', t); LS.set('qm.nick', n); }
 
@@ -744,6 +750,12 @@ $('measure').onclick = () => {
   $('measure').classList.toggle('on', measureOn); SFX.tick();
   if(measureOn) toast('Tap or drag an atom to see its bond angles');
 };
+// Phone menu: the ☰ button opens the top-bar buttons as a vertical list; any choice closes it.
+function setMenu(open){ $('top').classList.toggle('menu-open', open); $('menuBtn').setAttribute('aria-expanded', open); }
+$('menuBtn').onclick = e => { e.stopPropagation(); unlockAudio(); SFX.tick(); setMenu(!$('top').classList.contains('menu-open')); };
+$('more').addEventListener('click', e => { if(e.target.closest('button') && e.target.closest('button').id !== 'mute') setMenu(false); });
+document.addEventListener('pointerdown', e => { if(!e.target.closest('#more, #menuBtn')) setMenu(false); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape') setMenu(false); });
 $('mute').onclick = () => { unlockAudio(); muted = !muted; LS.set('qm.muted', muted); $('mute').textContent = muted ? '🔇' : '🔊'; };
 $('help').onclick = () => { unlockAudio(); showHelp(); };
 $('total').onclick = () => { unlockAudio(); showCollection(); };
@@ -1574,7 +1586,8 @@ function showHelp(){
   <p><b>Points</b> — new QuMol formula +1000, new molecule (SMILES) +100, energy records, stable +50, hand-built +50, geometry skill up to +100, formal charges +50, <b>+20 for each bond type</b> in the molecule (C–H, C–C, C=C, C–O, …), and a huge bonus if it's <b>not in PubChem</b>: 1000 × 10^(3 / number of atoms), so the smaller the molecule, the bigger the prize (31,623 for 2 atoms, 10,000 for 3, 2,154 for 9). Molecules you already collected score 0.</p>
   <p style="opacity:.7">On a computer, hover over any button to see what it does. Loaded examples don't earn geometry or hand-built points; edited XYZ doesn't earn the hand-built bonus.</p>
   <p>One finger rotates, pinch zooms.</p>
-  <p style="opacity:.6;font-size:13px">Early prototype: energies come from a simple toy force field. A proper ML potential comes later.</p>`);
+  <p style="opacity:.6;font-size:13px">${!ONLINE || !SERVER.method || SERVER.method.name === 'toyff' ? 'Early prototype: energies come from a simple toy force field. A proper ML potential comes later.' : `Energies come from the ${SERVER.method.name === 'uma' ? 'UMA machine-learning potential' : escapeHTML(SERVER.method.name)} (${escapeHTML(SERVER.method.version || '')}).`}</p>
+  <p class="verline">${versionText()}</p>`);
   closeBtn(card, "Let's build!");
 }
 /* ---------- badges: titles and icons come from qumol/badges.toml via /api/badges ---------- */
@@ -1658,8 +1671,25 @@ async function showCollection(){
     em.textContent = email ? `Contact email: ${email} (change)` : 'Add a contact email (optional)';
     em.onclick = () => editEmail(email);
     card.appendChild(em);
+    const out = document.createElement('button'); out.className = 'link'; out.textContent = 'Log out';
+    out.onclick = () => confirmLogout();
+    card.appendChild(out);
   }
   closeBtn(card, 'Close');
+}
+function confirmLogout(){
+  const card = openCard();
+  card.innerHTML = `<h2>Log out?</h2>
+    <p>Your account and molecules stay safe on the server, but there's no password: to sign back in as <b>${escapeHTML(nick || '')}</b> you need your <b>recovery code</b> (the code shown when you picked your nickname).</p>
+    <p>Without it you can't get this account back.</p>`;
+  const go = document.createElement('button'); go.id = 'ovBtn'; go.textContent = 'I have my code, log out';
+  const back = document.createElement('button'); back.className = 'link'; back.textContent = 'Cancel';
+  card.append(go, back);
+  go.onclick = () => {
+    setAccount(null, null); total = 0; LS.set('qm.total', 0); updateInfo();
+    SFX.tick(); showWelcome();
+  };
+  back.onclick = () => showCollection();
 }
 function editEmail(current){
   const card = openCard();

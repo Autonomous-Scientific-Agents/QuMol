@@ -278,6 +278,28 @@ body.simmer #kCook{animation:none}
 @keyframes pop{from{transform:scale(.6);opacity:0}}
 @keyframes slide{from{transform:translateX(-24px);opacity:0}}
 @keyframes pulse{to{transform:scale(1.08)}}
+/* top menu: inline on wide screens, a ☰ drop-down on phones */
+#more{display:contents}
+#menuBtn{display:none;font-size:20px}
+#ver{display:none}
+.verline{text-align:center;font-size:12px;opacity:.45;margin:6px 0 0}
+@media (max-width:640px){
+  #menuBtn{display:inline-block}
+  #top.menu-open #menuBtn{background:var(--acc,#7c5cff)}
+  #more{display:none;position:absolute;top:calc(100% - 2px);right:8px;flex-direction:column;gap:6px;padding:8px;
+    background:var(--panel);border:1px solid #2c3a66;border-radius:16px;box-shadow:0 12px 30px rgba(0,0,0,.5);
+    backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:12;transform-origin:top right;animation:menuIn .18s ease-out}
+  #top.menu-open #more{display:flex}
+  #top #more button{display:flex;align-items:center;gap:12px;width:100%;min-width:210px;height:46px;padding:0 12px;font-size:20px;text-align:left}
+  #top #more button.hidden{display:none!important}
+  #more button::after{content:attr(data-label);font-size:15px;font-weight:600}
+  #more #cookBtn svg.pot{width:24px;height:24px}
+  #more #xyzBtn{font-size:13px}
+  #more #xyzBtn::after{font-size:15px}
+  #ver{display:block;text-align:center;font-size:12px;opacity:.55;padding:4px 0 0;pointer-events:none}
+}
+#top.menu-open ~ #badgePop{visibility:hidden}  /* don't cover the open menu */
+@keyframes menuIn{from{opacity:0;transform:scaleY(.6)}to{opacity:1;transform:none}}
 /* badges */
 #badgePop{position:fixed;left:50%;top:84px;transform:translate(-50%,-30px) scale(.8);z-index:30;display:flex;align-items:center;gap:12px;
   background:linear-gradient(135deg,#2b2160,#143a4a);border:2px solid #ffd166;border-radius:18px;padding:10px 18px 10px 12px;
@@ -594,14 +616,18 @@ body.lessoning #top,body.lessoning #bottom{visibility:hidden}
 <div id="top" class="bar">
   <div class="left"><span class="brand">QuMol</span><span id="info" class="pill">Loading…</span></div>
   <div class="right">
-    <button id="puzzleBtn" class="tip-below hidden" data-tip="Puzzles: build a named molecule as close to its experimental 3D structure as you can. Five new daily puzzles, plus random ones" aria-label="Puzzles">🧩</button>
-    <button id="cookBtn" class="tip-below hidden" data-tip="Cauldron: drop C, N and O atoms in, light the fire and watch them bond on their own. Then build what you cooked" aria-label="Cauldron (cooking mode)"></button>
-    <button id="plotBtn" class="tip-below" data-tip="Optimization plots: energy and max force at every step of your last build, live while it runs" aria-label="Optimization plots">📈</button>
-    <button id="xyzBtn" class="tip-below" data-tip="Formula and XYZ coordinates panel. Edit the coordinates to change the molecule directly" aria-label="Formula and XYZ panel">XYZ</button>
-    <button id="mute" class="tip-below" data-tip="Sound on/off" aria-label="Sound on/off">🔊</button>
-    <button id="help" class="tip-below" data-tip="How to play, and the interactive tutorial" aria-label="How to play">?</button>
-    <button id="lb" class="tip-below" data-tip="Leaderboards" aria-label="Leaderboards">🏆</button>
+    <div id="more">
+    <button id="puzzleBtn" data-label="Puzzles" class="tip-below hidden" data-tip="Puzzles: build a named molecule as close to its experimental 3D structure as you can. Five new daily puzzles, plus random ones" aria-label="Puzzles">🧩</button>
+    <button id="cookBtn" data-label="Cauldron" class="tip-below hidden" data-tip="Cauldron: drop C, N and O atoms in, light the fire and watch them bond on their own. Then build what you cooked" aria-label="Cauldron (cooking mode)"></button>
+    <button id="plotBtn" data-label="Optimization plots" class="tip-below" data-tip="Optimization plots: energy and max force at every step of your last build, live while it runs" aria-label="Optimization plots">📈</button>
+    <button id="xyzBtn" data-label="XYZ coordinates" class="tip-below" data-tip="Formula and XYZ coordinates panel. Edit the coordinates to change the molecule directly" aria-label="Formula and XYZ panel">XYZ</button>
+    <button id="mute" data-label="Sound" class="tip-below" data-tip="Sound on/off" aria-label="Sound on/off">🔊</button>
+    <button id="help" data-label="How to play" class="tip-below" data-tip="How to play, and the interactive tutorial" aria-label="How to play">?</button>
+    <button id="lb" data-label="Leaderboards" class="tip-below" data-tip="Leaderboards" aria-label="Leaderboards">🏆</button>
+    <div id="ver"></div>
+    </div>
     <button id="total" class="tip-below tip-right" data-tip="Your score and molecule collection" aria-label="Your score and molecule collection">0 ⭐</button>
+    <button id="menuBtn" aria-label="Menu" aria-expanded="false" aria-controls="more">☰</button>
   </div>
 </div>
 

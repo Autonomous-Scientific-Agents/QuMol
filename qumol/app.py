@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 
 import time
 
-from . import __version__, badges, cook, db, puzzles, scoring
+from . import __commit__, __version__, badges, cook, db, puzzles, scoring
 from .calculators import available, get_calculator
 from .chem import ChemError, hill_formula, smiles_from_graph, smiles_of, validate
 from .security import (BodyLimit, SecurityHeaders, compute_slot, ensure_disk_space, env_int, limiter,
@@ -697,7 +697,7 @@ def _leaderboard(con, category: str, limit: int):
 @app.get("/api/health")
 async def health():  # async: answers even while worker threads are busy
     calc = get_calculator()
-    return {"ok": True, "version": __version__, "method": {"name": calc.name, "version": calc.version},
+    return {"ok": True, "version": __version__, "commit": __commit__, "method": {"name": calc.name, "version": calc.version},
             "available_methods": available(), "cook": cook.available()}
 
 
