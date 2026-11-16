@@ -14,6 +14,7 @@ QuMol is a 3D molecule-building game that runs in the browser on phones and desk
   - Ions (net charge) are not allowed yet.
 - **Size:** up to 10 heavy atoms.
 - **Tap a bond** to cycle single → double → triple → single, within each atom's valence. In Delete mode, tapping a bond breaks it. On desktop, bonds highlight on hover.
+- **🌱 Beginner lesson** (`web/lesson.js`), for players who know nothing about atoms yet. It opens from the first-run intro, the ? guide and the Learn card. Ten short interactive steps on a 2D stage: what atoms and molecules are, the nucleus and electron shells (tap to label), valence electrons, the full shell with empty "seats", then dragging atoms together to share electrons: H–H, CH₄ (why carbon makes 4 bonds), H₂O (2 bonds and 2 lone pairs; dropping an H on a pair is refused with an explanation), NH₃, and O=O (tap the bond to share a second pair). It ends with a cheat sheet (bonds = 8 − outer electrons) and a quick check question. Electrons keep their atom's color, so each bond visibly holds one electron from each atom, and a ring around each atom fills as its shell fills. Every step has a *Show me* button that does it for you; progress is remembered.
 - **🎓 Learn**:
   - **Elements**: animated Lewis dots, bonds vs. lone pairs, valence electrons, shapes, bond lengths and a fun fact for each element.
   - **Bonds & shapes**: tetrahedral, pyramidal, bent, trigonal planar, linear, single/double/triple bonds and rings. Each has a *Show me* button that loads an example into the 3D view.
@@ -22,7 +23,8 @@ QuMol is a 3D molecule-building game that runs in the browser on phones and desk
 - **Live optimization:** when you Build, the atoms move as the server optimizes, frame by frame (streamed, up to 10 frames a second).
 - **📈 Optimization plots**: a panel with the energy and the max force at every optimization step of your last build, filling in live while it runs. A dashed line marks each new stage (e.g. the saddle check). With UMA, the toy force field pre-relaxation is summarized in words, since it uses other units.
 - **Reused calculations:** if anyone already built the same starting geometry (within 0.1 Å) with the same bonds and energy method, its stored result and trajectory are replayed instead of optimizing again. The result is scored as usual.
-- **Fair scoring by input method**: a molecule loaded from Learn is `example` (no geometry or hand-built points). Coordinates edited in the XYZ panel make it `xyz` (geometry points, but no hand-built bonus). Clear resets it to `hand`.
+- **Fair scoring by input method**: a molecule loaded from Learn is `example` (no geometry or hand-built points). Coordinates edited in the XYZ panel make it `xyz` (geometry points, but no hand-built bonus). A molecule taken from the cooking pot is `cook` (no geometry or hand-built points). Clear resets it to `hand`.
+- **🧙 Cauldron (cooking mode)**: see [Cooking mode](#cooking-mode).
 
 ## Quick start (game + server)
 
@@ -111,6 +113,8 @@ After deploying, check that `journalctl -u qumol` shows players' real IP address
 | `QUMOL_PUBCHEM` | `1` | Set to `0` to skip live PubChem lookups (a local-table miss then counts as not in PubChem) |
 | `QUMOL_PUBCHEM_DB` | `pubchem.sqlite` next to the database | Local PubChem lookup table |
 | `QUMOL_PUZZLE_FILES` | | Extra puzzle files, `:`-separated (besides any `*.json` in `puzzles/` next to the database) |
+| `QUMOL_COOK_METHOD` | `ani1xnr` | Potential for cooking mode: `ani1xnr` (needs `torchani`), `uma` or `emt` (tests only). Without it installed, the cauldron button stays hidden |
+| `QUMOL_COOKS_PER_MIN`, `QUMOL_COOKS_PER_DAY`, `QUMOL_COOKS_PER_IP_MIN` | 6, 300, 12 | Cooking limits per player and per IP |
 | `QUMOL_DOCS` | | Set to `1` to serve the API docs at `/docs` |
 | `QUMOL_MAX_BODY` | `262144` | Request body cap in bytes |
 | `QUMOL_MIN_FREE_MB` | `1024` | Refuse new data below this much free disk |
@@ -126,11 +130,13 @@ qumol/app.py            FastAPI: players, submissions, leaderboards, stats, serv
 qumol/scoring.py        submission pipeline: optimize → hash → store → score
 qumol/chem.py           validation, HashMol3D identifiers, SMILES (RDKit), sanity checks
 qumol/calculators/      pluggable energy methods (toy force field; any ASE calculator, e.g. UMA)
+qumol/cook.py           cooking mode: reactive MD in a beaker, products saturated with H
 qumol/puzzles.py        puzzle mode: reference structures, daily set, RMSD scoring
 qumol/pubchem.py        PubChem lookups (local table, then the web API)
 qumol/security.py       body limit, security headers, rate limits, compute slots
 qumol/db.py             SQLite schema
 scripts/export_dataset.py   dump collected molecules as extended XYZ
+scripts/cook_md.py          one cook from the command line (UMA, ANI, xTB, EMT); cook_sweep.py runs a grid
 ```
 
 ### Accounts
@@ -159,11 +165,14 @@ The server is authoritative: it recomputes every energy itself, so scores can't 
 | POST | `/api/puzzles/start` | `{puzzle_id?, daily}` → attempt id; starts the clock (no id: random) |
 | POST | `/api/puzzles/solve` | `{attempt_id, atoms, bonds}` → not the target (with a tip), or the score, RMSD, outline and biggest differences |
 | GET | `/api/me` | totals for the signed-in player |
-| POST | `/api/submissions` | `{atoms:[{el,x,y,z}], bonds:[[i,j,order]], input_method (hand\|xyz\|example\|smiles\|2d), mode}` |
+| GET | `/api/badges` | the player's badge ladders (count, tiers earned) and one-off badges, with titles and icons from `badges.toml` |
+| POST | `/api/badges/event` | `{event}` (`lesson` or `quiz`) records something only the browser sees; returns the badges |
+| POST | `/api/cook/stream` | `{atoms:[{el,x,y,z}], temp, duration_fs}` (the player's placement; C, N, O, H; 15–1000 fs) or `{recipe:{C,N,O,H}, temp, duration_fs}` (scattered at random) → streamed newline-delimited JSON: `start` (symbols, beaker radius, start positions), `frame` events (coords, time, set and kinetic temperature, the pot's fragments), then `result` with the products saturated with H (each with `copies`: the pot atoms it came from and the added H in pot coordinates). Nothing is scored or stored |
+| POST | `/api/submissions` | `{atoms:[{el,x,y,z}], bonds:[[i,j,order]], input_method (hand\|xyz\|example\|smiles\|2d\|cook), mode}` |
 | POST | `/api/submissions/stream` | the same body, streamed as newline-delimited JSON: `start` (method, atom count, `reused`), then `frame` events (`coords` plus the `points` [stage, step, energy, max force] since the last frame), keep-alive `ping`s, and finally `result` (the usual response) or `error` (`status`, `detail`). The calculation finishes and is stored even if the client disconnects |
 | GET | `/api/submissions/mine` | the player's history |
 | GET | `/api/leaderboards` | the available categories |
-| GET | `/api/leaderboard/{category}` | overall, hand, xyz, weekly, small, discoveries, molecules, records, puzzle_daily, puzzles |
+| GET | `/api/leaderboard/{category}` | overall, hand, xyz, cook, weekly, small, discoveries, molecules, records, puzzle_daily, puzzles |
 | GET | `/api/geometries/{id}.xyz` | standardized geometry |
 | GET | `/api/stats`, `/api/health` | |
 
@@ -190,6 +199,17 @@ The score card shows the compound's name, formula, SMILES and PubChem link at th
 
 All points need a **stable** molecule with a readable SMILES. Otherwise the card shows *Optimization failed*, *Not converged* or *Unstable* in place of *Stable*, and every line scores 0. Resubmitting a molecule you already have is stored but scores 0 (*Already collected*). Point values live in `POINTS` in `qumol/scoring.py`.
 
+A player's ⭐ total is the sum of their build scores and their counted puzzle scores (see Puzzle mode). It is computed from both tables on every read (`db.player_total`), so puzzle points earned before this rule also count. The point leaderboards (overall, weekly) include puzzle points too.
+
+## Badges
+
+Badges are fun titles for playing; they don't add points. They are defined in **`qumol/badges.toml`**: edit a title, icon, hint or threshold there and the server picks it up on the next request (no restart). The file's header explains the rules.
+
+- **Ladders** give a new title each time a count reaches a tier: molecules built (🍼 Baby Bonder → 👑 Avogadro's Favorite), puzzles solved (🔍 Curious Electron → 🏛️ Professor Puzzle), molecules cooked (🥄 Kitchen Apprentice → ⭐ Three-Michelin-Electron Chef) and the ⭐ total (✨ Spark → 🌌 Big Bang).
+- **One-off badges** for things like finishing the beginner lesson, a perfect quiz, building water, CO₂ or ethanol, a first double or triple bond, a ring, or cooking something you never built by hand.
+
+Nothing is stored per badge: `qumol/badges.py` works them out from a player's submissions, counted puzzle solves and `player_events` (lesson and quiz, reported by the browser), so existing players get every badge they have already earned. The browser remembers which badges it has celebrated and pops up the new ones after a build, a puzzle, cooking, the lesson or the quiz. The first time, it shows one summary instead. *My badges* in the collection lists them all, with locked ones greyed out and a progress bar to the next title.
+
 ## Puzzle mode
 
 The 🧩 button opens puzzles: the player gets a molecule's name, formula and SMILES and builds it by hand, against a clock that the server keeps. A **Check** compares the build with the molecule's experimental 3D structure:
@@ -197,8 +217,9 @@ The 🧩 button opens puzzles: the player gets a molecule's name, formula and SM
 - The molecule must be the target (same SMILES as QuMol computes for the reference). A wrong build gets a tip and the clock keeps running.
 - **Geometry match:** 1000 × exp(−RMSD / 0.25 Å). The RMSD is over all atoms, after the best symmetry-equivalent atom mapping and the best rotation (mirror images allowed).
 - **Speed:** up to 500, decaying with time, more slowly for bigger molecules.
+- The two lines add up to the puzzle score, which goes into the player's ⭐ total. Only counted solves score; a practice solve scores 0.
 - After solving, the experimental structure appears as a green outline over the player's, with the bond lengths that differ most.
-- During a puzzle, examples, XYZ editing and 📏 Measure are off; the player's own work comes back on exit.
+- During a puzzle, examples and XYZ editing are off (📏 Measure stays on, to help match the lengths and angles); the player's own work comes back on exit.
 
 Every day (UTC) brings five puzzles from easy to hard, the same for everyone, plus random puzzles from the whole set. Only a player's first solve of each puzzle counts: once in free play, and once each time it is a daily puzzle. On the all-time board each puzzle counts once, with its fastest counted time. Puzzle leaderboards (`puzzle_daily`, `puzzles`) rank by puzzles solved, then by lowest total time.
 
@@ -234,3 +255,14 @@ pytest -q
 - 2D drawing, SMILES and XYZ input in the UI. The API already accepts them.
 - GDB-13 novelty bonus.
 - Optional Google sign-in.
+
+## Cooking mode
+
+The cauldron button (shown when the server has a cooking potential) opens the kitchen, set in a fantasy alchemy lab (an inline SVG backdrop behind a transparent WebGL canvas). Tapping C, N, O or H drops an atom into the cauldron at a random spot (up to 10 heavy atoms and 10 H); atoms can be dragged around inside the pot, and tapping one scoops it out. The camera stays fixed on the cauldron while it is filled and cooked; once the cook ends the player can drag to turn the pot (and zoom) to look at the products. The temperature slider (300–3000 K), the time slider sets the cook length (15 fs to 1 ps), and Cook starts the run; bubbles rise and a timer fills while it cooks. When it ends the view stays on the pot: the tray offers to sprinkle hydrogens on the free bonds (a salt-shaker flourish, each H falling onto its bond), then lists the molecules with checkboxes and adds the chosen ones to the player's collection (scored like any submission, input method `cook`), or opens one in the builder with its Build button. Every step has synthesized sound.
+
+1. The server starts from the player's positions (or scatters a recipe at least 2 Å apart) in a spherical beaker (about 12 Å³ per atom, held by a soft harmonic wall).
+2. Langevin molecular dynamics with a reactive potential over the chosen length. The first 20% heats from 300 K to the chosen temperature, 60% holds it, 20% cools; 1 fs steps (0.5 fs when H is in the pot), then a quench. The atoms move live in the game, and the readout shows the time, the set and actual temperatures, and the fragments in the pot.
+3. Each fragment with two or more heavy atoms becomes a product: bond orders are read from bond lengths (shortest first, within valence) and every free valence gets a hydrogen, like H+.
+4. The player picks a product. It loads into the builder as input method `cook`, and Build optimizes and scores it with the server's usual method. Cooked molecules don't earn hand-built or geometry points and have their own Chefs leaderboard.
+
+The default potential is ANI-1xnr (torchani, MIT), a reactive C/H/N/O model; a cook takes a few seconds on a laptop CPU. In tests on bare atoms its products were close to UMA's, which is about 10× slower. ANI-2x does not work here, because its atoms never bond. Bonds form within 10–50 fs, so the products depend mostly on where the atoms start. The temperature changes the products little so far.

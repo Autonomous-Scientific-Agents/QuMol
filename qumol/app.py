@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 
 import time
 
-from . import __version__, db, puzzles, scoring
+from . import __version__, badges, cook, db, puzzles, scoring
 from .calculators import available, get_calculator
 from .chem import ChemError, hill_formula, smiles_from_graph, smiles_of, validate
 from .security import (BodyLimit, SecurityHeaders, compute_slot, ensure_disk_space, env_int, limiter,
@@ -42,6 +42,9 @@ SUBMITS_PER_PLAYER_DAY = env_int("QUMOL_SUBMITS_PER_DAY", 1000)
 SUBMITS_PER_IP_MIN = env_int("QUMOL_SUBMITS_PER_IP_MIN", 40)
 SUBMITS_PER_IP_DAY = env_int("QUMOL_SUBMITS_PER_IP_DAY", 3000)
 READS_PER_IP_MIN = env_int("QUMOL_READS_PER_IP_MIN", 120)
+COOKS_PER_PLAYER_MIN = env_int("QUMOL_COOKS_PER_MIN", 6)
+COOKS_PER_PLAYER_DAY = env_int("QUMOL_COOKS_PER_DAY", 300)
+COOKS_PER_IP_MIN = env_int("QUMOL_COOKS_PER_IP_MIN", 12)
 
 log = logging.getLogger("qumol")
 if not logging.getLogger().handlers:
@@ -199,14 +202,14 @@ def recover(body: Recover, request: Request, con=Depends(get_con)):
 @app.get("/api/me")
 def me(player=Depends(current_player), con=Depends(get_con)):
     r = con.execute(
-        """SELECT COALESCE(SUM(score),0) AS total, COUNT(*) AS n,
+        """SELECT COUNT(*) AS n,
                   COUNT(DISTINCT CASE WHEN stable=1 THEN smiles END) AS molecules,
                   COUNT(DISTINCT CASE WHEN stable=1 AND in_pubchem=0 THEN smiles END) AS discoveries
            FROM submissions WHERE player_id=?""",
         (player["id"],),
     ).fetchone()
     email = con.execute("SELECT email FROM players WHERE id=?", (player["id"],)).fetchone()["email"]
-    return {**player, **dict(r), "email": email}
+    return {**player, **dict(r), "total": db.player_total(con, player["id"]), "email": email}
 
 
 @app.patch("/api/me")
@@ -216,6 +219,27 @@ def update_me(body: Profile, player=Depends(current_player), con=Depends(get_con
     with con:
         con.execute("UPDATE players SET email=? WHERE id=?", (email, player["id"]))
     return {"email": email}
+
+
+# ------------------------------------------------------------------ badges
+
+
+class BadgeEvent(BaseModel):
+    event: Literal[tuple(sorted(badges.EVENTS))]  # type: ignore[valid-type]
+
+
+@app.get("/api/badges")
+def my_badges(player=Depends(current_player), con=Depends(get_con)):
+    """The player's ladders and badges (titles and icons come from badges.toml)."""
+    return badges.player_badges(con, player["id"])
+
+
+@app.post("/api/badges/event")
+def badge_event(body: BadgeEvent, player=Depends(current_player), con=Depends(get_con)):
+    """The game reports something only it can see, such as finishing the beginner lesson."""
+    with con:
+        badges.record_event(con, player["id"], body.event)
+    return badges.player_badges(con, player["id"])
 
 
 # ------------------------------------------------------------------ submissions
@@ -235,7 +259,7 @@ class Atom(BaseModel):
 class Submission(BaseModel):
     atoms: list[Atom] = Field(..., min_length=1, max_length=150)
     bonds: list[tuple[Index, Index, Annotated[int, Field(ge=1, le=3)]]] = Field(default_factory=list, max_length=300)
-    input_method: Literal["hand", "xyz", "smiles", "2d", "example"] = "hand"
+    input_method: Literal["hand", "xyz", "smiles", "2d", "example", "cook"] = "hand"
     mode: Literal["stable"] = "stable"
 
 
@@ -287,22 +311,35 @@ def stream_submission(body: Submission, request: Request, player=Depends(current
     The calculation runs to the end even if the client disconnects, so it is stored."""
     pid = player["id"]
     _submission_limits(request, pid)  # these still fail as plain HTTP errors
+
+    def run(on_event):
+        con = db.connect()
+        try:
+            return _run_submission(con, pid, body, on_event=on_event)
+        finally:
+            con.close()
+
+    return _ndjson_stream(f"submit-{pid}", run)
+
+
+def _ndjson_stream(name: str, run) -> StreamingResponse:
+    """Run ``run(on_event)`` in a thread and stream its events as newline-delimited JSON,
+    then ``result`` (its return value) or ``error`` (an HTTPException's status and detail).
+    The work runs to the end even if the client disconnects."""
     events: queue.Queue = queue.Queue()
 
     def work():
-        con = db.connect()
         try:
-            events.put({"type": "result", "result": _run_submission(con, pid, body, on_event=events.put)})
+            events.put({"type": "result", "result": run(events.put)})
         except HTTPException as e:
             events.put({"type": "error", "status": e.status_code, "detail": e.detail})
         except Exception:  # never leave the stream hanging
-            log.exception("Streamed submission failed")
+            log.exception("Streamed request %s failed", name)
             events.put({"type": "error", "status": 500, "detail": "Unexpected server error"})
         finally:
-            con.close()
             events.put(None)
 
-    threading.Thread(target=work, name=f"submit-{pid}", daemon=True).start()
+    threading.Thread(target=work, name=name, daemon=True).start()
 
     def lines():
         while True:
@@ -317,6 +354,62 @@ def stream_submission(body: Submission, request: Request, player=Depends(current
     # No buffering or transforming on the way (Cloudflare, proxies), or frames arrive in one lump.
     return StreamingResponse(lines(), media_type="application/x-ndjson",
                              headers={"Cache-Control": "no-cache, no-transform", "X-Accel-Buffering": "no"})
+
+
+# ------------------------------------------------------------------ cooking mode
+
+
+class CookAtom(BaseModel):
+    el: Literal["C", "N", "O", "H"]
+    x: float
+    y: float
+    z: float
+
+
+class CookRequest(BaseModel):
+    # Either a recipe (the server scatters the atoms) or the atoms the player dropped in the pot.
+    recipe: dict[Literal["C", "N", "O", "H"], Annotated[int, Field(ge=0, le=cook.MAX_ATOMS)]] | None = None
+    atoms: Annotated[list[CookAtom], Field(max_length=cook.MAX_ATOMS + cook.MAX_H)] | None = None
+    temp: Annotated[float, Field(ge=cook.MIN_TEMP, le=cook.MAX_TEMP)] = 1500
+    duration_fs: Annotated[float, Field(ge=cook.MIN_FS, le=cook.MAX_FS)] = cook.DEFAULT_FS
+
+
+@app.post("/api/cook/stream")
+def stream_cook(body: CookRequest, request: Request, player=Depends(current_player)):
+    """Cook bare atoms in a beaker, streamed: ``start`` (symbols, beaker radius, start
+    positions), ``frame`` events (coords, time, set and kinetic temperature, the pot's
+    fragments), then ``result`` with the saturated products. Nothing is scored or stored:
+    the player builds a product like any other molecule (input_method ``cook``)."""
+    pid, ip = player["id"], client_ip(request)
+    if not cook.available():
+        raise HTTPException(503, "Cooking isn't set up on this server (it needs torchani).")
+    start = [(a.el, a.x, a.y, a.z) for a in body.atoms] if body.atoms is not None else None
+    try:
+        if start is not None:
+            cook.check_start(start)
+        else:
+            cook.check_recipe(body.recipe or {})
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+    limiter.hit(f"cook:{pid}", COOKS_PER_PLAYER_MIN, 60)
+    limiter.hit(f"cook-day:{pid}", COOKS_PER_PLAYER_DAY, 86400)
+    limiter.hit(f"cook-ip:{ip}", COOKS_PER_IP_MIN, 60)
+    seed = secrets.randbelow(2**31)
+
+    def run(on_event):
+        try:
+            with one_at_a_time(f"player:{pid}"), compute_slot():
+                return cook.cook(body.recipe, body.temp, seed=seed, on_event=on_event, start=start,
+                                 duration_fs=body.duration_fs)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        except HTTPException:
+            raise
+        except Exception as e:
+            log.exception("Cook failed")
+            raise HTTPException(503, f"The cooking model failed ({type(e).__name__}). The server log has details.")
+
+    return _ndjson_stream(f"cook-{pid}", run)
 
 
 class GraphAtom(BaseModel):
@@ -494,10 +587,11 @@ def puzzle_solve(body: PuzzleSolve, player=Depends(current_player), con=Depends(
             (now, cmp["rmsd"], int(first), total if first else 0, row["id"]))
     if cur.rowcount == 0:  # a second Check on the same attempt got here first
         raise HTTPException(409, "Already solved. Start a new puzzle")
+    player_total = db.player_total(con, pid)  # puzzle points count toward the ⭐ total
     return {
         "correct": True, "puzzle": puzzles.public(p), "smiles": p["smiles"],
         "rmsd": round(cmp["rmsd"], 4), "seconds": round(seconds, 1), "tries": row["tries"] + 1,
-        "lines": lines, "score": total if first else 0, "practice": not first,
+        "lines": lines, "score": total if first else 0, "practice": not first, "total": player_total,
         "ghost": cmp["ghost"], "diffs": cmp["diffs"], "source": p["source"],
     }
 
@@ -505,9 +599,10 @@ def puzzle_solve(body: PuzzleSolve, player=Depends(current_player), con=Depends(
 # ------------------------------------------------------------------ leaderboards
 
 LEADERBOARDS = {
-    "overall": ("Top scorers", "SUM(s.score)", ""),
+    "overall": ("Top scorers (builds and puzzles)", "SUM(s.score)", ""),
     "hand": ("Hand builders", "SUM(s.score)", "AND s.input_method='hand'"),
     "xyz": ("XYZ submitters", "SUM(s.score)", "AND s.input_method='xyz'"),
+    "cook": ("Chefs (cooked molecules)", "SUM(s.score)", "AND s.input_method='cook'"),
     "weekly": ("This week", "SUM(s.score)", "AND s.created_at >= strftime('%Y-%m-%dT%H:%M:%fZ','now','-7 days')"),
     "small": ("Small-molecule masters (≤ 5 heavy atoms)", "SUM(s.score)", "AND s.n_heavy <= 5"),
     "discoveries": ("Discoverers (not in PubChem)", "COUNT(DISTINCT s.smiles)", "AND s.stable=1 AND s.in_pubchem=0"),
@@ -583,10 +678,13 @@ def _leaderboard(con, category: str, limit: int):
         title = "Record holders (lowest energy per formula)"
     elif category in LEADERBOARDS:
         title, agg, where = LEADERBOARDS[category]
+        # Point totals include puzzle solves (as input method 'puzzle'); the counting boards
+        # (molecules, discoveries) look at submissions only.
+        src = f"({db.POINTS_SQL})" if agg == "SUM(s.score)" else "submissions"
         rows = con.execute(
-            f"""SELECT p.nickname, {agg} AS value FROM submissions s JOIN players p ON p.id=s.player_id
+            f"""SELECT p.nickname, {agg} AS value FROM {src} s JOIN players p ON p.id=s.player_id
                 WHERE 1=1 {where} GROUP BY p.id HAVING value > 0
-                ORDER BY value DESC, MIN(s.id) LIMIT ?""",
+                ORDER BY value DESC, MIN(s.created_at) LIMIT ?""",
             (limit,),
         ).fetchall()
     return {"category": category, "title": title,
@@ -600,7 +698,7 @@ def _leaderboard(con, category: str, limit: int):
 async def health():  # async: answers even while worker threads are busy
     calc = get_calculator()
     return {"ok": True, "version": __version__, "method": {"name": calc.name, "version": calc.version},
-            "available_methods": available()}
+            "available_methods": available(), "cook": cook.available()}
 
 
 @app.get("/api/stats")
