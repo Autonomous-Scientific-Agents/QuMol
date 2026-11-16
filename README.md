@@ -165,6 +165,8 @@ The server is authoritative: it recomputes every energy itself, so scores can't 
 | POST | `/api/puzzles/start` | `{puzzle_id?, daily}` → attempt id; starts the clock (no id: random) |
 | POST | `/api/puzzles/solve` | `{attempt_id, atoms, bonds}` → not the target (with a tip), or the score, RMSD, outline and biggest differences |
 | GET | `/api/me` | totals for the signed-in player |
+| GET | `/api/badges` | the player's badge ladders (count, tiers earned) and one-off badges, with titles and icons from `badges.toml` |
+| POST | `/api/badges/event` | `{event}` (`lesson` or `quiz`) records something only the browser sees; returns the badges |
 | POST | `/api/cook/stream` | `{atoms:[{el,x,y,z}], temp, duration_fs}` (the player's placement; C, N, O, H; 15–1000 fs) or `{recipe:{C,N,O,H}, temp, duration_fs}` (scattered at random) → streamed newline-delimited JSON: `start` (symbols, beaker radius, start positions), `frame` events (coords, time, set and kinetic temperature, the pot's fragments), then `result` with the products saturated with H (each with `copies`: the pot atoms it came from and the added H in pot coordinates). Nothing is scored or stored |
 | POST | `/api/submissions` | `{atoms:[{el,x,y,z}], bonds:[[i,j,order]], input_method (hand\|xyz\|example\|smiles\|2d\|cook), mode}` |
 | POST | `/api/submissions/stream` | the same body, streamed as newline-delimited JSON: `start` (method, atom count, `reused`), then `frame` events (`coords` plus the `points` [stage, step, energy, max force] since the last frame), keep-alive `ping`s, and finally `result` (the usual response) or `error` (`status`, `detail`). The calculation finishes and is stored even if the client disconnects |
@@ -198,6 +200,15 @@ The score card shows the compound's name, formula, SMILES and PubChem link at th
 All points need a **stable** molecule with a readable SMILES. Otherwise the card shows *Optimization failed*, *Not converged* or *Unstable* in place of *Stable*, and every line scores 0. Resubmitting a molecule you already have is stored but scores 0 (*Already collected*). Point values live in `POINTS` in `qumol/scoring.py`.
 
 A player's ⭐ total is the sum of their build scores and their counted puzzle scores (see Puzzle mode). It is computed from both tables on every read (`db.player_total`), so puzzle points earned before this rule also count. The point leaderboards (overall, weekly) include puzzle points too.
+
+## Badges
+
+Badges are fun titles for playing; they don't add points. They are defined in **`qumol/badges.toml`**: edit a title, icon, hint or threshold there and the server picks it up on the next request (no restart). The file's header explains the rules.
+
+- **Ladders** give a new title each time a count reaches a tier: molecules built (🍼 Baby Bonder → 👑 Avogadro's Favorite), puzzles solved (🔍 Curious Electron → 🏛️ Professor Puzzle), molecules cooked (🥄 Kitchen Apprentice → ⭐ Three-Michelin-Electron Chef) and the ⭐ total (✨ Spark → 🌌 Big Bang).
+- **One-off badges** for things like finishing the beginner lesson, a perfect quiz, building water, CO₂ or ethanol, a first double or triple bond, a ring, or cooking something you never built by hand.
+
+Nothing is stored per badge: `qumol/badges.py` works them out from a player's submissions, counted puzzle solves and `player_events` (lesson and quiz, reported by the browser), so existing players get every badge they have already earned. The browser remembers which badges it has celebrated and pops up the new ones after a build, a puzzle, cooking, the lesson or the quiz. The first time, it shows one summary instead. *My badges* in the collection lists them all, with locked ones greyed out and a progress bar to the next title.
 
 ## Puzzle mode
 

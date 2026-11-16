@@ -278,6 +278,29 @@ body.simmer #kCook{animation:none}
 @keyframes pop{from{transform:scale(.6);opacity:0}}
 @keyframes slide{from{transform:translateX(-24px);opacity:0}}
 @keyframes pulse{to{transform:scale(1.08)}}
+/* badges */
+#badgePop{position:fixed;left:50%;top:84px;transform:translate(-50%,-30px) scale(.8);z-index:30;display:flex;align-items:center;gap:12px;
+  background:linear-gradient(135deg,#2b2160,#143a4a);border:2px solid #ffd166;border-radius:18px;padding:10px 18px 10px 12px;
+  box-shadow:0 10px 30px rgba(0,0,0,.5),0 0 24px rgba(255,209,102,.35);opacity:0;pointer-events:none;transition:opacity .3s,transform .4s cubic-bezier(.2,1.6,.4,1);cursor:pointer;width:max-content;max-width:92vw;box-sizing:border-box}
+#badgePop.show{opacity:1;transform:translate(-50%,0) scale(1);pointer-events:auto}
+#badgePop .bpi{font-size:40px;line-height:1;animation:bpspin .9s ease-out}
+#badgePop small{display:block;white-space:nowrap;font-size:12px;color:#ffd166;text-transform:uppercase;letter-spacing:.06em}
+#badgePop b{font-size:18px;display:block}
+#badgePop em{display:block;font-style:normal;font-size:12px;opacity:.7}
+@keyframes bpspin{from{transform:rotate(-200deg) scale(.2)}to{transform:none}}
+.card.badges{width:min(94vw,520px)}
+.bladder{background:#151d3a;border:1px solid #2c3a66;border-radius:14px;padding:10px 12px;margin:8px 0}
+.bl-h{display:flex;justify-content:space-between;gap:8px;font-size:15px}.bl-h span{opacity:.75;font-size:13px}
+.bl-tiers{display:flex;gap:6px;margin:8px 0 6px;flex-wrap:wrap}
+.btier{display:flex;flex-direction:column;align-items:center;font-size:24px;line-height:1.1;filter:grayscale(1);opacity:.35;min-width:36px}
+.btier small{font-size:10px;opacity:.9}.btier.on{filter:none;opacity:1}
+.bl-bar{height:6px;background:#0d1330;border-radius:3px;overflow:hidden}.bl-bar i{display:block;height:100%;background:linear-gradient(90deg,#20d3a7,#7c5cff)}
+.bl-next{font-size:13px;margin-top:6px;opacity:.85}
+.bgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px;margin:12px 0}
+.bbadge{background:#151d3a;border:1px solid #2c3a66;border-radius:12px;padding:8px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.bbadge span{font-size:30px;filter:grayscale(1);opacity:.3}.bbadge b{font-size:14px;opacity:.5}.bbadge small{font-size:12px;opacity:.65}
+.bbadge.on{border-color:#ffd166}.bbadge.on span{filter:none;opacity:1}.bbadge.on b{opacity:1}
+@media (prefers-reduced-motion:reduce){#badgePop .bpi{animation:none}}
 /* beginner lesson (lesson.js) */
 #lesson{position:fixed;inset:0;z-index:14;display:grid;grid-template-rows:auto minmax(200px,1fr) auto;background:radial-gradient(ellipse at 50% 30%,#1b2550,#0b1020 70%);touch-action:none}
 #lesson.hidden{display:none}
@@ -628,6 +651,7 @@ body.lessoning #top,body.lessoning #bottom{visibility:hidden}
 <div id="kitchen" class="hidden" role="region" aria-label="Kitchen"></div>
 <div id="shaker" class="hidden" aria-hidden="true">🧂</div>
 <div id="toast"></div>
+<div id="badgePop" role="status"></div>
 <div id="optInfo" class="hidden" aria-live="polite"></div>
 <div id="ov" class="hidden"><div class="card" id="card"></div></div>
 

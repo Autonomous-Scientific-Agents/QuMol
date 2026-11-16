@@ -657,6 +657,7 @@ function finale(panel){
   mk('💧 Build water in 3D', 'lgo', () => { close(); opts.onBuild?.('water'); });
   mk('❓ Take the quiz', '', () => { close(); opts.onQuiz?.(); });
   opts.sfx.fanfare?.();
+  opts.onFinish?.();
 }
 function loop(now){ stage.tick(now); raf = requestAnimationFrame(loop); }
 

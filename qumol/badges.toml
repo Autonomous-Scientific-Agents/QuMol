@@ -1,0 +1,132 @@
+# QuMol badges. Edit titles, icons, hints and thresholds here; the server re-reads this file
+# when it changes, so no restart is needed. Badges are worked out from what players have
+# already done, so existing players get every badge they have earned straight away.
+#
+# A ladder has tiers: a player earns each tier when their count reaches `at`.
+#   stat: molecules  distinct stable molecules built (cooked ones not included)
+#         puzzles    distinct puzzles solved for points (practice solves don't count)
+#         cooked     molecules served from the cauldron
+#         points     the ⭐ total
+#
+# A badge is a one-off achievement. Its `rule` is one of:
+#   smiles:<SMILES>[,<SMILES>...]  built one of these molecules (RDKit canonical SMILES, no H)
+#   bond:2 / bond:3                built a molecule with a double / triple bond
+#   ring                           built a molecule with a ring
+#   accident                       the cauldron made something you never built by hand
+#   event:<name>                   the game reported it (events: lesson, quiz)
+# `key` is the badge's id; once players have it, change the title and icon freely but keep the key.
+
+[[ladder]]
+key = "builder"
+name = "Molecule builder"
+stat = "molecules"
+unit = "molecules built"
+tiers = [
+  { at = 1,   icon = "🍼", title = "Baby Bonder" },
+  { at = 5,   icon = "🔗", title = "Stick Figure" },
+  { at = 15,  icon = "🧱", title = "Lab Rat" },
+  { at = 40,  icon = "🥽", title = "Goggles On" },
+  { at = 100, icon = "🧬", title = "Molecule Whisperer" },
+  { at = 250, icon = "👑", title = "Avogadro's Favorite" },
+]
+
+[[ladder]]
+key = "puzzler"
+name = "Puzzle solver"
+stat = "puzzles"
+unit = "puzzles solved"
+tiers = [
+  { at = 1,   icon = "🔍", title = "Curious Electron" },
+  { at = 5,   icon = "🕵️", title = "Bond Detective" },
+  { at = 15,  icon = "🧠", title = "Valence Virtuoso" },
+  { at = 40,  icon = "🎯", title = "Isomer Hunter" },
+  { at = 100, icon = "🏛️", title = "Professor Puzzle" },
+]
+
+[[ladder]]
+key = "chef"
+name = "Cauldron chef"
+stat = "cooked"
+unit = "molecules cooked"
+tiers = [
+  { at = 1,   icon = "🥄", title = "Kitchen Apprentice" },
+  { at = 5,   icon = "🍳", title = "Sous-Chemist" },
+  { at = 15,  icon = "🧙", title = "Potion Brewer" },
+  { at = 40,  icon = "🌋", title = "Molecular Gastronomist" },
+  { at = 100, icon = "⭐", title = "Three-Michelin-Electron Chef" },
+]
+
+[[ladder]]
+key = "stars"
+name = "Star power"
+stat = "points"
+unit = "⭐"
+tiers = [
+  { at = 100,   icon = "✨", title = "Spark" },
+  { at = 500,   icon = "🔥", title = "Bunsen Burner" },
+  { at = 2000,  icon = "💥", title = "Supernova" },
+  { at = 10000, icon = "🌌", title = "Big Bang" },
+]
+
+[[badge]]
+key = "lesson"
+icon = "🌱"
+title = "Hello, Atom!"
+hint = "Finish the beginner lesson"
+rule = "event:lesson"
+
+[[badge]]
+key = "quiz"
+icon = "🎓"
+title = "Teacher's Pet"
+hint = "Get every question right in the Learn quiz"
+rule = "event:quiz"
+
+[[badge]]
+key = "water"
+icon = "💧"
+title = "Hydrated"
+hint = "Build water"
+rule = "smiles:O"
+
+[[badge]]
+key = "co2"
+icon = "🫧"
+title = "Bubbly Personality"
+hint = "Build carbon dioxide"
+rule = "smiles:O=C=O"
+
+[[badge]]
+key = "ethanol"
+icon = "🍷"
+title = "Happy Hour"
+hint = "Build ethanol"
+rule = "smiles:CCO"
+
+[[badge]]
+key = "double"
+icon = "🔁"
+title = "Double Trouble"
+hint = "Build a molecule with a double bond"
+rule = "bond:2"
+
+[[badge]]
+key = "triple"
+icon = "⚡"
+title = "Triple Threat"
+hint = "Build a molecule with a triple bond"
+rule = "bond:3"
+
+[[badge]]
+key = "ring"
+icon = "💍"
+title = "Ring Bearer"
+hint = "Build a molecule with a ring"
+rule = "ring"
+
+[[badge]]
+key = "accident"
+icon = "🎲"
+title = "Happy Accident"
+hint = "Cook something you've never built by hand"
+rule = "accident"

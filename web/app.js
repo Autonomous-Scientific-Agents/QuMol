@@ -1094,7 +1094,7 @@ function learnQuiz(body){
     const again = document.createElement('button'); again.textContent = 'Start the quiz again'; again.style.width = '100%';
     again.onclick = () => { s.order = []; s.streak = 0; s.answered = -1; SFX.tick(); showLearn('quiz'); };
     body.appendChild(again);
-    if(all){ SFX.chime(); buzz(30); }
+    if(all){ SFX.chime(); buzz(30); badgeEvent('quiz'); }
     return;
   }
   const q = QUIZ[s.order[s.i]];
@@ -1436,7 +1436,7 @@ async function submitOnline(){
     setCoords(r.coords_opt.flat()); changed();
     burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 40, 4, 0.8, 0.28);
   }
-  total = r.total; LS.set('qm.total', total);
+  total = r.total; LS.set('qm.total', total); checkBadges();
   await showScore({lines: r.lines, score: r.score, discovery: r.discovery, name: r.pubchem && r.pubchem.name,
                    formula: r.formula, smiles: r.smiles, pubchem: r.pubchem, warning: r.warning,
                    log: r.log, unitOf});
@@ -1529,7 +1529,7 @@ function logEl(log, unitOf){
 // The beginner lesson (lesson.js): atoms, electrons, valence, bonds and lone pairs.
 function startLesson(){
   unlockAudio(); $('ov').classList.add('hidden');
-  openLesson({sfx:SFX, ls:LS, onBuild:key => loadExample(key), onQuiz:() => showLearn('quiz')});
+  openLesson({sfx:SFX, ls:LS, onBuild:key => loadExample(key), onQuiz:() => showLearn('quiz'), onFinish:() => badgeEvent('lesson')});
 }
 function lessonBtn(card, text = '🌱 New to chemistry? Start the beginner lesson'){
   const b = document.createElement('button'); b.className = 'try lessonBtn'; b.textContent = text;
@@ -1577,6 +1577,64 @@ function showHelp(){
   <p style="opacity:.6;font-size:13px">Early prototype: energies come from a simple toy force field. A proper ML potential comes later.</p>`);
   closeBtn(card, "Let's build!");
 }
+/* ---------- badges: titles and icons come from qumol/badges.toml via /api/badges ---------- */
+const badgeQueue = [];
+let badgeShowing = false;
+function badgesSeenKey(){ return 'qm.badges:' + (nick || ''); }
+// Compare what the server says is earned with what this device has already celebrated.
+function noteBadges(b){
+  if(!b || !Array.isArray(b.earned)) return;
+  const seen = LS.get(badgesSeenKey(), null);
+  LS.set(badgesSeenKey(), b.earned);
+  if(!Array.isArray(seen)){  // first look on this device: one summary instead of a pile of pop-ups
+    if(b.earned.length) setTimeout(() => toast(`🏅 You have ${b.earned.length} badge${b.earned.length > 1 ? 's' : ''}! Open your collection to see them.`, 3200), 1200);
+    return;
+  }
+  const all = [...b.ladders.flatMap(l => l.tiers.map(t => ({...t, ladder:l.name}))), ...b.badges];
+  for(const k of b.earned) if(!seen.includes(k)){ const x = all.find(a => a.key === k); if(x) badgeQueue.push(x); }
+  nextBadgePop();
+}
+function nextBadgePop(){
+  if(badgeShowing || !badgeQueue.length) return;
+  badgeShowing = true;
+  const x = badgeQueue.shift(), el = $('badgePop');
+  el.innerHTML = `<span class="bpi">${x.icon}</span><span><small>${x.ladder ? 'New title!' : 'Badge unlocked!'}</small><b>${escapeHTML(x.title)}</b>${x.ladder ? `<em>${escapeHTML(x.ladder)}</em>` : ''}</span>`;
+  el.onclick = () => { el.classList.remove('show'); showBadges(); };
+  setTimeout(() => { el.classList.add('show'); SFX.fanfare(); buzz([30, 40, 30]); }, 900);
+  setTimeout(() => { el.classList.remove('show'); setTimeout(() => { badgeShowing = false; nextBadgePop(); }, 400); }, 4600);
+}
+async function checkBadges(){
+  if(!ONLINE || !token) return;
+  try{ noteBadges(await api('/api/badges')); }catch{}
+}
+async function badgeEvent(event){
+  if(!ONLINE || !token) return;
+  try{ noteBadges(await api('/api/badges/event', {method:'POST', body:{event}})); }catch{}
+}
+async function showBadges(){
+  if(ONLINE && !token) return showWelcome();
+  let b;
+  try{ b = await api('/api/badges'); }catch(e){ return toast(e.message); }
+  noteBadges(b);
+  const card = openCard(); card.classList.add('badges');
+  card.innerHTML = `<h2>🏅 Badges · ${b.earned.length}</h2>`;
+  for(const l of b.ladders){
+    const next = l.tiers.find(t => !t.earned), top = [...l.tiers].reverse().find(t => t.earned);
+    const prev = top ? top.at : 0, pct = next ? Math.min(100, 100 * (l.value - prev) / (next.at - prev)) : 100;
+    const d = document.createElement('div'); d.className = 'bladder';
+    d.innerHTML = `<div class="bl-h"><b>${escapeHTML(l.name)}</b><span>${l.value.toLocaleString()} ${escapeHTML(l.value === 1 ? l.unit.replace(/^(\w+)s\b/, '$1') : l.unit)}</span></div>
+      <div class="bl-tiers">${l.tiers.map(t => `<span class="btier${t.earned ? ' on' : ''}" title="${escapeHTML(t.title)}: ${t.at.toLocaleString()} ${escapeHTML(l.unit)}">${t.icon}<small>${t.at.toLocaleString()}</small></span>`).join('')}</div>
+      <div class="bl-bar"><i style="width:${pct}%"></i></div>
+      <div class="bl-next">${top ? `${top.icon} <b>${escapeHTML(top.title)}</b>` : 'No title yet'}${next ? ` · next: ${next.icon} ${escapeHTML(next.title)} at ${next.at.toLocaleString()}` : ' · top tier!'}</div>`;
+    card.appendChild(d);
+  }
+  const g = document.createElement('div'); g.className = 'bgrid';
+  g.innerHTML = b.badges.map(x => `<div class="bbadge${x.earned ? ' on' : ''}"><span>${x.icon}</span><b>${x.earned ? escapeHTML(x.title) : '???'}</b><small>${escapeHTML(x.hint)}</small></div>`).join('');
+  card.appendChild(g);
+  const back = document.createElement('button'); back.className = 'link'; back.textContent = 'Back to my collection';
+  back.onclick = () => showCollection(); card.appendChild(back);
+  closeBtn(card, 'Close');
+}
 async function showCollection(){
   if(ONLINE && !token) return showWelcome();
   let items = history.map(e => ({formula:e.formula, smiles:e.smiles, score:e.score, discovery:e.pubNew}));
@@ -1594,6 +1652,8 @@ async function showCollection(){
   if(!items.length){ const p = document.createElement('p'); p.textContent = 'Nothing yet. Go build something!'; card.appendChild(p); }
   items.slice(0, 50).forEach(e => card.appendChild(lineEl((e.discovery ? '🤯 ' : '') + e.formula, e.score, e.smiles)));
   if(ONLINE){
+    const bb = document.createElement('button'); bb.className = 'try'; bb.textContent = '🏅 My badges';
+    bb.onclick = () => showBadges(); card.insertBefore(bb, h.nextSibling);
     const em = document.createElement('button'); em.className = 'link';
     em.textContent = email ? `Contact email: ${email} (change)` : 'Add a contact email (optional)';
     em.onclick = () => editEmail(email);
@@ -1850,7 +1910,7 @@ async function submitPuzzle(){
     card.appendChild(d);
   }
   const tot = document.createElement('div'); tot.id = 'ovTotal'; tot.textContent = `+${r.score}`; card.appendChild(tot);
-  if(typeof r.total === 'number'){ total = r.total; LS.set('qm.total', total); $('total').textContent = `${total.toLocaleString()} ⭐`; }  // puzzle points count toward the total
+  if(typeof r.total === 'number'){ total = r.total; LS.set('qm.total', total); $('total').textContent = `${total.toLocaleString()} ⭐`; checkBadges(); }  // puzzle points count toward the total
   if(r.score > 0){ SFX.chime(); buzz(30); burst(centroid(), [0x7c5cff, 0x20d3a7, 0xffffff], 50, 4, 0.9, 0.3); }
   const src = document.createElement('div'); src.className = 'src';
   src.textContent = `Reference structure: ${(r.source && r.source.text) || ''}${r.source && r.source.doi ? ', doi:' + r.source.doi : ''}`;
@@ -2442,7 +2502,7 @@ async function addMolecules(r, btn){
       if(e.status === 401){ addingMols = false; leaveKitchen(); setAccount(null, null); showWelcome(); return; }
     }
   }
-  addingMols = false;
+  addingMols = false; checkBadges();
   if(got > 0){ SFX.fanfare(); toast(`+${got.toLocaleString()} ⭐ from the cauldron`, 3000); } else toast('No new points this time');
   const d = $('kdone');
   d.querySelector('.kmsg').textContent = got > 0 ? `Added! +${got.toLocaleString()} ⭐` : 'Added, but no new points this time (already in your collection, or not stable).';
@@ -2559,7 +2619,7 @@ if(new URLSearchParams(location.search).has('debug')) window.qm = {get camera(){
     if(!ONLINE) loadRDKit(); else updateInfo();
     if(ONLINE && !token) return showWelcome();
     if(ONLINE){
-      try{ const me = await api('/api/me'); total = me.total; nick = me.nickname; LS.set('qm.total', total); updateInfo(); }
+      try{ const me = await api('/api/me'); total = me.total; nick = me.nickname; LS.set('qm.total', total); updateInfo(); checkBadges(); }
       catch(e){ if(e.status === 401){ setAccount(null, null); return showWelcome(); } }
     } else toast('Offline mode: scores stay on this device', 2500);
     if(!LS.get('qm.seenHelp', false)){ LS.set('qm.seenHelp', true); showIntro(); }

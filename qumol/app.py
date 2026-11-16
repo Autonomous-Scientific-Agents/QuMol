@@ -27,7 +27,7 @@ from pydantic import BaseModel, Field
 
 import time
 
-from . import __version__, cook, db, puzzles, scoring
+from . import __version__, badges, cook, db, puzzles, scoring
 from .calculators import available, get_calculator
 from .chem import ChemError, hill_formula, smiles_from_graph, smiles_of, validate
 from .security import (BodyLimit, SecurityHeaders, compute_slot, ensure_disk_space, env_int, limiter,
@@ -219,6 +219,27 @@ def update_me(body: Profile, player=Depends(current_player), con=Depends(get_con
     with con:
         con.execute("UPDATE players SET email=? WHERE id=?", (email, player["id"]))
     return {"email": email}
+
+
+# ------------------------------------------------------------------ badges
+
+
+class BadgeEvent(BaseModel):
+    event: Literal[tuple(sorted(badges.EVENTS))]  # type: ignore[valid-type]
+
+
+@app.get("/api/badges")
+def my_badges(player=Depends(current_player), con=Depends(get_con)):
+    """The player's ladders and badges (titles and icons come from badges.toml)."""
+    return badges.player_badges(con, player["id"])
+
+
+@app.post("/api/badges/event")
+def badge_event(body: BadgeEvent, player=Depends(current_player), con=Depends(get_con)):
+    """The game reports something only it can see, such as finishing the beginner lesson."""
+    with con:
+        badges.record_event(con, player["id"], body.event)
+    return badges.player_badges(con, player["id"])
 
 
 # ------------------------------------------------------------------ submissions

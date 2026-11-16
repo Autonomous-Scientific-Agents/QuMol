@@ -127,6 +127,13 @@ CREATE TABLE IF NOT EXISTS opt_cache (
     PRIMARY KEY (input_key, smiles, method_id)
 );
 
+CREATE TABLE IF NOT EXISTS player_events (   -- things the game reports for badges, e.g. 'lesson'
+    player_id  INTEGER NOT NULL REFERENCES players(id),
+    event      TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    PRIMARY KEY (player_id, event)
+);
+
 CREATE TABLE IF NOT EXISTS pubchem_cache (
     smiles     TEXT PRIMARY KEY,
     in_pubchem INTEGER NOT NULL,
