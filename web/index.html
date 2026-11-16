@@ -127,6 +127,7 @@ button.disabled{opacity:.35}
 .slots span.lp{background:#ffd166}
 .legend{font-size:12px;opacity:.75}
 .try{margin-top:10px;width:100%;background:linear-gradient(135deg,#ff5ca8,#7c5cff)}
+.try.lessonBtn{background:linear-gradient(135deg,#20d3a7,#3d6bff)}
 .shape{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid #22305a}
 .shape .ang{font-size:22px;font-weight:900;color:#ffd166;min-width:72px;text-align:center}
 .shape p{margin:0;font-size:14px}
@@ -277,6 +278,84 @@ body.simmer #kCook{animation:none}
 @keyframes pop{from{transform:scale(.6);opacity:0}}
 @keyframes slide{from{transform:translateX(-24px);opacity:0}}
 @keyframes pulse{to{transform:scale(1.08)}}
+/* beginner lesson (lesson.js) */
+#lesson{position:fixed;inset:0;z-index:14;display:grid;grid-template-rows:auto minmax(200px,1fr) auto;background:radial-gradient(ellipse at 50% 30%,#1b2550,#0b1020 70%);touch-action:none}
+#lesson.hidden{display:none}
+body.lessoning #top,body.lessoning #bottom{visibility:hidden}
+.lhead{display:flex;align-items:center;gap:10px;padding:10px 12px;padding-top:max(10px,env(safe-area-inset-top))}
+.lhead b{font-size:16px;white-space:nowrap}
+.ldots{flex:1;display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.ldot{min-width:0;width:12px;height:12px;padding:0;border-radius:50%;background:#2c3a66}
+.ldot.seen{background:#4b5b96}.ldot.on{background:var(--acc2);box-shadow:0 0 10px var(--acc2)}
+.ldot:disabled{cursor:default;opacity:.6}
+.lx{min-width:40px;height:40px}
+.lstage{width:100%;height:100%;display:block;overflow:visible}
+.lpanel{width:min(100%,640px);justify-self:center;background:#141c34;border:1px solid #2c3a66;border-bottom:0;border-radius:18px 18px 0 0;padding:14px 18px;padding-bottom:max(14px,env(safe-area-inset-bottom));max-height:48vh;overflow:auto;touch-action:pan-y}
+.lpanel h3{margin:0 0 6px;font-size:18px;color:#ffd166}
+.ltext{font-size:15.5px;line-height:1.5}
+.ltext p{margin:8px 0}
+.ltask{margin-top:10px;padding:8px 12px;border-radius:10px;background:#1d2a50;font-size:15px;font-weight:600;transition:background .2s}
+.ltask.bad{background:#4a2433;animation:lshake .35s}
+.ltask.ok{background:#16483d}
+.lprog{float:right;opacity:.75;font-weight:500}
+.lafter{max-height:0;overflow:hidden;opacity:0;transition:max-height .6s,opacity .6s,margin .6s;font-size:15.5px;line-height:1.5;border-left:3px solid var(--acc2);padding-left:12px}
+.lafter.show{max-height:400px;opacity:1;margin-top:10px}
+.lnav{display:flex;gap:8px;margin-top:12px}
+.lnav .lnext{margin-left:auto;min-width:110px}
+.lnav .lnext.go{background:linear-gradient(135deg,var(--acc2),var(--acc));animation:lpulse 1.6s infinite}
+.lnav button:disabled{opacity:.4;cursor:default}
+.lend{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.lend:empty{display:none}
+.lend button{flex:1}
+.lend .lgo{background:linear-gradient(135deg,#ff5ca8,#7c5cff)}
+.ltab{border-collapse:collapse;margin:4px 0;font-size:15px}
+.ltab th,.ltab td{padding:3px 12px;text-align:center}.ltab th{font-weight:600;opacity:.75;font-size:13px}
+.ltab td:first-child{font-weight:800}
+.lquiz{display:flex;gap:8px}.lquiz button{flex:1;max-width:80px}
+.lquiz button.right{background:#1f7a5c}.lquiz button.wrong{background:#7a2a3a}
+.lstage text{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;pointer-events:none}
+.lsym{font-size:17px;font-weight:800;text-anchor:middle}
+.lname{font-size:12px;fill:#c9d3ff;text-anchor:middle}
+.lhint{font-size:11px;fill:#8d98c4;text-anchor:middle}
+.lkey{font-size:12px;fill:#c9d3ff}
+.lballsym{font-weight:800;text-anchor:middle;pointer-events:none}
+.lcount{font-size:14px;font-weight:700;fill:#ffd166;text-anchor:middle;animation:lfade .4s}
+.llabel{font-size:12px;font-weight:600;fill:#fff;animation:lfade .4s}
+.lleader{stroke:#ffffffaa;stroke-width:1;stroke-dasharray:3 2}
+.lnote{font-size:12px;font-weight:800;text-anchor:middle;fill:#ffd166;animation:lrise 1.8s forwards}
+.lnote.ok{fill:#20d3a7}.lnote.end{text-anchor:end}
+.la.drag{cursor:grab}.la.held{cursor:grabbing}
+.la.drag>circle:nth-child(4){filter:drop-shadow(0 0 5px #ffffff66)}
+.la.held{filter:drop-shadow(0 6px 8px #000a)}
+.lgauge-bg{fill:none;stroke:#ffffff18;stroke-width:3}
+.lgauge{fill:none;stroke:#ffd166;stroke-width:3;stroke-linecap:round;transition:stroke-dasharray .5s,stroke .3s}
+.lgauge.full{stroke:#20d3a7}
+.lel{stroke:#0b1020;stroke-width:1;fill:#ffd166;pointer-events:none}
+.lseat{fill:none;stroke:#ffffff99;stroke-width:1.2;stroke-dasharray:2 2}
+.llp{fill:#ffd16622;stroke:#ffd16688;stroke-width:1}
+.llp-t{font-size:10px;fill:#ffd166cc}
+.lbond-hit{stroke:transparent;stroke-width:24;cursor:pointer}
+.lbond-line{stroke:#dfe6ff;stroke-width:3;stroke-linecap:round;transition:opacity .3s}
+.lspark{fill:none;stroke-width:2;transform-box:fill-box;transform-origin:center;animation:lspark .8s ease-out both}
+.lstick{stroke:#c9d0e0;stroke-width:4;stroke-linecap:round}
+.lmol{animation:lbob 3.3s ease-in-out infinite;cursor:pointer;transform-box:fill-box;transform-origin:center}
+.lmol.wig{animation:lwig .6s}
+.shell .orbit{fill:none;stroke:#ffffff35;stroke-width:1;stroke-dasharray:3 3}
+.shell .proton{fill:#ff6b6b;stroke:#7a1d1d;stroke-width:.5}.shell .neutron{fill:#c9ced8;stroke:#555;stroke-width:.5}
+.shell .spin{animation:lspin 8s linear infinite}
+.shell .lel{transition:opacity .4s,fill .4s}
+.shell.count .ein .lel{opacity:.2}
+.shell.count .eout .lel{fill:#20d3a7}
+@keyframes lspin{to{transform:rotate(360deg)}}
+@keyframes lbob{50%{transform:translateY(-6px)}}
+@keyframes lwig{25%{transform:rotate(-12deg) scale(1.1)}75%{transform:rotate(12deg) scale(1.1)}}
+@keyframes lspark{from{transform:scale(.3);opacity:1}to{transform:scale(2.4);opacity:0}}
+@keyframes lrise{from{opacity:0;transform:translateY(6px)}20%{opacity:1;transform:none}80%{opacity:1}to{opacity:0;transform:translateY(-10px)}}
+@keyframes lfade{from{opacity:0}}
+@keyframes lshake{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+@keyframes lpulse{50%{box-shadow:0 0 18px var(--acc2)}}
+@media (max-width:420px){.lhead{gap:8px}.lhead b{font-size:14px}.ldots{gap:4px;flex-wrap:nowrap}.ldot{width:9px;height:9px}}
+@media (prefers-reduced-motion:reduce){.shell .spin,.lmol,.lnav .lnext.go{animation:none}}
 </style>
 </head>
 <body>

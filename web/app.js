@@ -1,5 +1,6 @@
 import * as THREE from './vendor/three.module.js';
 import {OrbitControls} from './vendor/OrbitControls.js';
+import {openLesson} from './lesson.js';
 
 /* ================= chemistry data ================= */
 const EL = {
@@ -1019,6 +1020,7 @@ function showLearn(tab = learnTab){
   learnTab = tab;
   const card = openCard(); card.classList.add('wide');
   card.innerHTML = '<h2>🏫 Learn chemistry</h2>';
+  lessonBtn(card, '🌱 New here? Start with the beginner lesson').style.margin = '0 0 10px';
   const tabs = document.createElement('div'); tabs.className = 'tabs';
   for(const [k, label] of [['elements','⚛️ Elements'], ['shapes','📐 Bonds & shapes'], ['quiz','❓ Quiz']]){
     const b = document.createElement('button'); b.textContent = label; b.className = k === tab ? 'on' : '';
@@ -1524,6 +1526,16 @@ function logEl(log, unitOf){
   }
   return d;
 }
+// The beginner lesson (lesson.js): atoms, electrons, valence, bonds and lone pairs.
+function startLesson(){
+  unlockAudio(); $('ov').classList.add('hidden');
+  openLesson({sfx:SFX, ls:LS, onBuild:key => loadExample(key), onQuiz:() => showLearn('quiz')});
+}
+function lessonBtn(card, text = '🌱 New to chemistry? Start the beginner lesson'){
+  const b = document.createElement('button'); b.className = 'try lessonBtn'; b.textContent = text;
+  b.onclick = () => { SFX.tick(); startLesson(); };
+  card.appendChild(b); return b;
+}
 // First run: the essentials only. The ? button has the full guide and the tutorial.
 function showIntro(){
   const card = openCard();
@@ -1532,6 +1544,7 @@ function showIntro(){
   <p>Hit <b>Build</b> (the flask): your molecule is optimized and scored. New molecules score big, and one that's <b>not in PubChem</b> scores huge.</p>
   <p>One finger rotates, pinch zooms.</p>
   <p style="opacity:.8">Tap <b>?</b> at the top any time for the full guide and the interactive tutorial.</p>`;
+  lessonBtn(card, '🌱 New to atoms and molecules? Take the 5-minute lesson');
   closeBtn(card, "Let's build!");
   const more = document.createElement('button'); more.className = 'link'; more.textContent = 'Show the full guide';
   more.onclick = () => { SFX.tick(); showHelp(); };
@@ -1541,7 +1554,8 @@ function showHelp(){
   const card = openCard();
   card.innerHTML = `<h2>How to play</h2>
   <p>Build a molecule atom by atom, then hit <b>Build</b> (the flask). It gets optimized and scored.</p>`;
-  const tut = document.createElement('button'); tut.className = 'try'; tut.style.margin = '4px 0 8px';
+  lessonBtn(card, '🌱 Beginner lesson: atoms, electrons and bonds');
+  const tut = document.createElement('button'); tut.className = 'try'; tut.style.margin = '8px 0 8px';
   tut.textContent = '🏫 Interactive tutorial: elements, shapes and a quiz';
   tut.onclick = () => { SFX.tick(); showLearn(); };
   card.appendChild(tut);

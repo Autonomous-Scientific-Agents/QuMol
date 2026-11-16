@@ -14,6 +14,7 @@ QuMol is a 3D molecule-building game that runs in the browser on phones and desk
   - Ions (net charge) are not allowed yet.
 - **Size:** up to 10 heavy atoms.
 - **Tap a bond** to cycle single → double → triple → single, within each atom's valence. In Delete mode, tapping a bond breaks it. On desktop, bonds highlight on hover.
+- **🌱 Beginner lesson** (`web/lesson.js`), for players who know nothing about atoms yet. It opens from the first-run intro, the ? guide and the Learn card. Ten short interactive steps on a 2D stage: what atoms and molecules are, the nucleus and electron shells (tap to label), valence electrons, the full shell with empty "seats", then dragging atoms together to share electrons: H–H, CH₄ (why carbon makes 4 bonds), H₂O (2 bonds and 2 lone pairs; dropping an H on a pair is refused with an explanation), NH₃, and O=O (tap the bond to share a second pair). It ends with a cheat sheet (bonds = 8 − outer electrons) and a quick check question. Electrons keep their atom's color, so each bond visibly holds one electron from each atom, and a ring around each atom fills as its shell fills. Every step has a *Show me* button that does it for you; progress is remembered.
 - **🎓 Learn**:
   - **Elements**: animated Lewis dots, bonds vs. lone pairs, valence electrons, shapes, bond lengths and a fun fact for each element.
   - **Bonds & shapes**: tetrahedral, pyramidal, bent, trigonal planar, linear, single/double/triple bonds and rings. Each has a *Show me* button that loads an example into the 3D view.
