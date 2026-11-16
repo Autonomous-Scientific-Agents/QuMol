@@ -143,6 +143,8 @@ scripts/cook_md.py          one cook from the command line (UMA, ANI, xTB, EMT);
 
 Players choose a nickname and get a secret login token, kept in their browser, plus a **recovery code** shown once. The recovery code restores the account on a new device. Only hashes of the token and code are stored. Players can also give an **optional email** at signup (or later, from their collection) so we can contact them, for example about a discovery. It is never shown publicly or returned to anyone but its owner. A `google_sub` column is reserved for adding Google sign-in later.
 
+*Log out* (in the collection) only forgets the token in that browser, after warning that the recovery code is needed to sign back in.
+
 ### Data model
 
 - **geometries** holds unique 3D structures keyed by their **HashMol3D** identifier (library defaults: frame method, 1e-4 Å grid). Each row also keeps the quantized canonical descriptor and the standardized principal-axes geometry, so the same structure submitted twice, translated or rotated, is stored once.
@@ -174,7 +176,7 @@ The server is authoritative: it recomputes every energy itself, so scores can't 
 | GET | `/api/leaderboards` | the available categories |
 | GET | `/api/leaderboard/{category}` | overall, hand, xyz, cook, weekly, small, discoveries, molecules, records, puzzle_daily, puzzles |
 | GET | `/api/geometries/{id}.xyz` | standardized geometry |
-| GET | `/api/stats`, `/api/health` | |
+| GET | `/api/stats`, `/api/health` | health includes the QuMol `version` and the deployed git `commit` (shown in the ☰ menu and the ? card) |
 
 Authenticated calls send `Authorization: Bearer <token>`. Interactive docs are at `/docs` when the server runs with `QUMOL_DOCS=1`.
 
